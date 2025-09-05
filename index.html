@@ -349,7 +349,7 @@
           </div>
           <div class="box">
             <div class="item-count" style="color: black">${filled}/${total} elementos</div>
-            <div class="progress-mini" style="background:gray"><div class="fill" style="width:${progress}%;"></div></div>
+            <div class="progress-mini" style="background:gray; style="padding:7px; border-radius:10px"><div class="fill" style="width:${progress}%;"></div></div>
           </div>`;
 
         editor.addNode(areaKey, 1, 1, pos.x, pos.y, `supervision-area ${status}`, { areaKey }, html);

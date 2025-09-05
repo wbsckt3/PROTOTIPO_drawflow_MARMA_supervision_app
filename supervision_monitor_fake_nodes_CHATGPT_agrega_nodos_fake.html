@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bitácora de Supervisión Digital — Demo con Nodos Fake</title>
+  <!-- Drawflow (CDN) -->
+  <link rel="stylesheet" href="https://unpkg.com/drawflow/dist/drawflow.min.css">
+  <script src="https://unpkg.com/drawflow/dist/drawflow.min.js"></script>
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+  <style>
+    :root{
+      --bg:#0f172a; --panel:#111827; --muted:#1f2937; --accent:#22c55e; --accent-2:#3b82f6; --text:#e5e7eb; --text-dim:#9ca3af; --danger:#ef4444; --yellow:#f59e0b; --card:#0b1220; --excellent:#22c55e; --good:#3b82f6; --regular:#f59e0b;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(180deg,#0b1220,#0f172a);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    .app{display:grid;grid-template-columns:320px 1fr 380px;grid-template-rows:auto 1fr;grid-template-areas:"topbar topbar topbar" "left canvas right";height:100%}
+    .topbar{grid-area:topbar;display:flex;gap:.5rem;align-items:center;padding:.8rem;border-bottom:1px solid #1f2937;background:rgba(17,24,39,.8);backdrop-filter:blur(8px);position:sticky;top:0;z-index:50}
+    .brand{font-weight:700;letter-spacing:.2px}
+    .brand small{opacity:.6;font-weight:500}
+    .badge{border:1px dashed #64748b;border-radius:.5rem;padding:.2rem .5rem;font-size:.75rem;color:#cbd5e1}
+    .btn{background:var(--muted);border:1px solid #293548;color:var(--text);padding:.45rem .7rem;border-radius:.6rem;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:.4rem}
+    .btn:hover{background:#243042}
+    .btn.primary{background:linear-gradient(135deg,var(--accent),#16a34a);border-color:transparent;color:#02130a;font-weight:700}
+    .btn.secondary{background:linear-gradient(135deg,var(--accent-2),#1e40af);border-color:transparent;color:#fff;font-weight:600}
+    .btn.warn{background:linear-gradient(135deg,var(--yellow),#d97706);border-color:transparent;color:#120b02;font-weight:700}
+    .btn:disabled{opacity:0.6;cursor:not-allowed}
+    .left{grid-area:left;padding:.8rem;border-right:1px solid #1f2937;overflow:auto}
+    .right{grid-area:right;border-left:1px solid #1f2937;display:flex;flex-direction:column;min-width:360px}
+    .panel{padding:.8rem}
+    .panel h3{margin:.2rem 0 .8rem;font-size:1rem;color:#cbd5e1;font-weight:600}
+    .stack{display:flex;flex-direction:column;gap:.6rem}
+    .card{background:var(--panel);border:1px solid #1f2937;border-radius:12px;padding:.75rem}
+    .muted{color:var(--text-dim);font-size:.9rem}
+    .grid{display:grid;gap:.5rem}
+    .grid.two{grid-template-columns:1fr 1fr}
+    label{font-size:.85rem;color:#bfc7d5;font-weight:500}
+    input,select,textarea{width:100%;background:#0b1220;border:1px solid #283245;border-radius:.6rem;color:var(--text);padding:.5rem .6rem;outline:none}
+    textarea{min-height:100px;resize:vertical}
+    .form-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem}
+    .form-row label{margin-bottom:.3rem}
+
+    /* Canvas */
+    #drawflow{
+		grid-area:canvas;
+		height:calc(100vh - 72px);
+		width:100%;
+		background:radial-gradient(ellipse at 20% 0%,rgba(34,197,94,.06),transparent 40%),radial-gradient(ellipse at 80% 70%,rgba(59,130,246,.06),transparent 40%),#0b1220
+	}
+
+    /* Nodos de supervisión */
+    .drawflow-node {background: linear-gradient(180deg, rgba(17,24,39,0.95), rgba(11,18,32,0.95)); border: 1px solid rgba(148,163,184,0.2); border-radius: 20px; color: var(--text); box-shadow: 0 4px 20px rgba(0,0,0,0.35); transition: all 0.2s ease-in-out; backdrop-filter: blur(10px); min-width: 220px; cursor: pointer;}
+    .drawflow-node:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.45); transform: translateY(-2px); }
+    .drawflow-node.completed { outline: 2px solid var(--excellent); box-shadow: 0 0 0 4px rgba(34,197,94,0.2);} 
+    .drawflow-node.partial   { outline: 2px solid var(--yellow);    box-shadow: 0 0 0 4px rgba(245,158,11,0.2);} 
+    .drawflow-node.pending   { background: black; outline: 2px solid var(--text-dim); box-shadow: 0 0 0 4px rgba(156,163,175,0.1);} 
+     .status-badge{font-size:.75rem;padding:.2rem .5rem;font-weight:600;text-transform:uppercase}
+    .status-badge.completed{background:rgba(34,197,94,.2);color:var(--excellent)}
+    .status-badge.partial{background:rgba(245,158,11,.2);color:var(--yellow)}
+    .status-badge.pending{background:rgba(156,163,175,.2);color:var(--text-dim)}
+    .box{padding:.8rem}
+    .item-count{font-size:.85rem;color:var(--text-dim);margin-bottom:.5rem}
+    .progress-mini{height:4px;background:#1f2937;border-radius:2px;overflow:hidden}
+    .progress-mini .fill{height:100%;background: linear-gradient(90deg, var(--accent-2), var(--accent)); transition:width .3s ease}
+
+    /* Modal */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);z-index:1000;display:none;align-items:center;justify-content:center;padding:2rem}
+    .modal.active{display:flex}
+    .modal-content{background:var(--panel);border:1px solid #334155;border-radius:20px;max-width:800px;width:100%;max-height:80vh;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.5)}
+    .modal-header{padding:1.5rem 2rem;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg, rgba(31,41,55,.9), rgba(17,24,39,.9))}
+    .modal-body{padding:2rem;max-height:60vh;overflow-y:auto}
+    .modal-footer{padding:1.5rem 2rem;border-top:1px solid #334155;display:flex;gap:1rem;justify-content:flex-end;background:rgba(15,23,42,.5)}
+    .close-btn{background:none;border:none;color:var(--text-dim);font-size:1.5rem;cursor:pointer;padding:0;width:2rem;height:2rem;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:.2s}
+    .close-btn:hover{background:rgba(239,68,68,.2);color:var(--danger)}
+
+    /* Modal form */
+    .supervision-item{display:flex;align-items:center;padding:.8rem 1rem;border:1px solid #334155;border-radius:12px;margin-bottom:.5rem;background:rgba(11,18,32,.5);transition:.2s}
+    .supervision-item:hover{background:rgba(11,18,32,.8);border-color:#475569}
+    .supervision-item label{flex:1;margin:0;font-weight:500}
+    .checkbox-group{display:flex;gap:1rem;margin-left:1rem}
+    .checkbox-option{display:flex;flex-direction:column;align-items:center;gap:.3rem}
+    .checkbox-option input[type="radio"]{width:1.2rem;height:1.2rem;margin:0}
+    .checkbox-option span{font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+    .checkbox-option.excellent span{color:var(--excellent)}
+    .checkbox-option.good span{color:var(--good)}
+    .checkbox-option.regular span{color:var(--regular)}
+
+    /* Summary */
+    .summary-item{display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid rgba(148,163,184,.1)}
+    .summary-item:last-child{border-bottom:none}
+    .summary-value{font-weight:600}
+	
+	.drawflow .drawflow-node {
+	  display:flex;
+	  align-items:center;
+	  position:absolute;
+	  background:#f0d9cb;
+	  width:160px;
+	  min-height:40px;
+	  border-radius:12px;
+	  border:1px solid #f0d9cb;
+	  color:#000;
+	  z-index:2;
+	  padding:15px
+	}
+	
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">📋 Bitácora de Supervisión Digital <small>(Demo Marma)</small></div>
+      <span id="demo-badge" class="badge" title="Se están usando datos y conexiones falsas para demo">Modo demo: Nodos fake</span>
+      <div style="margin-left:auto;display:flex;gap:1rem;align-items:center;">
+        <div class="form-row" style="margin:0;">
+          <div>
+            <label>Cliente:</label>
+            <input id="cliente" placeholder="Nombre del cliente" />
+          </div>
+          <div>
+            <label>Fecha:</label>
+            <input id="fecha" type="date" />
+          </div>
+          <div>
+            <label>Supervisor:</label>
+            <input id="supervisor" placeholder="Nombre supervisor" />
+          </div>
+        </div>
+        <button class="btn secondary" id="btn-save-supervision">💾 Guardar Bitácora</button>
+      </div>
+    </div>
+
+    <aside class="left">
+      <div class="panel card">
+        <h3>Resumen de Supervisión</h3>
+        <div id="supervision-summary">
+          <div class="summary-item"><span>Total de áreas:</span><span class="summary-value" id="total-areas">0</span></div>
+          <div class="summary-item"><span>Completadas:</span><span class="summary-value" style="color:var(--excellent)" id="completed-areas">0</span></div>
+          <div class="summary-item"><span>Parciales:</span><span class="summary-value" style="color:var(--yellow)" id="partial-areas">0</span></div>
+          <div class="summary-item"><span>Pendientes:</span><span class="summary-value" style="color:var(--text-dim)" id="pending-areas">0</span></div>
+          <div class="summary-item" style="margin-top:1rem;padding-top:1rem;border-top:1px solid #334155;">
+            <span><strong>Progreso total:</strong></span><span class="summary-value" id="total-progress">0%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel card">
+        <h3>Configuración</h3>
+        <div class="stack">
+          <div>
+            <label>API Endpoint:</label>
+            <input id="apiEndpoint" value="https://www.refactorii.com/api/tenant/" />
+          </div>
+          <div>
+            <label>User Email:</label>
+            <input id="userEmail" value="demo@example.com" />
+          </div>
+          <div>
+            <label>Company ID:</label>
+            <input id="companyId" value="demo-company-id" />
+          </div>
+          <div style="display:flex;gap:.5rem;align-items:center">
+            <button class="btn" id="btn-reset-supervision">🔄 Reiniciar Supervisión</button>
+            <button class="btn warn" id="btn-toggle-fake">🧪 Toggle Fake</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main id="drawflow"></main>
+
+    <aside class="right">
+      <div class="panel card" id="area-details">
+        <h3>Detalles del Área</h3>
+        <div id="area-details-content" class="muted">Haz clic en un área para ver sus detalles y comenzar la supervisión.</div>
+      </div>
+      <div class="panel card">
+        <h3>Observaciones Generales</h3>
+        <textarea id="observaciones" placeholder="Escribe observaciones generales de la supervisión..."></textarea>
+      </div>
+      <div class="panel" style="flex:1;display:flex;flex-direction:column;">
+        <h3>Log de Actividad</h3>
+        <div id="activity-log" style="flex:1;background:#0b1220;border:1px solid #334155;border-radius:12px;padding:1rem;overflow-y:auto;font-family:monospace;font-size:.85rem;">
+          <div>[Sistema] Bitácora de supervisión iniciada</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Modal de supervisión -->
+  <div class="modal" id="supervision-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modal-title">Supervisión de Área</h2>
+        <button class="close-btn" id="close-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn" id="btn-cancel">Cancelar</button>
+        <button class="btn primary" id="btn-save-area">Guardar Área</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========= 1) CONFIG FAKE COMO SI VINIERA DEL TENANT =========
+    // Toggle por querystring ?demo=false o por localStorage("useFakeTenant")
+    const urlParams = new URLSearchParams(location.search);
+    const DEMO_DEFAULT = urlParams.get('demo') !== 'false';
+    let USE_FAKE = JSON.parse(localStorage.getItem('useFakeTenant') ?? JSON.stringify(DEMO_DEFAULT));
+
+    // Objeto de configuración del tenant (fake)
+    const tenantConfig = {
+      name: 'Condominio Las Palmas',
+      layout: {
+        positions: {
+          piscinas:      { x: 100, y: 100 },
+          zonas_comunes: { x: 360, y: 100 },
+          zonas_externas:{ x: 620, y: 100 },
+          oficinas:      { x: 200, y: 360 },
+          operario:      { x: 480, y: 360 }
+        },
+        // Conexiones para mostrar flujo/relación (out_1 -> in_1)
+        connections: [
+          ['piscinas','zonas_comunes'],
+          ['zonas_comunes','zonas_externas'],
+          ['zonas_externas','oficinas'],
+          ['oficinas','operario']
+        ]
+      },
+      areas: {
+        piscinas: {
+          name: 'PISCINAS', color: '#3b82f6',
+          items: ['BAÑOS','ROMPE OLAS','ANDENES','LAVA PIES - DUCHA','SAUNA','JACUZZI','TURCO','COLOR VISUAL','PH','CLORO','CUARTO DE MÁQUINAS','HOLL']
+        },
+        zonas_comunes: {
+          name: 'ZONAS COMUNES', color: '#22c55e',
+          items: ['GIMNASIO','SALÓN SOCIAL','SALÓN DE JUEGOS','ANDENES','PORTERÍA','PARQUEADERO']
+        },
+        zonas_externas: {
+          name: 'ZONAS EXTERNAS', color: '#f59e0b',
+          items: ['ZONA VERDES','CAÑUELAS','PARQUE INFANTIL','PAREDES','VIDRIOS - VENTANAS','PASAMANOS','TAPAS SHUT','GABINETES - EXTINTORES','BARRIO - TRAPEADO','ASCENSORES','TUBERÍA VOLÁTIL','ESCALAS','PISOS','SHUT BASURAS']
+        },
+        oficinas: {
+          name: 'OFICINAS', color: '#8b5cf6',
+          items: ['ESCRITORIOS','PAPELERAS','SALA DE JUNTAS','AULAS','BAÑOS','RECEPCIÓN','COMPUTADORES','PAREDES','CIELO RASO','COCINETA','ENTRADAS PRINCIPAL']
+        },
+        operario: {
+          name: 'OPERARIO', color: '#ec4899',
+          items: ['PRODUCTIVIDAD','PRESENTACIÓN','CARNET','ELEMENTOS EPP','CONTROL DE HORARIO','ACTITUD']
+        }
+      },
+      // Datos de ejemplo para simular avance (E=Excelente, B=Bueno, R=Regular)
+      seed: {
+        piscinas: { 'BAÑOS':'E','PH':'B','CLORO':'B','JACUZZI':'E','TURCO':'R' },
+        zonas_comunes: { 'GIMNASIO':'B','PORTERÍA':'E' },
+        zonas_externas: { 'PARQUE INFANTIL':'B','PAREDES':'R','VIDRIOS - VENTANAS':'B','ASCENSORES':'E' },
+        oficinas: { 'ESCRITORIOS':'E','PAPELERAS':'B','BAÑOS':'R' }
+        // operario sin datos -> pendiente
+      }
+    };
+
+    // ========= 2) ESTADO GLOBAL =========
+    let editor;                       // instancia drawflow
+    let supervisionAreas = {};        // catálogo de áreas (puede venir del tenant real)
+    let supervisionData = {};         // respuestas por ítem
+    let currentAreaKey = null;        // clave del área seleccionada
+    const idsByArea = {};             // mapa areaKey -> nodeId
+
+    // ========= 3) UTILES =========
+    function log(message){
+      const logEl = document.getElementById('activity-log');
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.textContent = `[${time}] ${message}`;
+      logEl.appendChild(div);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function updateSummary(){
+      const totalAreas = Object.keys(supervisionAreas).length;
+      let completedAreas=0, partialAreas=0, pendingAreas=0, totalItems=0, completedItems=0;
+      Object.keys(supervisionAreas).forEach(areaKey =>{
+        const areaItems = supervisionAreas[areaKey].items;
+        const filled = Object.keys(supervisionData[areaKey] || {}).length;
+        totalItems += areaItems.length;
+        completedItems += filled;
+        if (filled === areaItems.length) completedAreas++;
+        else if (filled > 0) partialAreas++;
+        else pendingAreas++;
+      });
+      const totalProgress = totalItems ? Math.round((completedItems/totalItems)*100) : 0;
+      document.getElementById('total-areas').textContent = totalAreas;
+      document.getElementById('completed-areas').textContent = completedAreas;
+      document.getElementById('partial-areas').textContent = partialAreas;
+      document.getElementById('pending-areas').textContent = pendingAreas;
+      document.getElementById('total-progress').textContent = totalProgress + '%';
+    }
+
+    function getAreaStatus(areaKey){
+      const total = (supervisionAreas[areaKey]?.items?.length) || 0;
+      const filled = Object.keys(supervisionData[areaKey] || {}).length;
+      if (filled === total && total>0) return 'completed';
+      if (filled > 0) return 'partial';
+      return 'pending';
+    }
+
+    function renderAreaDetails(areaKey){
+      const area = supervisionAreas[areaKey];
+      const areaData = supervisionData[areaKey] || {};
+      const content = document.getElementById('area-details-content');
+      let html = `<div style="margin-bottom:1rem;"><strong>${area.name}</strong><div class="muted">${Object.keys(areaData).length}/${area.items.length} elementos supervisados</div></div>`;
+      if (Object.keys(areaData).length){
+        html += '<div class="stack">';
+        Object.entries(areaData).forEach(([item,val])=>{
+          const txt = val==='E'?'Excelente':val==='B'?'Bueno':'Regular';
+          const col = val==='E'?'var(--excellent)':val==='B'?'var(--good)':'var(--regular)';
+          html += `<div style="display:flex;justify-content:space-between;"><span style="font-size:.9rem;">${item}</span><span style="color:${col};font-weight:600;">${txt}</span></div>`;
+        });
+        html += '</div>';
+      } else {
+        html += '<div class="muted">No hay datos de supervisión para esta área.</div>';
+      }
+      content.innerHTML = html;
+    }
+
+    // ========= 4) DRAWFLOW =========
+    function initializeDrawflow(){
+      editor = new Drawflow(document.getElementById('drawflow'));
+      editor.reroute = false; editor.zoom_min = 0.5; 
+	  editor.zoom_max = 2; 
+	  editor.start(); 
+	  //editor.editor_mode = 'edit'; // habilita mover nodos manualmente
+
+      // Crear nodos (1 input, 1 output) y guardamos mapping id <-> area
+      Object.keys(supervisionAreas).forEach((areaKey) =>{
+        const area = supervisionAreas[areaKey];
+        const pos = tenantConfig.layout.positions[areaKey] || {x:120,y:120};
+        const status = getAreaStatus(areaKey);
+        const filled = Object.keys(supervisionData[areaKey]||{}).length;
+        const total = area.items.length;
+        const progress = total? Math.round((filled/total)*100): 0;
+        const html = `
+          <div class="title-box">
+            <span style="font-weight: bold; margin-bottom:10px">${area.name}</span><br><br>
+            <span class="status-badge ${status}" style="font-weight: bold; background: red; color: white; border-radius: 12px; padding:7px; margin-top: 10px">${status==='completed'?'Completo':status==='partial'?'Parcial':'Pendiente'}</span>
+          </div>
+          <div class="box">
+            <div class="item-count" style="color: black">${filled}/${total} elementos</div>
+            <div class="progress-mini" style="background:gray"><div class="fill" style="width:${progress}%;"></div></div>
+          </div>`;
+
+        editor.addNode(areaKey, 1, 1, pos.x, pos.y, `supervision-area ${status}`, { areaKey }, html);
+        // obtener id recién creado mediante getNodesFromName(name)
+        const ids = editor.getNodesFromName(areaKey);
+        const nodeId = ids[ids.length-1];
+        idsByArea[areaKey] = nodeId;
+      });
+
+      // Conexiones fake para demo
+      tenantConfig.layout.connections.forEach(([from,to])=>{
+        if (idsByArea[from] && idsByArea[to]){
+          editor.addConnection(idsByArea[from], idsByArea[to], 'output_1', 'input_1');
+        }
+      });
+
+      // Interacción: seleccionar nodo -> abrir modal del área
+      editor.on('nodeSelected', (nodeId)=>{
+        const node = editor.getNodeFromId(nodeId);
+        const areaKey = node?.data?.areaKey;
+        if (areaKey) openSupervisionModal(areaKey);
+      });
+    }
+
+    function updateNodeVisual(areaKey){
+      const id = idsByArea[areaKey]; if (!id) return;
+      const area = supervisionAreas[areaKey];
+      const status = getAreaStatus(areaKey);
+      const filled = Object.keys(supervisionData[areaKey]||{}).length;
+      const total = area.items.length;
+      const progress = total? Math.round((filled/total)*100):0;
+      const html = `
+        <div class="title-box">
+          <span>${area.name}</span>
+          <span class="status-badge ${status}">${status==='completed'?'Completo':status==='partial'?'Parcial':'Pendiente'}</span>
+        </div>
+        <div class="box">
+          <div class="item-count">${filled}/${total} elementos</div>
+          <div class="progress-mini"><div class="fill" style="width:${progress}%"></div></div>
+        </div>`;
+      // Actualizamos data y html del nodo
+      const node = editor.getNodeFromId(id);
+      if (node){ node.data = { ...node.data, areaKey }; node.html = html; }
+      // Refrescamos DOM
+      const el = document.querySelector(`.drawflow-node[data-id="${id}"]`);
+      if (el){
+        el.classList.remove('completed','partial','pending');
+        el.classList.add(status);
+        el.querySelector('.title-box') ? (el.innerHTML = html) : (el.innerHTML = html);
+      }
+    }
+
+    // ========= 5) MODAL =========
+    function openSupervisionModal(areaKey){
+      currentAreaKey = areaKey;
+      const area = supervisionAreas[areaKey];
+      const modal = document.getElementById('supervision-modal');
+      const modalTitle = document.getElementById('modal-title');
+      const modalBody = document.getElementById('modal-body');
+      modalTitle.textContent = `Supervisión: ${area.name}`;
+      let html = '<div class="supervision-form">';
+      area.items.forEach(item=>{
+        const currentValue = supervisionData[areaKey]?.[item] || '';
+        html += `
+          <div class="supervision-item">
+            <label>${item}</label>
+            <div class="checkbox-group">
+              <div class="checkbox-option excellent">
+                <input type="radio" name="${item}" value="E" ${currentValue==='E'?'checked':''} />
+                <span>E</span>
+              </div>
+              <div class="checkbox-option good">
+                <input type="radio" name="${item}" value="B" ${currentValue==='B'?'checked':''} />
+                <span>B</span>
+              </div>
+              <div class="checkbox-option regular">
+                <input type="radio" name="${item}" value="R" ${currentValue==='R'?'checked':''} />
+                <span>R</span>
+              </div>
+            </div>
+          </div>`;
+      });
+      html += '</div>';
+      modalBody.innerHTML = html;
+      modal.classList.add('active');
+      renderAreaDetails(areaKey);
+    }
+
+    function closeSupervisionModal(){ document.getElementById('supervision-modal').classList.remove('active'); currentAreaKey = null; }
+
+    function saveAreaData(){
+      if (!currentAreaKey) return;
+      const area = supervisionAreas[currentAreaKey];
+      const next = {};
+      area.items.forEach(item=>{
+        const checked = document.querySelector(`input[name="${item}"]:checked`);
+        if (checked) next[item] = checked.value;
+      });
+      supervisionData[currentAreaKey] = next;
+      updateNodeVisual(currentAreaKey);
+      updateSummary();
+      renderAreaDetails(currentAreaKey);
+      log(`Área "${area.name}" actualizada con ${Object.keys(next).length} elementos`);
+      closeSupervisionModal();
+    }
+
+    // ========= 6) SEED FAKE =========
+    function seedFromTenant(){
+      supervisionAreas = JSON.parse(JSON.stringify(tenantConfig.areas));
+      supervisionData = USE_FAKE ? JSON.parse(JSON.stringify(tenantConfig.seed)) : {};
+      document.getElementById('demo-badge').style.display = USE_FAKE ? 'inline-flex' : 'none';
+      log(USE_FAKE ? 'Cargando datos y conexiones FAKE desde tenantConfig' : 'Iniciando en blanco (sin datos fake)');
+    }
+
+    // ========= 7) PERSISTENCIA / GUARDADO =========
+    async function saveSupervision(){
+      const cliente = document.getElementById('cliente').value;
+      const fecha = document.getElementById('fecha').value;
+      const supervisor = document.getElementById('supervisor').value;
+      const observaciones = document.getElementById('observaciones').value;
+      const apiEndpoint = document.getElementById('apiEndpoint').value;
+      const userEmail = document.getElementById('userEmail').value;
+      const companyId = document.getElementById('companyId').value;
+
+      if (!cliente || !fecha || !supervisor){
+        alert('Por favor completa los campos obligatorios: Cliente, Fecha y Supervisor');
+        return;
+      }
+
+      const payload = {
+        metadata: { cliente, fecha, supervisor, observaciones, timestamp: new Date().toISOString(), numero: Date.now().toString(), demo: USE_FAKE },
+        areas: supervisionData,
+        resumen: {
+          totalAreas: Object.keys(supervisionAreas).length,
+          areasCompletadas: Object.keys(supervisionData).filter(k => (Object.keys(supervisionData[k]||{}).length === (supervisionAreas[k]?.items?.length||0))).length,
+          totalElementos: Object.values(supervisionAreas).reduce((acc,a)=>acc + a.items.length, 0),
+          elementosCompletados: Object.values(supervisionData).reduce((acc,a)=>acc + Object.keys(a).length, 0)
+        }
+      };
+
+      log('Enviando bitácora de supervisión al servidor...');
+      try {
+        const base = apiEndpoint.endsWith('/') ? apiEndpoint : apiEndpoint + '/';
+        const url = `${base}companies/${companyId}/supervision-logs`;
+        const res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json', 'x-user-email': userEmail }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const result = await res.json();
+        log(`Bitácora guardada exitosamente. ID: ${result.id || 'N/A'}`);
+        alert('Bitácora guardada exitosamente');
+      } catch (err){
+        log(`Error al guardar: ${err.message}`);
+        console.log('Datos de supervisión (respaldo local):', payload);
+        alert('Error al guardar en el servidor. Los datos se muestran en consola como respaldo.');
+      }
+    }
+
+    function resetSupervision(){
+      if (!confirm('¿Reiniciar toda la supervisión?')) return;
+      supervisionData = {};
+      document.getElementById('observaciones').value = '';
+      updateSummary();
+      Object.keys(supervisionAreas).forEach(updateNodeVisual);
+      document.getElementById('area-details-content').innerHTML = '<div class="muted">Haz clic en un área para ver sus detalles y comenzar la supervisión.</div>';
+      log('Supervisión reiniciada completamente');
+    }
+
+    // ========= 8) EVENTOS =========
+    document.getElementById('close-modal').addEventListener('click', closeSupervisionModal);
+    document.getElementById('btn-cancel').addEventListener('click', closeSupervisionModal);
+    document.getElementById('btn-save-area').addEventListener('click', saveAreaData);
+    document.getElementById('btn-save-supervision').addEventListener('click', saveSupervision);
+    document.getElementById('btn-reset-supervision').addEventListener('click', resetSupervision);
+    document.getElementById('btn-toggle-fake').addEventListener('click', ()=>{
+      USE_FAKE = !USE_FAKE;
+      localStorage.setItem('useFakeTenant', JSON.stringify(USE_FAKE));
+      // Re-seed
+      const canvas = document.getElementById('drawflow');
+      canvas.innerHTML = '';
+      idsByArea.__proto__ = null; // clear mapping
+      for (const k in idsByArea) delete idsByArea[k];
+      seedFromTenant();
+      initializeDrawflow();
+      updateSummary();
+    });
+
+    document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') closeSupervisionModal(); });
+    document.getElementById('supervision-modal').addEventListener('click',(e)=>{ if (e.target.id==='supervision-modal') closeSupervisionModal(); });
+
+    // ========= 9) INIT =========
+    document.addEventListener('DOMContentLoaded', ()=>{
+      // set fecha hoy
+      document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+      // cargar áreas + seed demo
+      seedFromTenant();
+      // inicializar canvas
+      initializeDrawflow();
+      // resumen
+      updateSummary();
+      log('Sistema listo. Haz clic en cualquier área para comenzar la supervisión.');
+    });
+  </script>
+</body>
+</html>

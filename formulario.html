@@ -45,6 +45,7 @@
     const urlParams = new URLSearchParams(location.search);
     const DEMO_DEFAULT = urlParams.get('demo') !== 'false';
     let USE_FAKE = JSON.parse(localStorage.getItem('useFakeTenant') ?? JSON.stringify(DEMO_DEFAULT));
+    const DRAFT_KEY = 'supervision_draft';
 
     const tenantConfig = {
       name: 'Condominio Las Palmas',
@@ -79,6 +80,52 @@
       supervisionComments = {};
       supervisionPhotos = {};
       document.getElementById('demo-badge').style.display = USE_FAKE ? 'inline-flex' : 'none';
+    }
+
+    function buildDraft(){
+      const cliente = (document.getElementById('cliente')||{}).value || '';
+      const fecha = (document.getElementById('fecha')||{}).value || '';
+      const supervisor = (document.getElementById('supervisor')||{}).value || '';
+      const observaciones = (document.getElementById('observaciones')||{}).value || '';
+      const areas = JSON.parse(JSON.stringify(supervisionData || {}));
+      const comentarios = JSON.parse(JSON.stringify(supervisionComments || {}));
+      const evidencias = JSON.parse(JSON.stringify(supervisionPhotos || {}));
+      const resumen = {
+        totalAreas: Object.keys(supervisionAreas||{}).length,
+        areasCompletadas: Object.keys(areas||{}).filter(k => (Object.keys(areas[k]||{}).length === (supervisionAreas[k]?.items?.length||0))).length,
+        totalElementos: Object.values(supervisionAreas||{}).reduce((acc,a)=>acc + (a.items?.length||0), 0),
+        elementosCompletados: Object.values(areas||{}).reduce((acc,a)=>acc + Object.keys(a||{}).length, 0)
+      };
+      return {
+        metadata: { cliente, fecha, supervisor, observaciones, timestamp: new Date().toISOString(), demo: USE_FAKE },
+        areas, comentarios, evidencias, resumen,
+        updatedAt: Date.now()
+      };
+    }
+
+    function persistDraft(){
+      try {
+        const draft = buildDraft();
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      } catch(e){ /* noop: storage could be full */ }
+    }
+
+    function loadDraft(){
+      try {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        if (!raw) return false;
+        const draft = JSON.parse(raw);
+        if (draft?.metadata){
+          (document.getElementById('cliente')||{}).value = draft.metadata.cliente || '';
+          (document.getElementById('fecha')||{}).value = draft.metadata.fecha || '';
+          (document.getElementById('supervisor')||{}).value = draft.metadata.supervisor || '';
+          (document.getElementById('observaciones')||{}).value = draft.metadata.observaciones || '';
+        }
+        if (draft?.areas) supervisionData = draft.areas;
+        if (draft?.comentarios) supervisionComments = draft.comentarios;
+        if (draft?.evidencias) supervisionPhotos = draft.evidencias;
+        return true;
+      } catch(e){ return false; }
     }
 
     function toggleAccordion(id){
@@ -193,6 +240,7 @@
       saveTimersByArea[areaKey] = setTimeout(()=>{
         setAreaStatus(areaKey, 'Guardado');
       }, 500);
+      persistDraft();
     }
 
     function handleComment(areaKey, item, text){
@@ -203,6 +251,7 @@
       saveTimersByArea[areaKey] = setTimeout(()=>{
         setAreaStatus(areaKey, 'Guardado');
       }, 800);
+      persistDraft();
     }
 
     function handlePhoto(areaKey, item, input){
@@ -226,6 +275,7 @@
         saveTimersByArea[areaKey] = setTimeout(()=>{
           setAreaStatus(areaKey, 'Guardado');
         }, 500);
+        persistDraft();
       };
       reader.readAsDataURL(file);
     }
@@ -246,6 +296,7 @@
       saveTimersByArea[areaKey] = setTimeout(()=>{
         setAreaStatus(areaKey, 'Guardado');
       }, 500);
+      persistDraft();
     }
 
     async function saveSupervision(){
@@ -275,6 +326,8 @@
           elementosCompletados: Object.values(areas).reduce((acc,a)=>acc + Object.keys(a).length, 0)
         }
       };
+      // persist draft on explicit save attempt (works offline)
+      try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...payload, updatedAt: Date.now() })); } catch(e){}
 
       try {
         const base = apiEndpoint.endsWith('/') ? apiEndpoint : apiEndpoint + '/';
@@ -292,7 +345,15 @@
     document.addEventListener('DOMContentLoaded', ()=>{
       document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
       seedFromTenant();
+      const restored = loadDraft();
       renderForm();
+      // listeners for metadata changes to persist
+      ['cliente','fecha','supervisor','observaciones'].forEach(id=>{
+        const el = document.getElementById(id);
+        if (el){ el.addEventListener('input', ()=>{ setTimeout(persistDraft, 0); }); }
+      });
+      // persist on unload as safety net
+      window.addEventListener('beforeunload', persistDraft);
     });
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">

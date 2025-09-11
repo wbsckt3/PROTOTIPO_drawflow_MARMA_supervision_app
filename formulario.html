@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bitácora de Supervisión — Formulario</title>
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+  <style>
+    :root{ --bg:#0f172a; --panel:#111827; --muted:#1f2937; --accent:#22c55e; --accent-2:#3b82f6; --text:#e5e7eb; --text-dim:#9ca3af; --danger:#ef4444; --yellow:#f59e0b; --excellent:#22c55e; --good:#3b82f6; --regular:#f59e0b; }
+    *{ box-sizing:border-box }
+    body{ margin:0; background:linear-gradient(180deg,#0b1220,#0f172a); color:var(--text); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial }
+    .container{ max-width:900px; margin:0 auto; padding:1rem }
+    .topbar{ position:sticky; top:0; z-index:10; background:rgba(17,24,39,.85); backdrop-filter:blur(8px); border-bottom:1px solid #1f2937; padding:.8rem 1rem; display:flex; align-items:center; gap:.6rem }
+    .brand{ font-weight:700 }
+    .badge{ border:1px dashed #64748b; border-radius:.5rem; padding:.2rem .5rem; font-size:.75rem; color:#cbd5e1 }
+    .card{ background:var(--panel); border:1px solid #1f2937; border-radius:12px; padding:1rem }
+    .grid{ display:grid; gap:.6rem }
+    .grid.two{ grid-template-columns:1fr 1fr }
+    label{ font-size:.85rem; color:#bfc7d5; font-weight:500 }
+    input,select,textarea{ width:100%; background:#0b1220; border:1px solid #283245; border-radius:.6rem; color:var(--text); padding:.5rem .6rem; outline:none }
+    textarea{ min-height:100px; resize:vertical }
+    .btn{ background:var(--muted); border:1px solid #293548; color:var(--text); padding:.55rem .8rem; border-radius:.6rem; cursor:pointer; transition:.15s; display:inline-flex; align-items:center; gap:.4rem }
+    .btn:hover{ background:#243042 }
+    .btn.primary{ background:linear-gradient(135deg,var(--accent),#16a34a); border-color:transparent; color:#02130a; font-weight:700 }
+    .accordion{ display:flex; flex-direction:column; gap:.6rem }
+    .acc-item{ border:1px solid #334155; border-radius:12px; overflow:hidden; background:rgba(11,18,32,.6) }
+    .acc-header{ display:flex; align-items:center; justify-content:space-between; padding:1rem; cursor:pointer; background:rgba(17,24,39,.8) }
+    .acc-title{ display:flex; align-items:center; gap:.6rem; font-weight:700 }
+    .chip{ font-size:.75rem; padding:.2rem .5rem; border-radius:10px; border:1px solid #334155; color:#cbd5e1 }
+    .acc-body{ display:none; padding:1rem; border-top:1px solid #334155; background:rgba(11,18,32,.6) }
+    .acc-item.open .acc-body{ display:block }
+    .supervision-item{ display:flex; align-items:center; gap:1rem; padding:.7rem .8rem; border:1px solid #334155; border-radius:10px; margin-bottom:.5rem; background:rgba(11,18,32,.5) }
+    .supervision-item label{ flex:1; margin:0 }
+    .checkbox-group{ display:flex; gap:1rem }
+    .checkbox-option{ display:flex; flex-direction:column; align-items:center; gap:.2rem }
+    .checkbox-option input[type="radio"]{ width:1.2rem; height:1.2rem; margin:0 }
+    .checkbox-option span{ font-size:.75rem; font-weight:700 }
+    .excellent span{ color:var(--excellent) }
+    .good span{ color:var(--good) }
+    .regular span{ color:var(--regular) }
+    .footer{ position:sticky; bottom:0; background:rgba(17,24,39,.9); backdrop-filter:blur(8px); border-top:1px solid #1f2937; padding:0.8rem; display:flex; gap:.6rem; justify-content:flex-end }
+    @media (max-width:720px){ .grid.two{ grid-template-columns:1fr } .checkbox-group{ gap:.7rem } .acc-header{ padding:.9rem } .acc-body{ padding:.9rem } }
+  </style>
+  <script>
+    const urlParams = new URLSearchParams(location.search);
+    const DEMO_DEFAULT = urlParams.get('demo') !== 'false';
+    let USE_FAKE = JSON.parse(localStorage.getItem('useFakeTenant') ?? JSON.stringify(DEMO_DEFAULT));
+
+    const tenantConfig = {
+      name: 'Condominio Las Palmas',
+      areas: {
+        piscinas:      { name:'PISCINAS',      color:'#3b82f6', items:['BAÑOS','ROMPE OLAS','ANDENES','LAVA PIES - DUCHA','SAUNA','JACUZZI','TURCO','COLOR VISUAL','PH','CLORO','CUARTO DE MÁQUINAS','HOLL'] },
+        zonas_comunes: { name:'ZONAS COMUNES', color:'#22c55e', items:['GIMNASIO','SALÓN SOCIAL','SALÓN DE JUEGOS','ANDENES','PORTERÍA','PARQUEADERO'] },
+        zonas_externas:{ name:'ZONAS EXTERNAS', color:'#f59e0b', items:['ZONA VERDES','CAÑUELAS','PARQUE INFANTIL','PAREDES','VIDRIOS - VENTANAS','PASAMANOS','TAPAS SHUT','GABINETES - EXTINTORES','BARRIO - TRAPEADO','ASCENSORES','TUBERÍA VOLÁTIL','ESCALAS','PISOS','SHUT BASURAS'] },
+        oficinas:      { name:'OFICINAS',      color:'#8b5cf6', items:['ESCRITORIOS','PAPELERAS','SALA DE JUNTAS','AULAS','BAÑOS','RECEPCIÓN','COMPUTADORES','PAREDES','CIELO RASO','COCINETA','ENTRADAS PRINCIPAL'] },
+        operario:      { name:'OPERARIO',      color:'#ec4899', items:['PRODUCTIVIDAD','PRESENTACIÓN','CARNET','ELEMENTOS EPP','CONTROL DE HORARIO','ACTITUD'] }
+      },
+      seed: {
+        piscinas: { 'BAÑOS':'E','PH':'B','CLORO':'B','JACUZZI':'E','TURCO':'R' },
+        zonas_comunes: { 'GIMNASIO':'B','PORTERÍA':'E' },
+        zonas_externas: { 'PARQUE INFANTIL':'B','PAREDES':'R','VIDRIOS - VENTANAS':'B','ASCENSORES':'E' },
+        oficinas: { 'ESCRITORIOS':'E','PAPELERAS':'B','BAÑOS':'R' }
+      }
+    };
+
+    let supervisionAreas = {};
+    let supervisionData = {};
+
+    function seedFromTenant(){
+      supervisionAreas = JSON.parse(JSON.stringify(tenantConfig.areas));
+      supervisionData = USE_FAKE ? JSON.parse(JSON.stringify(tenantConfig.seed)) : {};
+      document.getElementById('demo-badge').style.display = USE_FAKE ? 'inline-flex' : 'none';
+    }
+
+    function toggleAccordion(id){
+      const it = document.getElementById(id);
+      if (!it) return;
+      it.classList.toggle('open');
+    }
+
+    function renderForm(){
+      const container = document.getElementById('accordion');
+      container.innerHTML = '';
+      Object.keys(supervisionAreas).forEach((areaKey)=>{
+        const area = supervisionAreas[areaKey];
+        const areaData = supervisionData[areaKey] || {};
+        const completed = Object.keys(areaData).length;
+        const total = area.items.length;
+        const id = `acc-${areaKey}`;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'acc-item';
+        wrapper.id = id;
+        wrapper.innerHTML = `
+          <div class="acc-header" onclick="toggleAccordion('${id}')">
+            <div class="acc-title">
+              <span style="width:10px;height:10px;border-radius:50%;background:${area.color}"></span>
+              <span>${area.name}</span>
+            </div>
+            <span class="chip">${completed}/${total}</span>
+          </div>
+          <div class="acc-body">
+            ${area.items.map(item=>{
+              const val = areaData[item] || '';
+              return `
+                <div class=\"supervision-item\">
+                  <label>${item}</label>
+                  <div class=\"checkbox-group\">
+                    <div class=\"checkbox-option excellent\">
+                      <input type=\"radio\" name=\"${areaKey}__${item}\" value=\"E\" ${val==='E'?'checked':''} />
+                      <span>E</span>
+                    </div>
+                    <div class=\"checkbox-option good\">
+                      <input type=\"radio\" name=\"${areaKey}__${item}\" value=\"B\" ${val==='B'?'checked':''} />
+                      <span>B</span>
+                    </div>
+                    <div class=\"checkbox-option regular\">
+                      <input type=\"radio\" name=\"${areaKey}__${item}\" value=\"R\" ${val==='R'?'checked':''} />
+                      <span>R</span>
+                    </div>
+                  </div>
+                </div>`;
+            }).join('')}
+          </div>
+        `;
+        container.appendChild(wrapper);
+      });
+    }
+
+    function collectData(){
+      const result = {};
+      Object.keys(supervisionAreas).forEach((areaKey)=>{
+        const area = supervisionAreas[areaKey];
+        const data = {};
+        area.items.forEach((item)=>{
+          const checked = document.querySelector(`input[name="${areaKey}__${item}"]:checked`);
+          if (checked) data[item] = checked.value;
+        });
+        if (Object.keys(data).length) result[areaKey] = data;
+      });
+      return result;
+    }
+
+    async function saveSupervision(){
+      const cliente = document.getElementById('cliente').value;
+      const fecha = document.getElementById('fecha').value;
+      const supervisor = document.getElementById('supervisor').value;
+      const observaciones = document.getElementById('observaciones').value;
+      const apiEndpoint = document.getElementById('apiEndpoint').value;
+      const userEmail = document.getElementById('userEmail').value;
+      const companyId = document.getElementById('companyId').value;
+
+      if (!cliente || !fecha || !supervisor){
+        alert('Por favor completa Cliente, Fecha y Supervisor');
+        return;
+      }
+
+      const areas = collectData();
+      const payload = {
+        metadata: { cliente, fecha, supervisor, observaciones, timestamp: new Date().toISOString(), numero: Date.now().toString(), demo: USE_FAKE },
+        areas,
+        resumen: {
+          totalAreas: Object.keys(supervisionAreas).length,
+          areasCompletadas: Object.keys(areas).filter(k => (Object.keys(areas[k]||{}).length === (supervisionAreas[k]?.items?.length||0))).length,
+          totalElementos: Object.values(supervisionAreas).reduce((acc,a)=>acc + a.items.length, 0),
+          elementosCompletados: Object.values(areas).reduce((acc,a)=>acc + Object.keys(a).length, 0)
+        }
+      };
+
+      try {
+        const base = apiEndpoint.endsWith('/') ? apiEndpoint : apiEndpoint + '/';
+        const url = `${base}companies/${companyId}/supervision-logs`;
+        const res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json', 'x-user-email': userEmail }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const result = await res.json();
+        alert(`Bitácora guardada. ID: ${result.id || 'N/A'}`);
+      } catch(err){
+        console.log('Error al guardar, payload de respaldo:', payload);
+        alert('Error al guardar en el servidor. Revisa consola para respaldo.');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+      seedFromTenant();
+      renderForm();
+    });
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">📋 Bitácora — Formulario</div>
+    <span id="demo-badge" class="badge">Modo demo: Nodos fake</span>
+    <a class="btn" style="margin-left:auto" href="index.html">Volver al dashboard</a>
+  </div>
+
+  <div class="container">
+    <div class="card" style="margin-bottom:1rem">
+      <div class="grid two">
+        <div>
+          <label>Cliente</label>
+          <input id="cliente" placeholder="Nombre del cliente" />
+        </div>
+        <div>
+          <label>Fecha</label>
+          <input id="fecha" type="date" />
+        </div>
+        <div>
+          <label>Supervisor</label>
+          <input id="supervisor" placeholder="Nombre supervisor" />
+        </div>
+        <div>
+          <label>Observaciones</label>
+          <input id="observaciones" placeholder="Observaciones generales" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:1rem">
+      <div class="grid two">
+        <div>
+          <label>API Endpoint</label>
+          <input id="apiEndpoint" value="https://www.refactorii.com/api/tenant/" />
+        </div>
+        <div>
+          <label>User Email</label>
+          <input id="userEmail" value="demo@example.com" />
+        </div>
+        <div>
+          <label>Company ID</label>
+          <input id="companyId" value="demo-company-id" />
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion" id="accordion"></div>
+  </div>
+
+  <div class="footer">
+    <button class="btn primary" onclick="saveSupervision()">💾 Guardar Bitácora</button>
+  </div>
+</body>
+</html>
+
+

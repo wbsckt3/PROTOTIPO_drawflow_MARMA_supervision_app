@@ -172,6 +172,7 @@
             </div>
           </div>
           <div class="acc-body">
+            <div class="mobile-labels" style="margin-bottom:1rem; padding:.5rem; background:rgba(34,197,94,0.1); border-radius:6px; text-align:center">E = EXCELENTE &nbsp;&nbsp; B = BUENO &nbsp;&nbsp; R = REGULAR</div>
             ${area.items.map(item=>{
               const val = areaData[item] || '';
               const commentVal = (supervisionComments[areaKey]||{})[item] || '';
@@ -182,7 +183,6 @@
                 <div class=\"supervision-item\">
                   <label>${item}</label>
                   <div class=\"checkbox-group\">
-                    <div class=\"mobile-labels\">E = EXCELENTE &nbsp;&nbsp; B = BUENO &nbsp;&nbsp; R = REGULAR</div>
                     <div class=\"checkbox-option excellent\">
                       <input type=\"radio\" name=\"${areaKey}__${item}\" value=\"E\" ${val==='E'?'checked':''} onchange=\"handleSelect('${areaKey}','${item}',this.value)\" />
                       <span>E</span>

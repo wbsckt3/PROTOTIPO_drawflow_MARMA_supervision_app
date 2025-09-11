@@ -65,16 +65,26 @@
 
     let supervisionAreas = {};
     let supervisionData = {};
+    let supervisionComments = {};
+    let supervisionPhotos = {};
+    const saveTimersByArea = {};
+
+    function makeId(areaKey, item){
+      return `${areaKey}__${item.replace(/[^a-zA-Z0-9]+/g,'_')}`;
+    }
 
     function seedFromTenant(){
       supervisionAreas = JSON.parse(JSON.stringify(tenantConfig.areas));
       supervisionData = USE_FAKE ? JSON.parse(JSON.stringify(tenantConfig.seed)) : {};
+      supervisionComments = {};
+      supervisionPhotos = {};
       document.getElementById('demo-badge').style.display = USE_FAKE ? 'inline-flex' : 'none';
     }
 
     function toggleAccordion(id){
       const it = document.getElementById(id);
       if (!it) return;
+      document.querySelectorAll('.acc-item.open').forEach(el=>{ if (el.id !== id) el.classList.remove('open'); });
       it.classList.toggle('open');
     }
 
@@ -96,26 +106,44 @@
               <span style="width:10px;height:10px;border-radius:50%;background:${area.color}"></span>
               <span>${area.name}</span>
             </div>
-            <span class="chip">${completed}/${total}</span>
+            <div style="display:flex;align-items:center;gap:.5rem">
+              <span id="status-${areaKey}" class="chip">Guardado</span>
+              <span class="chip" id="count-${areaKey}">${completed}/${total}</span>
+            </div>
           </div>
           <div class="acc-body">
             ${area.items.map(item=>{
               const val = areaData[item] || '';
+              const commentVal = (supervisionComments[areaKey]||{})[item] || '';
+              const photoVal = (supervisionPhotos[areaKey]||{})[item] || '';
+              const showComment = val==='R';
+              const cId = makeId(areaKey, item);
               return `
                 <div class=\"supervision-item\">
                   <label>${item}</label>
                   <div class=\"checkbox-group\">
                     <div class=\"checkbox-option excellent\">
-                      <input type=\"radio\" name=\"${areaKey}__${item}\" value=\"E\" ${val==='E'?'checked':''} />
+                      <input type=\"radio\" name=\"${areaKey}__${item}\" value=\"E\" ${val==='E'?'checked':''} onchange=\"handleSelect('${areaKey}','${item}',this.value)\" />
                       <span>E</span>
                     </div>
                     <div class=\"checkbox-option good\">
-                      <input type=\"radio\" name=\"${areaKey}__${item}\" value=\"B\" ${val==='B'?'checked':''} />
+                      <input type=\"radio\" name=\"${areaKey}__${item}\" value=\"B\" ${val==='B'?'checked':''} onchange=\"handleSelect('${areaKey}','${item}',this.value)\" />
                       <span>B</span>
                     </div>
                     <div class=\"checkbox-option regular\">
-                      <input type=\"radio\" name=\"${areaKey}__${item}\" value=\"R\" ${val==='R'?'checked':''} />
+                      <input type=\"radio\" name=\"${areaKey}__${item}\" value=\"R\" ${val==='R'?'checked':''} onchange=\"handleSelect('${areaKey}','${item}',this.value)\" />
                       <span>R</span>
+                    </div>
+                  </div>
+                  <div id=\"cmt-${cId}\" style=\"width:100%;margin-top:.6rem;display:${showComment?'block':'none'}\"> 
+                    <textarea placeholder=\"Comentario para '${item}'\" oninput=\"handleComment('${areaKey}','${item}', this.value)\">${commentVal}</textarea>
+                    <div style=\"margin-top:.5rem;display:flex;gap:.5rem;align-items:center\">
+                      <input type=\"file\" id=\"photo-${cId}\" accept=\"image/*\" capture=\"environment\" style=\"display:none\" onchange=\"handlePhoto('${areaKey}','${item}',this)\" />
+                      <button class=\"btn\" onclick=\"document.getElementById('photo-${cId}').click()\">📷 Tomar foto</button>
+                      <div id=\"photo-preview-${cId}\" style=\"display:${photoVal?'block':'none'}\">
+                        <img src=\"${photoVal}\" style=\"max-width:100px;max-height:60px;border-radius:6px;border:1px solid #334155\" />
+                        <button class=\"btn\" style=\"margin-left:.5rem;padding:.3rem .5rem;font-size:.75rem\" onclick=\"removePhoto('${areaKey}','${item}')\">❌</button>
+                      </div>
                     </div>
                   </div>
                 </div>`;
@@ -140,6 +168,86 @@
       return result;
     }
 
+    function updateAreaCount(areaKey){
+      const area = supervisionAreas[areaKey];
+      const completed = Object.keys(supervisionData[areaKey] || {}).length;
+      const total = area.items.length;
+      const el = document.getElementById(`count-${areaKey}`);
+      if (el) el.textContent = `${completed}/${total}`;
+    }
+
+    function setAreaStatus(areaKey, status){
+      const el = document.getElementById(`status-${areaKey}`);
+      if (el) el.textContent = status;
+    }
+
+    function handleSelect(areaKey, item, value){
+      supervisionData[areaKey] = supervisionData[areaKey] || {};
+      supervisionData[areaKey][item] = value;
+      const cId = `cmt-${makeId(areaKey, item)}`;
+      const block = document.getElementById(cId);
+      if (block) block.style.display = value==='R' ? 'block' : 'none';
+      updateAreaCount(areaKey);
+      setAreaStatus(areaKey, 'Escribiendo...');
+      if (saveTimersByArea[areaKey]) clearTimeout(saveTimersByArea[areaKey]);
+      saveTimersByArea[areaKey] = setTimeout(()=>{
+        setAreaStatus(areaKey, 'Guardado');
+      }, 500);
+    }
+
+    function handleComment(areaKey, item, text){
+      supervisionComments[areaKey] = supervisionComments[areaKey] || {};
+      supervisionComments[areaKey][item] = text;
+      setAreaStatus(areaKey, 'Escribiendo...');
+      if (saveTimersByArea[areaKey]) clearTimeout(saveTimersByArea[areaKey]);
+      saveTimersByArea[areaKey] = setTimeout(()=>{
+        setAreaStatus(areaKey, 'Guardado');
+      }, 800);
+    }
+
+    function handlePhoto(areaKey, item, input){
+      const file = input.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e){
+        supervisionPhotos[areaKey] = supervisionPhotos[areaKey] || {};
+        supervisionPhotos[areaKey][item] = e.target.result;
+        
+        const cId = makeId(areaKey, item);
+        const preview = document.getElementById(`photo-preview-${cId}`);
+        if (preview) {
+          preview.style.display = 'block';
+          preview.querySelector('img').src = e.target.result;
+        }
+        
+        setAreaStatus(areaKey, 'Escribiendo...');
+        if (saveTimersByArea[areaKey]) clearTimeout(saveTimersByArea[areaKey]);
+        saveTimersByArea[areaKey] = setTimeout(()=>{
+          setAreaStatus(areaKey, 'Guardado');
+        }, 500);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removePhoto(areaKey, item){
+      supervisionPhotos[areaKey] = supervisionPhotos[areaKey] || {};
+      delete supervisionPhotos[areaKey][item];
+      
+      const cId = makeId(areaKey, item);
+      const preview = document.getElementById(`photo-preview-${cId}`);
+      if (preview) preview.style.display = 'none';
+      
+      const input = document.getElementById(`photo-${cId}`);
+      if (input) input.value = '';
+      
+      setAreaStatus(areaKey, 'Escribiendo...');
+      if (saveTimersByArea[areaKey]) clearTimeout(saveTimersByArea[areaKey]);
+      saveTimersByArea[areaKey] = setTimeout(()=>{
+        setAreaStatus(areaKey, 'Guardado');
+      }, 500);
+    }
+
     async function saveSupervision(){
       const cliente = document.getElementById('cliente').value;
       const fecha = document.getElementById('fecha').value;
@@ -158,6 +266,8 @@
       const payload = {
         metadata: { cliente, fecha, supervisor, observaciones, timestamp: new Date().toISOString(), numero: Date.now().toString(), demo: USE_FAKE },
         areas,
+        comentarios: supervisionComments,
+        evidencias: supervisionPhotos,
         resumen: {
           totalAreas: Object.keys(supervisionAreas).length,
           areasCompletadas: Object.keys(areas).filter(k => (Object.keys(areas[k]||{}).length === (supervisionAreas[k]?.items?.length||0))).length,

@@ -24,7 +24,9 @@
     .btn.primary{ background:linear-gradient(135deg,var(--accent),#16a34a); border-color:transparent; color:#02130a; font-weight:700 }
     .accordion{ display:flex; flex-direction:column; gap:.6rem }
     .acc-item{ border:1px solid #334155; border-radius:12px; overflow:hidden; background:rgba(11,18,32,.6) }
-    .acc-header{ display:flex; align-items:center; justify-content:space-between; padding:1rem; cursor:pointer; background:rgba(17,24,39,.8) }
+    .acc-header{ display:flex; align-items:center; justify-content:space-between; padding:1rem; cursor:pointer; background:
+      linear-gradient(90deg, rgba(34,197,94,0.22) 0%, rgba(34,197,94,0.22) var(--prog, 0%), rgba(34,197,94,0) var(--prog, 0%), rgba(34,197,94,0) 100%),
+      rgba(17,24,39,.8) }
     .acc-title{ display:flex; align-items:center; gap:.6rem; font-weight:700 }
     .chip{ font-size:.75rem; padding:.2rem .5rem; border-radius:10px; border:1px solid #334155; color:#cbd5e1 }
     .acc-body{ display:none; padding:1rem; border-top:1px solid #334155; background:rgba(11,18,32,.6) }
@@ -143,12 +145,13 @@
         const areaData = supervisionData[areaKey] || {};
         const completed = Object.keys(areaData).length;
         const total = area.items.length;
+        const progress = total ? Math.round((completed/total)*100) : 0;
         const id = `acc-${areaKey}`;
         const wrapper = document.createElement('div');
         wrapper.className = 'acc-item';
         wrapper.id = id;
         wrapper.innerHTML = `
-          <div class="acc-header" onclick="toggleAccordion('${id}')">
+          <div class="acc-header" id="hdr-${areaKey}" style="--prog: ${progress}%" onclick="toggleAccordion('${id}')">
             <div class="acc-title">
               <span style="width:10px;height:10px;border-radius:50%;background:${area.color}"></span>
               <span>${area.name}</span>
@@ -221,6 +224,11 @@
       const total = area.items.length;
       const el = document.getElementById(`count-${areaKey}`);
       if (el) el.textContent = `${completed}/${total}`;
+      const hdr = document.getElementById(`hdr-${areaKey}`);
+      if (hdr){
+        const progress = total ? Math.round((completed/total)*100) : 0;
+        hdr.style.setProperty('--prog', `${progress}%`);
+      }
     }
 
     function setAreaStatus(areaKey, status){

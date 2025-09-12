@@ -31,6 +31,9 @@
     .chip{ font-size:.75rem; padding:.2rem .5rem; border-radius:10px; border:1px solid #334155; color:#cbd5e1 }
     .acc-item.disabled{ opacity:.6; filter:saturate(60%); }
     .acc-item.disabled .acc-header{ cursor:not-allowed }
+    .area-toggle{ display:flex; align-items:center; gap:.35rem; font-size:.72rem; color:#cbd5e1; background:rgba(15,23,42,.5); border:1px solid #334155; border-radius:8px; padding:.2rem .4rem; white-space:nowrap }
+    .area-toggle input[type="checkbox"]{ width:14px; height:14px; accent-color:#22c55e; cursor:pointer }
+    .disabled-badge{ display:inline-flex; align-items:center; gap:.25rem; font-size:.7rem; color:#fca5a5; background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.25); border-radius:999px; padding:.15rem .4rem }
     .acc-body{ display:none; padding:1rem; border-top:1px solid #334155; background:rgba(11,18,32,.6) }
     .acc-item.open .acc-body{ display:block }
     .supervision-item{ display:flex; align-items:center; gap:1rem; padding:.7rem .8rem; border:1px solid #334155; border-radius:10px; margin-bottom:.5rem; background:rgba(11,18,32,.5) }
@@ -192,10 +195,11 @@
               <span>${area.name}</span>
             </div>
             <div style="display:flex;align-items:center;gap:.5rem">
-              <label style="display:flex;align-items:center;gap:.3rem;font-size:.8rem;cursor:pointer" onclick="event.stopPropagation();">
+              <label class="area-toggle" onclick="event.stopPropagation();">
                 <input type="checkbox" ${areasDisabled[areaKey]?'checked':''} onchange="toggleAreaDisabled('${areaKey}')" />
                 No requerida
               </label>
+              ${areasDisabled[areaKey] ? '<span class="disabled-badge">🚫 Deshabilitada</span>' : ''}
               <span id="status-${areaKey}" class="chip">Guardado</span>
               <span class="chip" id="count-${areaKey}">${completed}/${total}</span>
             </div>

@@ -187,7 +187,10 @@
         const areaData = supervisionData[areaKey] || {};
         const completed = Object.keys(areaData).length;
         const total = area.items.length;
-        const progress = total ? Math.round((completed/total)*100) : 0;
+        const isDisabled = !!areasDisabled[areaKey];
+        const displayCompleted = isDisabled ? 0 : completed;
+        const progress = total ? Math.round((displayCompleted/total)*100) : 0;
+        const countText = isDisabled ? `Faltan ${total}/${total}` : `${displayCompleted}/${total}`;
         const id = `acc-${areaKey}`;
         const wrapper = document.createElement('div');
         wrapper.className = 'acc-item';
@@ -205,7 +208,7 @@
               </label>
               ${areasDisabled[areaKey] ? '<span class="disabled-badge">🚫 Deshabilitada</span>' : ''}
               <span id="status-${areaKey}" class="chip">Guardado</span>
-              <span class="chip" id="count-${areaKey}">${completed}/${total}</span>
+              <span class="chip" id="count-${areaKey}">${countText}</span>
             </div>
           </div>
           <div class="acc-body">
@@ -283,11 +286,13 @@
       const area = supervisionAreas[areaKey];
       const completed = Object.keys(supervisionData[areaKey] || {}).length;
       const total = area.items.length;
-      const el = document.getElementById(`count-${areaKey}`);
-      if (el) el.textContent = `${completed}/${total}`;
+      const isDisabled = !!areasDisabled[areaKey];
+      const displayCompleted = isDisabled ? 0 : completed;
+      const countEl = document.getElementById(`count-${areaKey}`);
+      if (countEl) countEl.textContent = isDisabled ? `Faltan ${total}/${total}` : `${displayCompleted}/${total}`;
       const hdr = document.getElementById(`hdr-${areaKey}`);
       if (hdr){
-        const progress = total ? Math.round((completed/total)*100) : 0;
+        const progress = total ? Math.round((displayCompleted/total)*100) : 0;
         hdr.style.setProperty('--prog', `${progress}%`);
       }
     }

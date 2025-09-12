@@ -75,6 +75,9 @@
       .checkbox-option .tooltip{ display:none }
     }
     .footer{ position:sticky; bottom:0; background:rgba(17,24,39,.9); backdrop-filter:blur(8px); border-top:1px solid #1f2937; padding:0.8rem; display:flex; gap:.6rem; justify-content:flex-end }
+    @media (max-width:720px){
+      .footer .btn.primary{ width:100%; padding:0.95rem 1rem; justify-content:center; font-weight:700 }
+    }
   </style>
   <script>
     const urlParams = new URLSearchParams(location.search);

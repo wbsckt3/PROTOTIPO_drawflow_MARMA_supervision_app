@@ -29,6 +29,8 @@
       rgba(17,24,39,.8) }
     .acc-title{ display:flex; align-items:center; gap:.6rem; font-weight:700 }
     .chip{ font-size:.75rem; padding:.2rem .5rem; border-radius:10px; border:1px solid #334155; color:#cbd5e1 }
+    .acc-item.disabled{ opacity:.6; filter:saturate(60%); }
+    .acc-item.disabled .acc-header{ cursor:not-allowed }
     .acc-body{ display:none; padding:1rem; border-top:1px solid #334155; background:rgba(11,18,32,.6) }
     .acc-item.open .acc-body{ display:block }
     .supervision-item{ display:flex; align-items:center; gap:1rem; padding:.7rem .8rem; border:1px solid #334155; border-radius:10px; margin-bottom:.5rem; background:rgba(11,18,32,.5) }
@@ -91,6 +93,7 @@
     let optionalOpen = {};
     const saveTimersByArea = {};
     let openAccordionId = null;
+    let areasDisabled = {};
 
     function makeId(areaKey, item){
       return `${areaKey}__${item.replace(/[^a-zA-Z0-9]+/g,'_')}`;
@@ -112,6 +115,7 @@
       const areas = JSON.parse(JSON.stringify(supervisionData || {}));
       const comentarios = JSON.parse(JSON.stringify(supervisionComments || {}));
       const evidencias = JSON.parse(JSON.stringify(supervisionPhotos || {}));
+      const deshabilitadas = JSON.parse(JSON.stringify(areasDisabled || {}));
       const resumen = {
         totalAreas: Object.keys(supervisionAreas||{}).length,
         areasCompletadas: Object.keys(areas||{}).filter(k => (Object.keys(areas[k]||{}).length === (supervisionAreas[k]?.items?.length||0))).length,
@@ -120,7 +124,7 @@
       };
       return {
         metadata: { cliente, fecha, supervisor, observaciones, timestamp: new Date().toISOString(), demo: USE_FAKE },
-        areas, comentarios, evidencias, resumen,
+        areas, comentarios, evidencias, deshabilitadas, resumen,
         updatedAt: Date.now()
       };
     }
@@ -146,6 +150,7 @@
         if (draft?.areas) supervisionData = draft.areas;
         if (draft?.comentarios) supervisionComments = draft.comentarios;
         if (draft?.evidencias) supervisionPhotos = draft.evidencias;
+        if (draft?.deshabilitadas) areasDisabled = draft.deshabilitadas;
         return true;
       } catch(e){ return false; }
     }
@@ -153,6 +158,9 @@
     function toggleAccordion(id){
       const it = document.getElementById(id);
       if (!it) return;
+      // prevent opening if disabled
+      const areaKey = id.replace('acc-','');
+      if (areasDisabled[areaKey]) return;
       const isOpen = it.classList.contains('open');
       document.querySelectorAll('.acc-item.open').forEach(el=>{ if (el.id !== id) el.classList.remove('open'); });
       if (isOpen){
@@ -184,6 +192,10 @@
               <span>${area.name}</span>
             </div>
             <div style="display:flex;align-items:center;gap:.5rem">
+              <label style="display:flex;align-items:center;gap:.3rem;font-size:.8rem;cursor:pointer" onclick="event.stopPropagation();">
+                <input type="checkbox" ${areasDisabled[areaKey]?'checked':''} onchange="toggleAreaDisabled('${areaKey}')" />
+                No requerida
+              </label>
               <span id="status-${areaKey}" class="chip">Guardado</span>
               <span class="chip" id="count-${areaKey}">${completed}/${total}</span>
             </div>
@@ -198,38 +210,39 @@
               const isEB = val==='E' || val==='B';
               const isOpen = isRegular || !!commentVal || ((optionalOpen[areaKey]||{})[item] === true);
               const cId = makeId(areaKey, item);
+              const disabledAttr = areasDisabled[areaKey] ? 'disabled' : '';
               return `
                 <div class="supervision-item">
                   <label>${item}</label>
                   <div class="checkbox-group">
                     <div class="checkbox-option excellent">
-                      <input type="radio" name="${areaKey}__${item}" value="E" ${val==='E'?'checked':''} onchange="handleSelect('${areaKey}','${item}',this.value)" />
+                      <input ${disabledAttr} type="radio" name="${areaKey}__${item}" value="E" ${val==='E'?'checked':''} onchange="handleSelect('${areaKey}','${item}',this.value)" />
                       <span>E</span>
                       <div class="tooltip">E = EXCELENTE</div>
                     </div>
                     <div class="checkbox-option good">
-                      <input type="radio" name="${areaKey}__${item}" value="B" ${val==='B'?'checked':''} onchange="handleSelect('${areaKey}','${item}',this.value)" />
+                      <input ${disabledAttr} type="radio" name="${areaKey}__${item}" value="B" ${val==='B'?'checked':''} onchange="handleSelect('${areaKey}','${item}',this.value)" />
                       <span>B</span>
                       <div class="tooltip">B = BUENO</div>
                     </div>
                     <div class="checkbox-option regular">
-                      <input type="radio" name="${areaKey}__${item}" value="R" ${val==='R'?'checked':''} onchange="handleSelect('${areaKey}','${item}',this.value)" />
+                      <input ${disabledAttr} type="radio" name="${areaKey}__${item}" value="R" ${val==='R'?'checked':''} onchange="handleSelect('${areaKey}','${item}',this.value)" />
                       <span>R</span>
                       <div class="tooltip">R = REGULAR</div>
                     </div>
                   </div>
-                  ${isEB && !isOpen ? `
+                  ${isEB && !isOpen && !areasDisabled[areaKey] ? `
                     <button class="add-comment-btn" onclick="toggleOptionalComment('${areaKey}','${item}')">+ Agregar comentario (opcional)<div class="tooltip">Puedes agregar un comentario</div></button>
                   ` : ''}
                   <div id="cmt-${cId}" style="width:100%;margin-top:.6rem;display:${isOpen ? 'block' : 'none'}"> 
-                    <textarea placeholder="Comentario para '${item}'${isRegular ? ' (requerido)' : ' (opcional)'}" oninput="handleComment('${areaKey}','${item}', this.value)">${commentVal}</textarea>
+                    <textarea ${disabledAttr} placeholder="Comentario para '${item}'${isRegular ? ' (requerido)' : ' (opcional)'}" oninput="handleComment('${areaKey}','${item}', this.value)">${commentVal}</textarea>
                     ${isRegular ? `
                     <div style="margin-top:.5rem;display:flex;gap:.5rem;align-items:center">
-                      <input type="file" id="photo-${cId}" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto('${areaKey}','${item}',this)" />
-                      <button class="btn" onclick="document.getElementById('photo-${cId}').click()">📷 Tomar foto</button>
+                      <input ${disabledAttr} type="file" id="photo-${cId}" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto('${areaKey}','${item}',this)" />
+                      <button class="btn" ${areasDisabled[areaKey]?'disabled':''} onclick="document.getElementById('photo-${cId}').click()">📷 Tomar foto</button>
                       <div id="photo-preview-${cId}" style="display:${photoVal?'block':'none'}">
                         <img src="${photoVal}" style="max-width:100px;max-height:60px;border-radius:6px;border:1px solid #334155" />
-                        <button class="btn" style="margin-left:.5rem;padding:.3rem .5rem;font-size:.75rem" onclick="removePhoto('${areaKey}','${item}')">❌</button>
+                        <button class="btn" ${areasDisabled[areaKey]?'disabled':''} style="margin-left:.5rem;padding:.3rem .5rem;font-size:.75rem" onclick="removePhoto('${areaKey}','${item}')">❌</button>
                       </div>
                     </div>
                     ` : ''}
@@ -239,6 +252,7 @@
           </div>
         `;
         if (openAccordionId === id) wrapper.classList.add('open');
+        if (areasDisabled[areaKey]) wrapper.classList.add('disabled');
         container.appendChild(wrapper);
       });
     }
@@ -369,6 +383,7 @@
         areas,
         comentarios: supervisionComments,
         evidencias: supervisionPhotos,
+        deshabilitadas: areasDisabled,
         resumen: {
           totalAreas: Object.keys(supervisionAreas).length,
           areasCompletadas: Object.keys(areas).filter(k => (Object.keys(areas[k]||{}).length === (supervisionAreas[k]?.items?.length||0))).length,
@@ -397,6 +412,17 @@
       optionalOpen[areaKey][item] = !optionalOpen[areaKey][item];
       setAreaStatus(areaKey, optionalOpen[areaKey][item] ? 'Escribiendo...' : 'Guardado');
       openAccordionId = `acc-${areaKey}`;
+      renderForm();
+    }
+
+    function toggleAreaDisabled(areaKey){
+      areasDisabled[areaKey] = !areasDisabled[areaKey];
+      // close if currently open
+      if (areasDisabled[areaKey] && openAccordionId === `acc-${areaKey}`) openAccordionId = null;
+      // clear transient state
+      optionalOpen[areaKey] = {};
+      setAreaStatus(areaKey, areasDisabled[areaKey] ? 'Deshabilitada' : 'Guardado');
+      persistDraft();
       renderForm();
     }
 

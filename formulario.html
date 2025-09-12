@@ -38,6 +38,12 @@
     .area-toggle input[type="checkbox"]:checked::after{ content:''; position:absolute; inset:0; background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="%230b1220" d="M6.173 12.414L2.1 8.343l1.4-1.414 2.672 2.672 6.33-6.33 1.414 1.414-7.744 7.729z"/></svg>') center/12px 12px no-repeat }
     .area-toggle input[type="checkbox"]:focus-visible{ box-shadow:0 0 0 2px rgba(34,197,94,.25) }
     .disabled-badge{ display:inline-flex; align-items:center; gap:.25rem; font-size:.7rem; color:#fca5a5; background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.25); border-radius:999px; padding:.15rem .4rem }
+    .header-actions{ display:flex; align-items:center; gap:.5rem }
+    @media (max-width:720px){
+      .acc-header{ flex-direction:column; align-items:flex-start; gap:.4rem }
+      .acc-title{ margin-bottom:.1rem }
+      .header-actions{ width:100%; flex-wrap:wrap; gap:.4rem }
+    }
     .acc-body{ display:none; padding:1rem; border-top:1px solid #334155; background:rgba(11,18,32,.6) }
     .acc-item.open .acc-body{ display:block }
     .supervision-item{ display:flex; align-items:center; gap:1rem; padding:.7rem .8rem; border:1px solid #334155; border-radius:10px; margin-bottom:.5rem; background:rgba(11,18,32,.5) }
@@ -201,7 +207,7 @@
               <span style="width:10px;height:10px;border-radius:50%;background:${area.color}"></span>
               <span>${area.name}</span>
             </div>
-            <div style="display:flex;align-items:center;gap:.5rem">
+            <div class="header-actions" style="display:flex;align-items:center;gap:.5rem">
               <label class="area-toggle" onclick="event.stopPropagation();">
                 <input type="checkbox" ${areasDisabled[areaKey]?'checked':''} onchange="toggleAreaDisabled('${areaKey}')" />
                 No requerida

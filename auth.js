@@ -60,29 +60,6 @@ async function handleCredentialResponse(response) {
     }
 }
 
-// Función para validar si el token es válido
-function validarToken() {
-    const token = localStorage.getItem("refactorii_token");
-    const expiry = parseInt(localStorage.getItem("token_expiry") || "0", 10);
-    
-    // 1. No hay token ? simplemente indicar que NO está autenticado
-    if (!token || !expiry) {
-        return false;
-    }
-    
-    // 2. Token expirado ? responde silenciosamente para mantener overlay sin spam
-    if (Date.now() > expiry) {
-        console.warn("Token expirado: limpiando credenciales mínimas");
-        localStorage.removeItem("refactorii_token");
-        localStorage.removeItem("token_expiry");
-        localStorage.removeItem("user_data");
-        return false;
-    }
-    
-    // 3. Token válido
-    return true;
-}
-
 // Función para obtener datos del usuario autenticado
 function getCurrentUser() {
     const userData = localStorage.getItem('user_data');

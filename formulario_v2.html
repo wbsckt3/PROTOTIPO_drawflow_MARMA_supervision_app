@@ -545,16 +545,65 @@
       const file = input.files[0];
       if (!file) return;
       
-      const reader = new FileReader();
-      reader.onload = function(e){
+      console.log('📸 Procesando foto:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        areaKey: areaKey,
+        item: item
+      });
+      
+      // Validar tamaño (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('La foto es muy grande. Máximo 5MB permitido.');
+        input.value = '';
+        return;
+      }
+      
+      // Comprimir imagen antes de convertir a Base64
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = function() {
+        // Calcular dimensiones (máximo 800px de ancho)
+        const maxWidth = 800;
+        const maxHeight = 600;
+        let { width, height } = img;
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Dibujar imagen comprimida
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convertir a Base64 con compresión
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7); // 70% calidad
+        
+        console.log('📸 Imagen comprimida:', {
+          originalSize: file.size,
+          compressedSize: compressedBase64.length,
+          dimensions: `${width}x${height}`,
+          compression: Math.round((1 - compressedBase64.length / (file.size * 1.33)) * 100) + '%'
+        });
+        
         supervisionPhotos[areaKey] = supervisionPhotos[areaKey] || {};
-        supervisionPhotos[areaKey][item] = e.target.result;
+        supervisionPhotos[areaKey][item] = compressedBase64;
         
         const cId = makeId(areaKey, item);
         const preview = document.getElementById(`photo-preview-${cId}`);
         if (preview) {
           preview.style.display = 'block';
-          preview.querySelector('img').src = e.target.result;
+          preview.querySelector('img').src = compressedBase64;
         }
         
         setAreaStatus(areaKey, 'Escribiendo...');
@@ -564,7 +613,15 @@
         }, 500);
         persistDraft();
       };
-      reader.readAsDataURL(file);
+      
+      img.onerror = function() {
+        console.error('❌ Error cargando imagen');
+        alert('Error al procesar la imagen. Intenta con otra foto.');
+        input.value = '';
+      };
+      
+      // Cargar imagen para comprimir
+      img.src = URL.createObjectURL(file);
     }
 
     function removePhoto(areaKey, item){
@@ -600,10 +657,40 @@
       }
 
       const areas = collectData();
+      
+      // Validar y comprimir fotos antes de enviar
+      const processedPhotos = {};
+      let totalPhotoSize = 0;
+      let photoCount = 0;
+      
+      for (const areaKey in supervisionPhotos) {
+        processedPhotos[areaKey] = {};
+        for (const item in supervisionPhotos[areaKey]) {
+          const photoBase64 = supervisionPhotos[areaKey][item];
+          if (photoBase64) {
+            totalPhotoSize += photoBase64.length;
+            photoCount++;
+            processedPhotos[areaKey][item] = photoBase64;
+          }
+        }
+      }
+      
+      console.log('📊 Resumen de fotos:', {
+        totalPhotos: photoCount,
+        totalSize: Math.round(totalPhotoSize / 1024) + 'KB',
+        averageSize: photoCount > 0 ? Math.round(totalPhotoSize / photoCount / 1024) + 'KB' : '0KB'
+      });
+      
+      // Validar tamaño total de fotos (máximo 10MB)
+      if (totalPhotoSize > 10 * 1024 * 1024) {
+        alert('Las fotos son muy grandes en total. Máximo 10MB permitido. Elimina algunas fotos o toma fotos más pequeñas.');
+        return;
+      }
+      
       const payload = {
         areas,
         comentarios: supervisionComments,
-        evidencias: supervisionPhotos,
+        evidencias: processedPhotos,
         deshabilitadas: areasDisabled,
         estado: 'completada'
       };

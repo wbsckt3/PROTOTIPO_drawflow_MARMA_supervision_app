@@ -697,7 +697,7 @@
           return `
             <div class="bitacora-card" onclick="openBitacora('${bitacora._id}')">
               <div class="bitacora-header">
-                <div class="bitacora-title">${bitacora.companyName || bitacora.cliente}</div>
+                <div class="bitacora-title">${bitacora.unidadNombre || bitacora.unidadResidencial?.nombre || 'Unidad Residencial'}</div>
                 <div class="bitacora-status ${estadoClass}">${estadoText}</div>
               </div>
               <div class="bitacora-info">

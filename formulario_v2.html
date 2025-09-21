@@ -717,6 +717,43 @@
       }
     }
 
+    // Función para crear datos de demo de unidad residencial
+    function createDemoUnidadResidencial() {
+      return {
+        _id: 'demo-unidad-1',
+        nombre: 'Condominio Las Palmas (Demo)',
+        direccion: 'Carrera 15 #93-47, Bogotá',
+        tipo: 'condominio',
+        areas: {
+          piscinas: {
+            name: 'PISCINAS',
+            color: '#3b82f6',
+            items: ['BAÑOS','ROMPE OLAS','ANDENES','LAVA PIES - DUCHA','SAUNA','JACUZZI','TURCO','COLOR VISUAL','PH','CLORO','CUARTO DE MÁQUINAS','HOLL']
+          },
+          zonas_comunes: {
+            name: 'ZONAS COMUNES',
+            color: '#22c55e',
+            items: ['GIMNASIO','SALÓN SOCIAL','SALÓN DE JUEGOS','ANDENES','PORTERÍA','PARQUEADERO']
+          },
+          zonas_externas: {
+            name: 'ZONAS EXTERNAS',
+            color: '#f59e0b',
+            items: ['ZONA VERDES','CAÑUELAS','PARQUE INFANTIL','PAREDES','VIDRIOS - VENTANAS','PASAMANOS','TAPAS SHUT','GABINETES - EXTINTORES','BARRIO - TRAPEADO','ASCENSORES','TUBERÍA VOLÁTIL','ESCALAS','PISOS','SHUT BASURAS']
+          },
+          oficinas: {
+            name: 'OFICINAS',
+            color: '#8b5cf6',
+            items: ['ESCRITORIOS','PAPELERAS','SALA DE JUNTAS','AULAS','BAÑOS','RECEPCIÓN','COMPUTADORES','PAREDES','CIELO RASO','COCINETA','ENTRADAS PRINCIPAL']
+          },
+          operario: {
+            name: 'OPERARIO',
+            color: '#ec4899',
+            items: ['PRODUCTIVIDAD','PRESENTACIÓN','CARNET','ELEMENTOS EPP','CONTROL DE HORARIO','ACTITUD']
+          }
+        }
+      };
+    }
+
     // Función para cargar datos de una bitácora específica
     async function loadBitacoraDataById(bitacoraId) {
       if (!bitacoraId) {
@@ -728,31 +765,46 @@
         isLoading = true;
         updateLoadingState();
         
-        // Cargar datos de la bitácora
-        const response = await fetch(`${window.API_BASE_URL}/bitacoras-supervision/${bitacoraId}`, {
-          headers: {
-            'x-user-email': getUserEmail()
+        // Si es una bitácora de demo, usar datos locales
+        if (bitacoraId === 'demo-bitacora-1') {
+          console.log('📋 Cargando datos de demo...');
+          bitacoraData = {
+            _id: 'demo-bitacora-1',
+            cliente: 'Condominio Las Palmas (Demo)',
+            fecha: new Date().toISOString(),
+            supervisor: 'Supervisor Demo',
+            observaciones: 'Esta es una bitácora de demostración',
+            estado: 'programada',
+            unidadResidencialId: 'demo-unidad-1'
+          };
+          unidadResidencialData = createDemoUnidadResidencial();
+        } else {
+          // Cargar datos de la bitácora desde el servidor
+          const response = await fetch(`${window.API_BASE_URL}/bitacoras-supervision/${bitacoraId}`, {
+            headers: {
+              'x-user-email': getUserEmail()
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
           }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        
-        bitacoraData = await response.json();
-        
-        // Cargar datos de la unidad residencial
-        const unidadResponse = await fetch(`${window.API_BASE_URL}/unidades-residenciales/${bitacoraData.unidadResidencialId}`, {
-          headers: {
-            'x-user-email': getUserEmail()
+          
+          bitacoraData = await response.json();
+          
+          // Cargar datos de la unidad residencial
+          const unidadResponse = await fetch(`${window.API_BASE_URL}/unidades-residenciales/${bitacoraData.unidadResidencialId}`, {
+            headers: {
+              'x-user-email': getUserEmail()
+            }
+          });
+          
+          if (!unidadResponse.ok) {
+            throw new Error(`Error ${unidadResponse.status}: ${unidadResponse.statusText}`);
           }
-        });
-        
-        if (!unidadResponse.ok) {
-          throw new Error(`Error ${unidadResponse.status}: ${unidadResponse.statusText}`);
+          
+          unidadResidencialData = await unidadResponse.json();
         }
-        
-        unidadResidencialData = await unidadResponse.json();
         
         // Configurar áreas de supervisión
         supervisionAreas = unidadResidencialData.areas || {};

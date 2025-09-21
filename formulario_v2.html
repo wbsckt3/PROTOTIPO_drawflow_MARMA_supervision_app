@@ -593,6 +593,12 @@
         return;
       }
 
+      if (!window.API_BASE_URL) {
+        alert('Error: URL de API no configurada. Recarga la página.');
+        console.error('❌ API_BASE_URL no está definida');
+        return;
+      }
+
       const areas = collectData();
       const payload = {
         areas,
@@ -603,6 +609,12 @@
       };
 
       try {
+        console.log('🚀 Enviando bitácora:', {
+          url: `${window.API_BASE_URL}/bitacoras-supervision/${bitacoraIdToUse}/llenar`,
+          payload: payload,
+          userEmail: getUserEmail()
+        });
+
         const response = await fetch(`${window.API_BASE_URL}/bitacoras-supervision/${bitacoraIdToUse}/llenar`, {
           method: 'POST',
           headers: {
@@ -612,11 +624,20 @@
           body: JSON.stringify(payload)
         });
 
+        console.log('📡 Respuesta del servidor:', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok
+        });
+
         if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`);
+          const errorText = await response.text();
+          console.error('❌ Error del servidor:', errorText);
+          throw new Error(`Error ${response.status}: ${response.statusText} - ${errorText}`);
         }
 
         const result = await response.json();
+        console.log('✅ Bitácora guardada:', result);
         alert(`Bitácora guardada exitosamente. ID: ${result.id || bitacoraIdToUse}`);
         
         // Limpiar draft local
@@ -627,8 +648,17 @@
         await loadBitacorasDashboard();
         
       } catch (error) {
-        console.error('Error al guardar:', error);
-        alert(`Error al guardar: ${error.message}`);
+        console.error('❌ Error al guardar:', error);
+        console.error('❌ Tipo de error:', error.name);
+        console.error('❌ Mensaje:', error.message);
+        console.error('❌ Stack:', error.stack);
+        
+        let errorMessage = error.message;
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+          errorMessage = 'Error de conexión. Verifica que el servidor esté funcionando y la URL sea correcta.';
+        }
+        
+        alert(`Error al guardar: ${errorMessage}`);
       }
     }
 

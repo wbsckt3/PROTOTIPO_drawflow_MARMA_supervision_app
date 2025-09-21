@@ -800,26 +800,21 @@
 
     // Inicialización
     document.addEventListener('DOMContentLoaded', async ()=>{
-      // Esperar a que auth.js se cargue
-      if (typeof validarToken === 'undefined') {
-        console.log('Esperando a que auth.js se cargue...');
-        setTimeout(() => {
-          document.dispatchEvent(new Event('DOMContentLoaded'));
-        }, 100);
-        return;
-      }
+      console.log('🚀 Inicializando formulario_v2...');
       
       const overlay = document.getElementById('auth-overlay');
       const loggedIn = validarToken();
       
       if (loggedIn) {
         // Usuario autenticado - mostrar dashboard
+        console.log('✅ Usuario autenticado, mostrando dashboard');
         overlay.style.display = 'none';
         document.body.classList.remove('auth-lock');
         showUserInfo();
         await loadBitacorasDashboard();
       } else {
         // Usuario no autenticado - mostrar overlay
+        console.log('❌ Usuario no autenticado, mostrando overlay');
         overlay.style.display = 'flex';
         document.body.classList.add('auth-lock');
       }
@@ -831,7 +826,7 @@
   
   <!-- Google Sign-In -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="./auth.js" async defer></script>
+  <script src="./auth.js"></script>
 </head>
 <body>
   <!-- Overlay de autenticación -->

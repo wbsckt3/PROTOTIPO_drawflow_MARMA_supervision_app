@@ -144,7 +144,7 @@ async function loadBitacorasSupervisor() {
         });
         
         if (!response.ok) {
-            console.warn(`⚠️ Error del servidor (${response.status}), mostrando mensaje de demo`);
+            console.warn(`⚠️ Error del servidor (${response.status}), mostrando datos de demo`);
             // Retornar datos de demo cuando el servidor no esté disponible
             return [{
                 _id: 'demo-bitacora-1',
@@ -157,8 +157,8 @@ async function loadBitacorasSupervisor() {
             }];
         }
         
-        const bitacoras = await response.json();
-        return bitacoras;
+        const responseData = await response.json();
+        return responseData.data || [];
     } catch (error) {
         console.warn('⚠️ Servidor no disponible, mostrando datos de demo:', error.message);
         // Retornar datos de demo cuando hay error de conexión

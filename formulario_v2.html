@@ -612,16 +612,37 @@
         console.log('🚀 Enviando bitácora:', {
           url: `${window.API_BASE_URL}/bitacoras-supervision/${bitacoraIdToUse}/llenar`,
           payload: payload,
-          userEmail: getUserEmail()
+          userEmail: getUserEmail(),
+          isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
         });
 
-        const response = await fetch(`${window.API_BASE_URL}/bitacoras-supervision/${bitacoraIdToUse}/llenar`, {
+        // Función de retry para móvil
+        const fetchWithRetry = async (url, options, retries = 3) => {
+          for (let i = 0; i < retries; i++) {
+            try {
+              console.log(`🔄 Intento ${i + 1}/${retries}`);
+              const response = await fetch(url, options);
+              return response;
+            } catch (error) {
+              console.warn(`⚠️ Intento ${i + 1} falló:`, error.message);
+              if (i === retries - 1) throw error;
+              await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Espera progresiva
+            }
+          }
+        };
+
+        const response = await fetchWithRetry(`${window.API_BASE_URL}/bitacoras-supervision/${bitacoraIdToUse}/llenar`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-email': getUserEmail()
+            'x-user-email': getUserEmail(),
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache'
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          mode: 'cors',
+          credentials: 'omit',
+          cache: 'no-cache'
         });
 
         console.log('📡 Respuesta del servidor:', {
@@ -654,9 +675,23 @@
         console.error('❌ Stack:', error.stack);
         
         let errorMessage = error.message;
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
         if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-          errorMessage = 'Error de conexión. Verifica que el servidor esté funcionando y la URL sea correcta.';
+          if (isMobile) {
+            errorMessage = 'Error de conexión móvil. Verifica tu conexión WiFi/datos y que el servidor esté funcionando. Intenta recargar la página.';
+          } else {
+            errorMessage = 'Error de conexión. Verifica que el servidor esté funcionando y la URL sea correcta.';
+          }
         }
+        
+        console.error('❌ Error completo:', {
+          name: error.name,
+          message: error.message,
+          isMobile: isMobile,
+          userAgent: navigator.userAgent,
+          url: window.location.href
+        });
         
         alert(`Error al guardar: ${errorMessage}`);
       }

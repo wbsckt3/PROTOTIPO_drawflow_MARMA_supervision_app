@@ -702,9 +702,9 @@
               </div>
               <div class="bitacora-info">
                 <div><strong>Cliente:</strong> ${bitacora.companyName || bitacora.cliente}</div>
+                <div><strong>Unidad:</strong> ${bitacora.unidadNombre || bitacora.unidadResidencial?.nombre || bitacora.unidadResidencialId}</div>
                 <div><strong>Fecha:</strong> ${fecha}</div>
                 <div><strong>Supervisor:</strong> ${bitacora.supervisor}</div>
-                <div><strong>Unidad:</strong> ${bitacora.unidadResidencialId}</div>
                 <div><strong>Observaciones:</strong> ${bitacora.observaciones || 'N/A'}</div>
               </div>
             </div>
@@ -840,20 +840,27 @@
             throw new Error(`Error ${response.status}: ${response.statusText}`);
           }
           
-          bitacoraData = await response.json();
+          const responseData = await response.json();
+          bitacoraData = responseData.data || responseData;
           
-          // Cargar datos de la unidad residencial
-          const unidadResponse = await fetch(`${window.API_BASE_URL}/unidades-residenciales/${bitacoraData.unidadResidencialId}`, {
-            headers: {
-              'x-user-email': getUserEmail()
+          // Si la respuesta incluye datos de la unidad residencial, usarlos
+          if (bitacoraData.unidadResidencial) {
+            unidadResidencialData = bitacoraData.unidadResidencial;
+          } else {
+            // Cargar datos de la unidad residencial por separado
+            const unidadResponse = await fetch(`${window.API_BASE_URL}/unidades-residenciales/${bitacoraData.unidadResidencialId}`, {
+              headers: {
+                'x-user-email': getUserEmail()
+              }
+            });
+            
+            if (!unidadResponse.ok) {
+              throw new Error(`Error ${unidadResponse.status}: ${unidadResponse.statusText}`);
             }
-          });
-          
-          if (!unidadResponse.ok) {
-            throw new Error(`Error ${unidadResponse.status}: ${unidadResponse.statusText}`);
+            
+            const unidadResponseData = await unidadResponse.json();
+            unidadResidencialData = unidadResponseData.data || unidadResponseData;
           }
-          
-          unidadResidencialData = await unidadResponse.json();
         }
         
         // Configurar áreas de supervisión

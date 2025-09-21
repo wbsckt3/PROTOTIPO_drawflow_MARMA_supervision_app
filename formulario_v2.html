@@ -513,12 +513,55 @@
       if (el) el.textContent = status;
     }
 
+    function validateAreaData(areaKey) {
+      const areaData = areas[areaKey];
+      if (!areaData) return true;
+      
+      // Verificar si hay calificaciones "R" sin comentario
+      for (const item in areaData) {
+        if (areaData[item] === 'R') {
+          const commentKey = `${areaKey}_${item}`;
+          const comment = supervisionComments[commentKey];
+          if (!comment || comment.trim() === '') {
+            alert(`⚠️ Calificación "R" (Regular) requiere comentario obligatorio.\n\nÁrea: ${areaKey}\nItem: ${item}\n\nPor favor, escribe un comentario explicando el problema.`);
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
     function handleSelect(areaKey, item, value){
       supervisionData[areaKey] = supervisionData[areaKey] || {};
       supervisionData[areaKey][item] = value;
       const cId = `cmt-${makeId(areaKey, item)}`;
       const block = document.getElementById(cId);
       if (block) block.style.display = value==='R' ? 'block' : 'none';
+      
+      // Mostrar alerta visual cuando se selecciona "R"
+      if (value === 'R') {
+        const commentKey = `${areaKey}_${item}`;
+        const comment = supervisionComments[commentKey];
+        if (!comment || comment.trim() === '') {
+          // Resaltar el campo de comentario
+          const commentInput = document.getElementById(cId);
+          if (commentInput) {
+            commentInput.style.border = '2px solid #ef4444';
+            commentInput.style.backgroundColor = '#fef2f2';
+            commentInput.placeholder = '⚠️ COMENTARIO OBLIGATORIO para calificación "R"';
+            
+            // Quitar el resaltado después de escribir
+            commentInput.addEventListener('input', function() {
+              if (this.value.trim() !== '') {
+                this.style.border = '';
+                this.style.backgroundColor = '';
+                this.placeholder = 'Escribe tu comentario...';
+              }
+            });
+          }
+        }
+      }
+      
       updateAreaCount(areaKey);
       setAreaStatus(areaKey, 'Escribiendo...');
       if (saveTimersByArea[areaKey]) clearTimeout(saveTimersByArea[areaKey]);
@@ -657,6 +700,13 @@
       }
 
       const areas = collectData();
+      
+      // Validar que todas las calificaciones "R" tengan comentario obligatorio
+      for (const areaKey in areas) {
+        if (!validateAreaData(areaKey)) {
+          return; // La función validateAreaData ya muestra el alert
+        }
+      }
       
       // Validar y comprimir fotos antes de enviar
       const processedPhotos = {};

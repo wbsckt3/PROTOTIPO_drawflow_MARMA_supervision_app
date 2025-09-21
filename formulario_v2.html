@@ -72,7 +72,7 @@
     
     /* Estilos para dashboard de bitácoras */
     .dashboard-container {
-      display: none;
+      display: block;
     }
     
     .bitacora-card {
@@ -699,21 +699,32 @@
 
     // Función para abrir una bitácora específica
     async function openBitacora(bitacoraId) {
+      console.log('🔍 Abriendo bitácora:', bitacoraId);
       currentBitacoraId = bitacoraId;
       
       // Ocultar dashboard y mostrar formulario
       const dashboard = document.getElementById('dashboard-container');
       const form = document.getElementById('form-container');
       
-      if (dashboard) dashboard.style.display = 'none';
-      if (form) form.style.display = 'block';
+      console.log('📊 Ocultando dashboard, mostrando formulario');
+      if (dashboard) {
+        dashboard.style.display = 'none';
+        console.log('✅ Dashboard oculto');
+      }
+      if (form) {
+        form.style.display = 'block';
+        console.log('✅ Formulario visible');
+      }
       
       // Cargar datos de la bitácora
       const success = await loadBitacoraDataById(bitacoraId);
       if (success) {
+        console.log('✅ Datos cargados correctamente');
         loadDraft();
         renderForm();
         window.addEventListener('beforeunload', persistDraft);
+      } else {
+        console.error('❌ Error cargando datos de la bitácora');
       }
     }
 
@@ -840,11 +851,18 @@
 
     // Función para volver al dashboard
     function backToDashboard() {
+      console.log('🔙 Volviendo al dashboard');
       const dashboard = document.getElementById('dashboard-container');
       const form = document.getElementById('form-container');
       
-      if (dashboard) dashboard.style.display = 'block';
-      if (form) form.style.display = 'none';
+      if (dashboard) {
+        dashboard.style.display = 'block';
+        console.log('✅ Dashboard visible');
+      }
+      if (form) {
+        form.style.display = 'none';
+        console.log('✅ Formulario oculto');
+      }
       
       currentBitacoraId = null;
     }

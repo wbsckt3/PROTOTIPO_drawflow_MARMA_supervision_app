@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Bitácora de Supervisión — Formulario v2</title>
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
   <style>
@@ -73,21 +73,33 @@
     /* Estilos para dashboard de bitácoras */
     .dashboard-container {
       display: block;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    
+    .dashboard-container.hidden {
+      opacity: 0;
+      transform: translateX(-20px);
     }
     
     .bitacora-card {
-      background: var(--panel);
-      border: 1px solid #1f2937;
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.3);
       border-radius: 12px;
       padding: 1rem;
       margin-bottom: 1rem;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .bitacora-card:hover {
       border-color: var(--accent);
-      transform: translateY(-2px);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(34,197,94,0.2);
+    }
+    
+    .bitacora-card:active {
+      transform: translateY(-1px);
+      transition: all 0.1s ease;
     }
     
     .bitacora-header {
@@ -189,6 +201,16 @@
     }
     .acc-body{ display:none; padding:1rem; border-top:1px solid #334155; background:rgba(11,18,32,.6) }
     .acc-item.open .acc-body{ display:block }
+    
+    /* Transiciones para el formulario */
+    #form-container {
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    
+    #form-container.hidden {
+      opacity: 0;
+      transform: translateX(20px);
+    }
     .supervision-item{ display:flex; align-items:center; gap:1rem; padding:.7rem .8rem; border:1px solid #334155; border-radius:10px; margin-bottom:.5rem; background:rgba(11,18,32,.5) }
     .supervision-item label{ flex:1; margin:0 }
     .checkbox-group{ display:flex; gap:1rem }
@@ -701,18 +723,30 @@
       console.log('🔍 Abriendo bitácora:', bitacoraId);
       currentBitacoraId = bitacoraId;
       
-      // Ocultar dashboard y mostrar formulario
+      // Ocultar dashboard y mostrar formulario con transición suave
       const dashboard = document.getElementById('dashboard-container');
       const form = document.getElementById('form-container');
       
       console.log('📊 Ocultando dashboard, mostrando formulario');
+      
+      // Transición suave: ocultar dashboard
       if (dashboard) {
-        dashboard.style.display = 'none';
-        console.log('✅ Dashboard oculto');
+        dashboard.classList.add('hidden');
+        setTimeout(() => {
+          dashboard.style.display = 'none';
+          dashboard.classList.remove('hidden');
+        }, 500);
+        console.log('✅ Dashboard oculto con transición');
       }
+      
+      // Transición suave: mostrar formulario
       if (form) {
         form.style.display = 'block';
-        console.log('✅ Formulario visible');
+        // Pequeño delay para que la transición se vea
+        setTimeout(() => {
+          form.classList.remove('hidden');
+        }, 50);
+        console.log('✅ Formulario visible con transición');
       }
       
       // Cargar datos de la bitácora
@@ -854,13 +888,24 @@
       const dashboard = document.getElementById('dashboard-container');
       const form = document.getElementById('form-container');
       
+      // Transición suave: ocultar formulario
+      if (form) {
+        form.classList.add('hidden');
+        setTimeout(() => {
+          form.style.display = 'none';
+          form.classList.remove('hidden');
+        }, 500);
+        console.log('✅ Formulario oculto con transición');
+      }
+      
+      // Transición suave: mostrar dashboard
       if (dashboard) {
         dashboard.style.display = 'block';
-        console.log('✅ Dashboard visible');
-      }
-      if (form) {
-        form.style.display = 'none';
-        console.log('✅ Formulario oculto');
+        // Pequeño delay para que la transición se vea
+        setTimeout(() => {
+          dashboard.classList.remove('hidden');
+        }, 50);
+        console.log('✅ Dashboard visible con transición');
       }
       
       currentBitacoraId = null;
@@ -906,7 +951,7 @@
           <span class="icon">🔎</span>
           <div class="text-content">
             <h2>MARMA - Supervisión</h2>
-            <p>Sistema de bitácoras de supervisión residencial</p>
+            <p>Sistema de supervisión de unidades residenciales</p>
           </div>
         </div>
       </p>
@@ -933,7 +978,7 @@
       <hr/>
       
       <p style="font-weight: bold; font-size: 20px;">
-        🔍 Supervisa la <strong>calidad</strong>, <strong>mantenimiento</strong> y <strong>estado</strong> de unidades residenciales
+        🔍 Agenda y supervisa la <strong>calidad</strong>, <strong>mantenimiento</strong> y <strong>estado</strong> de unidades residenciales
       </p>
 
       <p style="font-weight: bold; font-size: 20px;">
@@ -941,7 +986,7 @@
       </p>
 
       <p style="font-weight: bold; font-size: 20px;">
-        📊 Genera reportes automáticos con <strong>calificaciones E/B/R</strong> por elemento supervisado
+        📊 Trazabilidad y generación de reportes automáticos de las visitas 
       </p>
     </div>
   </div>
@@ -975,12 +1020,12 @@
     <div id="error-container"></div>
 
     <div id="form-container" style="display:none">
-      <div style="margin-bottom:1rem">
-        <button class="btn" onclick="backToDashboard()" style="margin-bottom:1rem">← Volver al Dashboard</button>
-      </div>
-      
       <div class="info-display" id="info-display">
         <!-- Los datos se cargarán dinámicamente -->
+      </div>
+
+      <div style="margin-bottom:1rem">
+        <button class="btn" onclick="backToDashboard()" style="margin-bottom:1rem">← Volver al Dashboard</button>
       </div>
 
       <div class="accordion" id="accordion"></div>
@@ -1006,5 +1051,3 @@
   </script>
 </body>
 </html>
-
-

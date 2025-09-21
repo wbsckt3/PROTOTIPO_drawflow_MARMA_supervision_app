@@ -211,6 +211,9 @@
 </ul>
 <hr />
 <h2>🔧 <strong>ENDPOINTS DE GESTIÓN DE TENANT</strong></h2>
+<p><strong>El tenant</strong> consiste en el registro de usuarios con su correo de gmail, la creación de la empresa contratante del servicio (por ejemplo MARMA) y la asigmnación de roles a los
+        usuarios relacionados a la empresa, esta gestión es propia de la gestión interna de la plataforma y los endpoints no quedan disponible via frontend para las empresas
+        sino exclusivamente para configuración a nivel de Tech Guard vía <strong>POSTMAN</strong> en el momento de que una empresa contrate el servicio de supervisión</p>
 <h3><strong>1. Crear Usuario Google Sign-in</strong></h3>
 <pre class="codehilite"><code class="language-http">POST https://www.refactorii.com/api/tenant/auth/google-signin
 Content-Type: application/json
@@ -603,3 +606,4 @@ x-user-email: editor@marma.com
         </html>
 
         
+

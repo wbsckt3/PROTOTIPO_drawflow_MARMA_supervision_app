@@ -679,6 +679,16 @@
         const container = document.getElementById('bitacoras-list');
         if (!container) return;
         
+        // Actualizar el nombre de la empresa en el dashboard
+        if (bitacoras.length > 0) {
+          const primeraBitacora = bitacoras[0];
+          const companyName = primeraBitacora.companyName || primeraBitacora.cliente || 'Empresa';
+          const companyElement = document.querySelector('#dashboard-container .card p strong');
+          if (companyElement) {
+            companyElement.textContent = companyName;
+          }
+        }
+        
         if (bitacoras.length === 0) {
           container.innerHTML = '<p style="text-align:center;color:var(--text-dim);padding:2rem">No tienes bitácoras asignadas</p>';
           return;

@@ -73,7 +73,7 @@
     /* Estilos para dashboard de bitácoras */
     .dashboard-container {
       display: block;
-      transition: opacity 0.5s ease, transform 0.5s ease;
+      transition: opacity 1s ease, transform 1s ease;
     }
     
     .dashboard-container.hidden {
@@ -88,7 +88,7 @@
       padding: 1rem;
       margin-bottom: 1rem;
       cursor: pointer;
-      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .bitacora-card:hover {
@@ -204,7 +204,7 @@
     
     /* Transiciones para el formulario */
     #form-container {
-      transition: opacity 0.5s ease, transform 0.5s ease;
+      transition: opacity 1s ease, transform 1s ease;
     }
     
     #form-container.hidden {
@@ -735,7 +735,7 @@
         setTimeout(() => {
           dashboard.style.display = 'none';
           dashboard.classList.remove('hidden');
-        }, 500);
+        }, 1000);
         console.log('✅ Dashboard oculto con transición');
       }
       
@@ -894,7 +894,7 @@
         setTimeout(() => {
           form.style.display = 'none';
           form.classList.remove('hidden');
-        }, 500);
+        }, 1000);
         console.log('✅ Formulario oculto con transición');
       }
       
@@ -923,6 +923,19 @@
         console.log('Usuario autenticado, mostrando dashboard');
         overlay.style.display = 'none';
         document.body.classList.remove('auth-lock');
+        
+        // Asegurar que el dashboard esté visible y el formulario oculto
+        const dashboard = document.getElementById('dashboard-container');
+        const form = document.getElementById('form-container');
+        if (dashboard) {
+          dashboard.style.display = 'block';
+          dashboard.classList.remove('hidden');
+        }
+        if (form) {
+          form.style.display = 'none';
+          form.classList.remove('hidden');
+        }
+        
         showUserInfo();
         await loadBitacorasDashboard();
       } else {

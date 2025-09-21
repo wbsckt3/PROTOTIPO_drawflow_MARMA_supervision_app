@@ -283,7 +283,7 @@
       infoContainer.innerHTML = `
         <div class="info-item">
           <span class="info-label">Cliente:</span>
-          <span class="info-value">${bitacoraData.cliente || 'N/A'}</span>
+          <span class="info-value">${unidadResidencialData.companyName || bitacoraData.cliente || 'Marma'}</span>
         </div>
         <div class="info-item">
           <span class="info-label">Fecha:</span>
@@ -696,10 +696,11 @@
           return `
             <div class="bitacora-card" onclick="openBitacora('${bitacora._id}')">
               <div class="bitacora-header">
-                <div class="bitacora-title">${bitacora.cliente}</div>
+                <div class="bitacora-title">${bitacora.companyName || bitacora.cliente}</div>
                 <div class="bitacora-status ${estadoClass}">${estadoText}</div>
               </div>
               <div class="bitacora-info">
+                <div><strong>Cliente:</strong> ${bitacora.companyName || bitacora.cliente}</div>
                 <div><strong>Fecha:</strong> ${fecha}</div>
                 <div><strong>Supervisor:</strong> ${bitacora.supervisor}</div>
                 <div><strong>Unidad:</strong> ${bitacora.unidadResidencialId}</div>
@@ -765,9 +766,11 @@
     function createDemoUnidadResidencial() {
       return {
         _id: 'demo-unidad-1',
-        nombre: 'Condominio Las Palmas (Demo)',
+        nombre: 'Conjunto Residencial Marma',
         direccion: 'Carrera 15 #93-47, Bogotá',
         tipo: 'condominio',
+        companyId: 'marma-company-id',
+        companyName: 'Marma',
         areas: {
           piscinas: {
             name: 'PISCINAS',
@@ -814,10 +817,12 @@
           console.log('📋 Cargando datos de demo...');
           bitacoraData = {
             _id: 'demo-bitacora-1',
-            cliente: 'Condominio Las Palmas (Demo)',
+            cliente: 'Marma',
+            companyId: 'marma-company-id',
+            companyName: 'Marma',
             fecha: new Date().toISOString(),
             supervisor: 'Supervisor Demo',
-            observaciones: 'Esta es una bitácora de demostración',
+            observaciones: 'Bitácora de supervisión para Marma - Conjunto Residencial Marma',
             estado: 'programada',
             unidadResidencialId: 'demo-unidad-1'
           };
@@ -962,10 +967,10 @@
       <p style="font-weight: bold; font-size: 22px; width: 92%;">
         <div class="header-marma">
           <span class="icon">🔎</span>
-          <div class="text-content">
-            <h2>MARMA - Supervisión</h2>
-            <p>Sistema de supervisión de unidades residenciales</p>
-          </div>
+            <div class="text-content">
+              <h2>Tech Guard Pro</h2>
+              <p>Plataforma de supervisión multi-tenant</p>
+            </div>
         </div>
       </p>
       <br>
@@ -1005,7 +1010,7 @@
   </div>
 
   <div class="topbar">
-    <div class="brand">🔎 MARMA - Bitácora de supervisión v2</div>
+    <div class="brand">🔎 Tech Guard Pro - Supervisión v2</div>
     <div class="user-info" id="user-info" style="display: none;">
       <img id="user-avatar" class="user-avatar" src="" alt="Avatar">
       <span id="user-name"></span>
@@ -1019,6 +1024,9 @@
     <div id="dashboard-container" class="dashboard-container">
       <div class="card" style="margin-bottom:1rem">
         <h2 style="margin:0 0 1rem 0; color:var(--text)">Mis Bitácoras Asignadas</h2>
+        <p style="margin:0 0 1rem 0; color:var(--text-dim); font-size:0.9rem">
+          Cliente: <strong>Marma</strong> | Supervisión de unidades residenciales
+        </p>
         <div id="bitacoras-list">
           <!-- Las bitácoras se cargarán dinámicamente -->
         </div>
@@ -1042,11 +1050,11 @@
       </div>
 
       <div class="accordion" id="accordion"></div>
+      
+      <div class="footer">
+        <button class="btn primary" onclick="saveSupervision()" id="save-btn">💾 Guardar Bitácora</button>
+      </div>
     </div>
-  </div>
-
-  <div class="footer">
-    <button class="btn primary" onclick="saveSupervision()" id="save-btn">💾 Guardar Bitácora</button>
   </div>
 
   <script>

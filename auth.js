@@ -7,6 +7,7 @@ const API_BASE_URL = 'https://www.refactorii.com/api/tenant';
 // Función para manejar la respuesta de Google Sign-In
 async function handleCredentialResponse(response) {
     try {
+        console.log('🔐 Iniciando autenticación con Google...');
         console.log('Respuesta de Google:', response);
         
         // Decodificar el JWT token
@@ -44,6 +45,11 @@ async function handleCredentialResponse(response) {
         localStorage.setItem('token_expiry', tokenExpiry.toString());
         localStorage.setItem('user_data', JSON.stringify(userData));
         
+        console.log('✅ Datos guardados en localStorage:');
+        console.log('- Token:', response.credential.substring(0, 50) + '...');
+        console.log('- Expiry:', new Date(tokenExpiry).toLocaleString());
+        console.log('- User:', userData.FullName, userData.Email);
+        
         // Ocultar overlay y recargar la página para mostrar el contenido
         const overlay = document.getElementById('auth-overlay');
         if (overlay) {
@@ -58,6 +64,35 @@ async function handleCredentialResponse(response) {
         console.error('Error en autenticación:', error);
         alert('Error al autenticarse. Por favor, inténtalo de nuevo.');
     }
+}
+
+// Función para validar si el token es válido
+function validarToken() {
+    const token = localStorage.getItem("refactorii_token");
+    const expiry = parseInt(localStorage.getItem("token_expiry") || "0", 10);
+    
+    console.log('🔍 Validando token...');
+    console.log('- Token existe:', !!token);
+    console.log('- Expiry:', new Date(expiry).toLocaleString());
+    console.log('- Tiempo actual:', new Date().toLocaleString());
+    
+    // 1. No hay token ? simplemente indicar que NO está autenticado
+    if (!token || !expiry) {
+        console.log('❌ No hay token o expiry');
+        return false;
+    }
+    
+    // 2. Token expirado ? responde silenciosamente para mantener overlay sin spam
+    if (Date.now() > expiry) {
+        console.warn("⚠️ Token expirado: limpiando credenciales mínimas");
+        localStorage.removeItem("refactorii_token");
+        localStorage.removeItem("token_expiry");
+        return false;
+    }
+    
+    // 3. Token válido
+    console.log('✅ Token válido');
+    return true;
 }
 
 // Función para obtener datos del usuario autenticado

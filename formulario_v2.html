@@ -798,26 +798,17 @@
       currentBitacoraId = null;
     }
 
-    function validarToken() {
-  		const token  = localStorage.getItem("refactorii_token");
-  		const expiry = parseInt(localStorage.getItem("token_expiry") || "0", 10);
-  		// 1. No hay token ? simplemente indicar que NO está autenticado
-  		if (!token || !expiry) {
-  			return false;
-  		}
-  		// 2. Token expirado ? responde silenciosamente para mantener overlay sin spam
-  		if (Date.now() > expiry) {
-  			console.warn("Token expirado: limpiando credenciales mínimas");
-  			localStorage.removeItem("refactorii_token");
-  			localStorage.removeItem("token_expiry");
-  			return false;
-  		}
-  		// 3. Token válido
-  		return true;
-    }
-    
     // Inicialización
     document.addEventListener('DOMContentLoaded', async ()=>{
+      // Esperar a que auth.js se cargue
+      if (typeof validarToken === 'undefined') {
+        console.log('Esperando a que auth.js se cargue...');
+        setTimeout(() => {
+          document.dispatchEvent(new Event('DOMContentLoaded'));
+        }, 100);
+        return;
+      }
+      
       const overlay = document.getElementById('auth-overlay');
       const loggedIn = validarToken();
       
@@ -938,4 +929,3 @@
   </div>
 </body>
 </html>
-

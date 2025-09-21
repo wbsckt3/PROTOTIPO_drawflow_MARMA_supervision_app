@@ -956,6 +956,15 @@
         
         showUserInfo();
         await loadBitacorasDashboard();
+        
+        // Simular click en "Volver al Dashboard" para asegurar que el formulario esté oculto
+        setTimeout(() => {
+          const backButton = document.querySelector('button[onclick="backToDashboard()"]');
+          if (backButton) {
+            console.log('🔄 Simulando click en "Volver al Dashboard" para limpiar la vista');
+            backButton.click();
+          }
+        }, 200);
       } else {
         // Usuario no autenticado - mostrar overlay
         console.log('Usuario no autenticado, mostrando overlay');
@@ -1082,6 +1091,15 @@
         form.classList.remove('hidden');
         console.log('🔧 Formulario oculto al cargar la página');
       }
+      
+      // Simular click en "Volver al Dashboard" para limpiar la vista
+      setTimeout(() => {
+        const backButton = document.querySelector('button[onclick="backToDashboard()"]');
+        if (backButton) {
+          console.log('🔄 Simulando click en "Volver al Dashboard" al cargar la página');
+          backButton.click();
+        }
+      }, 100);
     }
     
     // Ejecutar inmediatamente

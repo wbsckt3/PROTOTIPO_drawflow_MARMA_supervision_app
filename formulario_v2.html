@@ -228,8 +228,7 @@
     .error{ background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:.8rem; margin-bottom:1rem; color:#fca5a5 }
   </style>
   <script>
-    // Configuración de la API
-    const API_BASE_URL = 'https://www.refactorii.com/api/tenant';
+    // API_BASE_URL se obtiene de auth.js
     const DRAFT_KEY = 'supervision_draft_v2';
     
     // Variables globales
@@ -582,7 +581,7 @@
       };
 
       try {
-        const response = await fetch(`${API_BASE_URL}/bitacoras-supervision/${bitacoraIdToUse}/llenar`, {
+        const response = await fetch(`${window.API_BASE_URL}/bitacoras-supervision/${bitacoraIdToUse}/llenar`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -730,7 +729,7 @@
         updateLoadingState();
         
         // Cargar datos de la bitácora
-        const response = await fetch(`${API_BASE_URL}/bitacoras-supervision/${bitacoraId}`, {
+        const response = await fetch(`${window.API_BASE_URL}/bitacoras-supervision/${bitacoraId}`, {
           headers: {
             'x-user-email': getUserEmail()
           }
@@ -743,7 +742,7 @@
         bitacoraData = await response.json();
         
         // Cargar datos de la unidad residencial
-        const unidadResponse = await fetch(`${API_BASE_URL}/unidades-residenciales/${bitacoraData.unidadResidencialId}`, {
+        const unidadResponse = await fetch(`${window.API_BASE_URL}/unidades-residenciales/${bitacoraData.unidadResidencialId}`, {
           headers: {
             'x-user-email': getUserEmail()
           }

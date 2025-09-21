@@ -151,7 +151,8 @@ async function loadBitacorasSupervisor() {
     }
 }
 
-// Exportar funciones para uso global
+// Exportar funciones y constantes para uso global
+window.API_BASE_URL = API_BASE_URL;
 window.handleCredentialResponse = handleCredentialResponse;
 window.validarToken = validarToken;
 window.getCurrentUser = getCurrentUser;

@@ -474,12 +474,22 @@
                   <div id="cmt-${cId}" style="width:100%;margin-top:.6rem;display:${isOpen ? 'block' : 'none'}"> 
                     <textarea ${disabledAttr} placeholder="Comentario para '${item}'${isRegular ? ' (requerido)' : ' (opcional)'}" oninput="handleComment('${areaKey}','${item}', this.value)">${commentVal}</textarea>
                     ${isRegular ? `
-                    <div style="margin-top:.5rem;display:flex;gap:.5rem;align-items:center">
-                      <input ${disabledAttr} type="file" id="photo-${cId}" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto('${areaKey}','${item}',this)" />
-                      <button class="btn" ${areasDisabled[areaKey]?'disabled':''} onclick="document.getElementById('photo-${cId}').click()">📷 Tomar foto</button>
+                    <div style="margin-top:.5rem">
+                      <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem">
+                        <input ${disabledAttr} type="file" id="photo-${cId}" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto('${areaKey}','${item}',this)" />
+                        <button class="btn" ${areasDisabled[areaKey]?'disabled':''} onclick="document.getElementById('photo-${cId}').click()">📷 Tomar foto</button>
+                        <div id="geo-indicator-${cId}" style="font-size:.75rem; color:var(--text-dim); display:none">
+                          📍 <span id="geo-status-${cId}">Obteniendo ubicación...</span>
+                        </div>
+                      </div>
                       <div id="photo-preview-${cId}" style="display:${photoVal?'block':'none'}">
-                        <img src="${photoVal}" style="max-width:100px;max-height:60px;border-radius:6px;border:1px solid #334155" />
+                        <img src="${typeof photoVal === 'string' ? photoVal : (photoVal?.base64 || '')}" style="max-width:100px;max-height:60px;border-radius:6px;border:1px solid #334155" />
                         <button class="btn" ${areasDisabled[areaKey]?'disabled':''} style="margin-left:.5rem;padding:.3rem .5rem;font-size:.75rem" onclick="removePhoto('${areaKey}','${item}')">❌</button>
+                        ${typeof photoVal === 'object' && photoVal?.metadata?.geolocation ? `
+                          <div style="font-size:.7rem; color:#22c55e; margin-top:.2rem">
+                            📍 ${photoVal.metadata.geolocation.latitude.toFixed(6)}, ${photoVal.metadata.geolocation.longitude.toFixed(6)}
+                          </div>
+                        ` : ''}
                       </div>
                     </div>
                     ` : ''}
@@ -531,6 +541,23 @@
       if (el) el.textContent = status;
     }
 
+    function updateAreaStatus(areaKey, status) {
+      setAreaStatus(areaKey, status);
+      if (saveTimersByArea[areaKey]) clearTimeout(saveTimersByArea[areaKey]);
+      saveTimersByArea[areaKey] = setTimeout(()=>{
+        setAreaStatus(areaKey, 'Guardado');
+      }, 500);
+    }
+
+    function updatePhotoPreview(areaKey, item, base64Data) {
+      const cId = makeId(areaKey, item);
+      const preview = document.getElementById(`photo-preview-${cId}`);
+      if (preview) {
+        preview.style.display = 'block';
+        preview.querySelector('img').src = base64Data;
+      }
+    }
+
     function updateSaveButton() {
       const saveBtn = document.getElementById('save-btn');
       if (!saveBtn || !currentBitacoraData) return;
@@ -552,12 +579,124 @@
       alert('📄 Función de descarga PDF en desarrollo. Los datos están guardados en el servidor.');
     }
 
+    // Variables para geolocalización
+    let currentLocation = null;
+    let geolocationPermissionGranted = false;
+
+    // Función para solicitar permisos de geolocalización
+    function requestGeolocationPermission(areaKey, item) {
+      if (geolocationPermissionGranted) {
+        console.log('📍 Permisos de geolocalización ya otorgados');
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        console.warn('⚠️ Geolocalización no soportada por este navegador');
+        return;
+      }
+
+      console.log('📍 Solicitando permisos de geolocalización...');
+      
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          currentLocation = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            timestamp: new Date().toISOString()
+          };
+          geolocationPermissionGranted = true;
+          console.log('✅ Ubicación obtenida:', currentLocation);
+          
+          // Mostrar notificación al usuario
+          const statusEl = document.getElementById(`status-${areaKey}`);
+          if (statusEl) {
+            statusEl.textContent = '📍 Ubicación obtenida - Listo para foto';
+          }
+        },
+        function(error) {
+          console.warn('❌ Error obteniendo ubicación:', error.message);
+          geolocationPermissionGranted = false;
+          
+          let errorMessage = 'Error obteniendo ubicación: ';
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage += 'Permisos denegados. La foto se guardará sin geolocalización.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage += 'Ubicación no disponible. La foto se guardará sin geolocalización.';
+              break;
+            case error.TIMEOUT:
+              errorMessage += 'Tiempo de espera agotado. La foto se guardará sin geolocalización.';
+              break;
+            default:
+              errorMessage += 'Error desconocido. La foto se guardará sin geolocalización.';
+              break;
+          }
+          
+          console.warn(errorMessage);
+          
+          // Mostrar notificación al usuario
+          const statusEl = document.getElementById(`status-${areaKey}`);
+          if (statusEl) {
+            statusEl.textContent = '⚠️ Sin ubicación - Foto sin geolocalización';
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutos
+        }
+      );
+    }
+
+    // Función para obtener la ubicación actual
+    function getCurrentLocation() {
+      return new Promise((resolve, reject) => {
+        if (currentLocation) {
+          resolve(currentLocation);
+          return;
+        }
+
+        if (!navigator.geolocation) {
+          reject(new Error('Geolocalización no soportada'));
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          function(position) {
+            currentLocation = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy,
+              timestamp: new Date().toISOString()
+            };
+            resolve(currentLocation);
+          },
+          function(error) {
+            reject(error);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 60000 // 1 minuto
+          }
+        );
+      });
+    }
+
     function handleSelect(areaKey, item, value){
       supervisionData[areaKey] = supervisionData[areaKey] || {};
       supervisionData[areaKey][item] = value;
       const cId = `cmt-${makeId(areaKey, item)}`;
       const block = document.getElementById(cId);
       if (block) block.style.display = value==='R' ? 'block' : 'none';
+      
+      // Si se selecciona "R", solicitar permisos de geolocalización
+      if (value === 'R') {
+        requestGeolocationPermission(areaKey, item);
+      }
+      
       updateAreaCount(areaKey);
       setAreaStatus(areaKey, 'Escribiendo...');
       if (saveTimersByArea[areaKey]) clearTimeout(saveTimersByArea[areaKey]);
@@ -591,6 +730,15 @@
         areaKey: areaKey,
         item: item
       });
+      
+      // Mostrar indicador de geolocalización
+      const cId = makeId(areaKey, item);
+      const geoIndicator = document.getElementById(`geo-indicator-${cId}`);
+      const geoStatus = document.getElementById(`geo-status-${cId}`);
+      if (geoIndicator && geoStatus) {
+        geoIndicator.style.display = 'block';
+        geoStatus.textContent = 'Obteniendo ubicación...';
+      }
       
       // Validar tamaño (máximo 5MB)
       if (file.size > 5 * 1024 * 1024) {
@@ -628,29 +776,89 @@
         // Convertir a Base64 con compresión
         const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7); // 70% calidad
         
-        console.log('📸 Imagen comprimida:', {
-          originalSize: file.size,
-          compressedSize: compressedBase64.length,
-          dimensions: `${width}x${height}`,
-          compression: Math.round((1 - compressedBase64.length / (file.size * 1.33)) * 100) + '%'
+        // Obtener geolocalización si está disponible
+        getCurrentLocation().then(location => {
+          console.log('📍 Ubicación obtenida para foto:', location);
+          
+          // Crear objeto de foto con geolocalización
+          const photoData = {
+            base64: compressedBase64,
+            metadata: {
+              originalSize: file.size,
+              compressedSize: compressedBase64.length,
+              dimensions: `${width}x${height}`,
+              compression: Math.round((1 - compressedBase64.length / (file.size * 1.33)) * 100) + '%',
+              timestamp: new Date().toISOString(),
+              geolocation: {
+                latitude: location.latitude,
+                longitude: location.longitude,
+                accuracy: location.accuracy,
+                timestamp: location.timestamp
+              }
+            }
+          };
+          
+          supervisionPhotos[areaKey] = supervisionPhotos[areaKey] || {};
+          supervisionPhotos[areaKey][item] = photoData;
+          
+          console.log('📸 Foto con geolocalización guardada:', {
+            areaKey,
+            item,
+            hasLocation: true,
+            location: location
+          });
+          
+          // Actualizar indicador de geolocalización
+          const cId = makeId(areaKey, item);
+          const geoIndicator = document.getElementById(`geo-indicator-${cId}`);
+          const geoStatus = document.getElementById(`geo-status-${cId}`);
+          if (geoIndicator && geoStatus) {
+            geoStatus.textContent = 'Ubicación obtenida ✅';
+            geoStatus.style.color = '#22c55e';
+          }
+          
+          updatePhotoPreview(areaKey, item, compressedBase64);
+          updateAreaStatus(areaKey, 'Escribiendo...');
+          persistDraft();
+          
+        }).catch(error => {
+          console.warn('⚠️ No se pudo obtener ubicación para la foto:', error.message);
+          
+          // Guardar foto sin geolocalización
+          const photoData = {
+            base64: compressedBase64,
+            metadata: {
+              originalSize: file.size,
+              compressedSize: compressedBase64.length,
+              dimensions: `${width}x${height}`,
+              compression: Math.round((1 - compressedBase64.length / (file.size * 1.33)) * 100) + '%',
+              timestamp: new Date().toISOString(),
+              geolocation: null
+            }
+          };
+          
+          supervisionPhotos[areaKey] = supervisionPhotos[areaKey] || {};
+          supervisionPhotos[areaKey][item] = photoData;
+          
+          console.log('📸 Foto sin geolocalización guardada:', {
+            areaKey,
+            item,
+            hasLocation: false
+          });
+          
+          // Actualizar indicador de geolocalización
+          const cId = makeId(areaKey, item);
+          const geoIndicator = document.getElementById(`geo-indicator-${cId}`);
+          const geoStatus = document.getElementById(`geo-status-${cId}`);
+          if (geoIndicator && geoStatus) {
+            geoStatus.textContent = 'Sin ubicación ⚠️';
+            geoStatus.style.color = '#f59e0b';
+          }
+          
+          updatePhotoPreview(areaKey, item, compressedBase64);
+          updateAreaStatus(areaKey, 'Escribiendo...');
+          persistDraft();
         });
-        
-        supervisionPhotos[areaKey] = supervisionPhotos[areaKey] || {};
-        supervisionPhotos[areaKey][item] = compressedBase64;
-        
-        const cId = makeId(areaKey, item);
-        const preview = document.getElementById(`photo-preview-${cId}`);
-        if (preview) {
-          preview.style.display = 'block';
-          preview.querySelector('img').src = compressedBase64;
-        }
-        
-        setAreaStatus(areaKey, 'Escribiendo...');
-        if (saveTimersByArea[areaKey]) clearTimeout(saveTimersByArea[areaKey]);
-        saveTimersByArea[areaKey] = setTimeout(()=>{
-          setAreaStatus(areaKey, 'Guardado');
-        }, 500);
-        persistDraft();
       };
       
       img.onerror = function() {
@@ -674,11 +882,7 @@
       const input = document.getElementById(`photo-${cId}`);
       if (input) input.value = '';
       
-      setAreaStatus(areaKey, 'Escribiendo...');
-      if (saveTimersByArea[areaKey]) clearTimeout(saveTimersByArea[areaKey]);
-      saveTimersByArea[areaKey] = setTimeout(()=>{
-        setAreaStatus(areaKey, 'Guardado');
-      }, 500);
+      updateAreaStatus(areaKey, 'Escribiendo...');
       persistDraft();
     }
 
@@ -705,11 +909,28 @@
       for (const areaKey in supervisionPhotos) {
         processedPhotos[areaKey] = {};
         for (const item in supervisionPhotos[areaKey]) {
-          const photoBase64 = supervisionPhotos[areaKey][item];
-          if (photoBase64) {
-            totalPhotoSize += photoBase64.length;
-            photoCount++;
-            processedPhotos[areaKey][item] = photoBase64;
+          const photoData = supervisionPhotos[areaKey][item];
+          if (photoData) {
+            // Manejar tanto el formato antiguo (string) como el nuevo (objeto)
+            const photoBase64 = typeof photoData === 'string' ? photoData : photoData.base64;
+            if (photoBase64) {
+              totalPhotoSize += photoBase64.length;
+              photoCount++;
+              
+              // Si es el nuevo formato con metadatos, enviar el objeto completo
+              if (typeof photoData === 'object' && photoData.metadata) {
+                processedPhotos[areaKey][item] = photoData;
+                console.log('📸 Foto con metadatos enviada:', {
+                  areaKey,
+                  item,
+                  hasGeolocation: !!photoData.metadata.geolocation,
+                  location: photoData.metadata.geolocation
+                });
+              } else {
+                // Formato antiguo, solo Base64
+                processedPhotos[areaKey][item] = photoBase64;
+              }
+            }
           }
         }
       }

@@ -80,6 +80,16 @@
     .sidebar-item:hover{ background:rgba(11,18,32,.8); border-color:var(--accent) }
     .sidebar-item.active{ background:rgba(34,197,94,0.1); border-color:var(--accent) }
     
+    /* Estilos para Autenticación */
+    .auth-overlay{ position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg, #0f172a, #1e293b); display:flex; justify-content:center; align-items:center; z-index:9999 }
+    .auth-container{ width:100%; max-width:400px; padding:2rem }
+    .auth-card{ background:var(--panel); border:1px solid #1f2937; border-radius:16px; padding:2rem; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.3) }
+    .auth-header h2{ font-size:2rem; font-weight:700; color:var(--accent); margin:0 0 0.5rem 0 }
+    .auth-header p{ color:var(--text-dim); margin:0 0 2rem 0; font-size:1.1rem }
+    .auth-content p{ color:var(--text); margin-bottom:2rem; line-height:1.6 }
+    .auth-footer{ margin-top:2rem; padding-top:1rem; border-top:1px solid #1f2937 }
+    .auth-footer p{ color:var(--text-dim); font-size:0.9rem; margin:0 }
+    
     @media (max-width:720px){
       .acc-header{ flex-direction:column; align-items:flex-start; gap:.4rem }
       .acc-title{ margin-bottom:.1rem }
@@ -514,13 +524,53 @@
   
   <!-- Drawflow JS -->
   <script src="https://cdn.jsdelivr.net/npm/drawflow@0.0.55/dist/drawflow.min.js"></script>
+  
+  <!-- Google Sign-in -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <div class="admin-dashboard">
+  <!-- Overlay de Autenticación -->
+  <div id="auth-overlay" class="auth-overlay">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-header">
+          <h2>🏢 Tech Guard Pro</h2>
+          <p>Dashboard Administrativo</p>
+        </div>
+        <div class="auth-content">
+          <p>Inicia sesión con tu cuenta de Google para acceder al panel administrativo</p>
+          <div id="g_id_onload"
+               data-client_id="YOUR_GOOGLE_CLIENT_ID"
+               data-callback="handleCredentialResponse"
+               data-auto_prompt="false">
+          </div>
+          <div class="g_id_signin"
+               data-type="standard"
+               data-size="large"
+               data-theme="outline"
+               data-text="sign_in_with"
+               data-shape="rectangular"
+               data-logo_alignment="left">
+          </div>
+        </div>
+        <div class="auth-footer">
+          <p>Solo administradores autorizados</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="admin-dashboard" class="admin-dashboard" style="display: none;">
     <!-- Header del Dashboard -->
     <div class="admin-header">
       <div class="admin-title">🏢 Tech Guard Pro - Dashboard Administrativo</div>
       <div class="admin-actions">
+        <div class="user-info">
+          <span id="admin-user-name">Admin</span>
+          <button class="btn" onclick="logout()">
+            <i class="ph ph-sign-out"></i> Salir
+          </button>
+        </div>
         <button class="btn primary" onclick="showModal('usuario-modal')">
           <i class="ph ph-user-plus"></i> Agregar Supervisor
         </button>
@@ -604,9 +654,7 @@
         </div>
         <div>
           <label>Empresa</label>
-          <select id="usuario-empresa" required>
-            <option value="">Seleccionar empresa</option>
-          </select>
+          <input type="text" id="usuario-empresa" readonly value="Cargando..." />
         </div>
         <div>
           <label>Rol</label>
@@ -650,9 +698,7 @@
         </div>
         <div>
           <label>Empresa</label>
-          <select id="unidad-empresa" required>
-            <option value="">Seleccionar empresa</option>
-          </select>
+          <input type="text" id="unidad-empresa" readonly value="Cargando..." />
         </div>
         <div style="margin-top:1rem; display:flex; gap:1rem; justify-content:flex-end">
           <button type="button" class="btn" onclick="hideModal('unidad-modal')">Cancelar</button>
@@ -712,16 +758,131 @@
     let empresas = [];
     let visitas = [];
     let bitacoras = [];
+    let currentUser = null;
+    let currentCompany = null;
     
     // Configuración de la API
     const API_BASE_URL = 'https://www.refactorii.com/api/tenant';
     
     // Inicialización del dashboard
     document.addEventListener('DOMContentLoaded', function() {
+      checkAuthStatus();
+    });
+    
+    // Verificar estado de autenticación
+    function checkAuthStatus() {
+      const token = localStorage.getItem('admin_token');
+      const userData = localStorage.getItem('admin_user');
+      
+      if (token && userData) {
+        try {
+          currentUser = JSON.parse(userData);
+          validateAdminAccess();
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          showAuthOverlay();
+        }
+      } else {
+        showAuthOverlay();
+      }
+    }
+    
+    // Mostrar overlay de autenticación
+    function showAuthOverlay() {
+      document.getElementById('auth-overlay').style.display = 'flex';
+      document.getElementById('admin-dashboard').style.display = 'none';
+    }
+    
+    // Ocultar overlay de autenticación
+    function hideAuthOverlay() {
+      document.getElementById('auth-overlay').style.display = 'none';
+      document.getElementById('admin-dashboard').style.display = 'flex';
+    }
+    
+    // Validar acceso de administrador
+    async function validateAdminAccess() {
+      try {
+        // Verificar que el usuario tenga rol admin
+        const response = await fetch(`${API_BASE_URL}/users/me`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('admin_token')}`,
+            'x-user-email': currentUser.email
+          }
+        });
+        
+        if (response.ok) {
+          const userInfo = await response.json();
+          if (userInfo.role === 'admin') {
+            currentCompany = userInfo.company;
+            initializeDashboard();
+          } else {
+            showError('Solo los administradores pueden acceder a este panel');
+            logout();
+          }
+        } else {
+          throw new Error('Error validando acceso');
+        }
+      } catch (error) {
+        console.error('Error validando acceso:', error);
+        showError('Error validando credenciales');
+        logout();
+      }
+    }
+    
+    // Inicializar dashboard
+    function initializeDashboard() {
+      hideAuthOverlay();
+      document.getElementById('admin-user-name').textContent = currentUser.name;
+      updateCompanyInfo();
       initializeDrawflow();
       loadInitialData();
       setupEventListeners();
-    });
+    }
+    
+    // Actualizar información de la empresa
+    function updateCompanyInfo() {
+      if (currentCompany) {
+        document.getElementById('usuario-empresa').value = currentCompany.name;
+        document.getElementById('unidad-empresa').value = currentCompany.name;
+      }
+    }
+    
+    // Manejar respuesta de Google Sign-in
+    function handleCredentialResponse(response) {
+      try {
+        const credential = response.credential;
+        const payload = JSON.parse(atob(credential.split('.')[1]));
+        
+        // Verificar que sea un admin autorizado
+        if (payload.email && payload.name) {
+          currentUser = {
+            email: payload.email,
+            name: payload.name,
+            picture: payload.picture
+          };
+          
+          // Guardar en localStorage
+          localStorage.setItem('admin_token', credential);
+          localStorage.setItem('admin_user', JSON.stringify(currentUser));
+          
+          validateAdminAccess();
+        } else {
+          showError('Error en la autenticación');
+        }
+      } catch (error) {
+        console.error('Error procesando credencial:', error);
+        showError('Error en la autenticación');
+      }
+    }
+    
+    // Cerrar sesión
+    function logout() {
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+      currentUser = null;
+      currentCompany = null;
+      showAuthOverlay();
+    }
     
     // Inicializar Drawflow
     function initializeDrawflow() {
@@ -774,29 +935,25 @@
       }
     }
     
-    // Cargar empresas
+    // Cargar empresas (solo la empresa del admin)
     async function loadEmpresas() {
       try {
-        const response = await fetch(`${API_BASE_URL}/companies`, {
-          headers: {
-            'x-user-email': 'admin@techguardpro.com'
-          }
-        });
-        const result = await response.json();
-        empresas = result.data || [];
-        updateEmpresasSelects();
+        if (currentCompany) {
+          empresas = [currentCompany];
+        }
       } catch (error) {
-        console.error('Error cargando empresas:', error);
+        console.error('Error cargando empresa:', error);
         empresas = [];
       }
     }
     
-    // Cargar unidades residenciales
+    // Cargar unidades residenciales (solo de la empresa del admin)
     async function loadUnidades() {
       try {
         const response = await fetch(`${API_BASE_URL}/unidades-residenciales`, {
           headers: {
-            'x-user-email': 'admin@techguardpro.com'
+            'x-user-email': currentUser.email,
+            'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
           }
         });
         const result = await response.json();
@@ -807,12 +964,13 @@
       }
     }
     
-    // Cargar supervisores
+    // Cargar supervisores (solo de la empresa del admin)
     async function loadSupervisores() {
       try {
         const response = await fetch(`${API_BASE_URL}/users`, {
           headers: {
-            'x-user-email': 'admin@techguardpro.com'
+            'x-user-email': currentUser.email,
+            'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
           }
         });
         const result = await response.json();
@@ -824,12 +982,13 @@
       }
     }
     
-    // Cargar visitas
+    // Cargar visitas (solo de la empresa del admin)
     async function loadVisitas() {
       try {
         const response = await fetch(`${API_BASE_URL}/bitacoras-supervision`, {
           headers: {
-            'x-user-email': 'admin@techguardpro.com'
+            'x-user-email': currentUser.email,
+            'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
           }
         });
         const result = await response.json();
@@ -841,12 +1000,13 @@
       }
     }
     
-    // Cargar bitácoras
+    // Cargar bitácoras (solo de la empresa del admin)
     async function loadBitacoras() {
       try {
         const response = await fetch(`${API_BASE_URL}/bitacoras-supervision`, {
           headers: {
-            'x-user-email': 'admin@techguardpro.com'
+            'x-user-email': currentUser.email,
+            'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
           }
         });
         const result = await response.json();
@@ -955,7 +1115,7 @@
       const formData = {
         email: document.getElementById('usuario-email').value,
         name: document.getElementById('usuario-nombre').value,
-        companyId: document.getElementById('usuario-empresa').value,
+        companyId: currentCompany._id,
         role: document.getElementById('usuario-rol').value
       };
       
@@ -964,7 +1124,8 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-email': 'admin@techguardpro.com'
+            'x-user-email': currentUser.email,
+            'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
           },
           body: JSON.stringify(formData)
         });
@@ -989,7 +1150,7 @@
         nombre: document.getElementById('unidad-nombre').value,
         direccion: document.getElementById('unidad-direccion').value,
         tipo: document.getElementById('unidad-tipo').value,
-        companyId: document.getElementById('unidad-empresa').value
+        companyId: currentCompany._id
       };
       
       try {
@@ -997,7 +1158,8 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-email': 'admin@techguardpro.com'
+            'x-user-email': currentUser.email,
+            'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
           },
           body: JSON.stringify(formData)
         });
@@ -1031,7 +1193,8 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-email': 'admin@techguardpro.com'
+            'x-user-email': currentUser.email,
+            'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
           },
           body: JSON.stringify(formData)
         });

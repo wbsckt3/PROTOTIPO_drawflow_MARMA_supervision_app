@@ -576,7 +576,213 @@
     }
 
     function downloadPDF() {
-      alert('📄 Función de descarga PDF en desarrollo. Los datos están guardados en el servidor.');
+      if (!currentBitacoraData) {
+        alert('❌ No hay datos de bitácora para generar PDF');
+        return;
+      }
+
+      try {
+        console.log('📄 Generando PDF de la bitácora...');
+        
+        // Crear nuevo documento PDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Configuración de colores
+        const primaryColor = '#1f2937';
+        const accentColor = '#3b82f6';
+        const successColor = '#22c55e';
+        const warningColor = '#f59e0b';
+        const dangerColor = '#ef4444';
+        
+        let yPosition = 20;
+        
+        // Función para agregar texto con estilo
+        const addText = (text, x, y, options = {}) => {
+          doc.setFontSize(options.fontSize || 12);
+          doc.setTextColor(options.color || primaryColor);
+          doc.text(text, x, y);
+          return y + (options.lineHeight || 7);
+        };
+        
+        // Función para agregar línea
+        const addLine = (y) => {
+          doc.setDrawColor(200, 200, 200);
+          doc.line(20, y, 190, y);
+          return y + 5;
+        };
+        
+        // Encabezado
+        doc.setFillColor(primaryColor);
+        doc.rect(0, 0, 210, 30, 'F');
+        
+        addText('TECH GUARD PRO', 20, 15, { 
+          color: '#ffffff', 
+          fontSize: 16, 
+          fontWeight: 'bold' 
+        });
+        addText('Reporte de Supervisión', 20, 22, { 
+          color: '#ffffff', 
+          fontSize: 10 
+        });
+        
+        yPosition = 40;
+        
+        // Información de la bitácora
+        addText('INFORMACIÓN GENERAL', 20, yPosition, { 
+          fontSize: 14, 
+          fontWeight: 'bold',
+          color: accentColor 
+        });
+        yPosition += 10;
+        
+        const fecha = new Date(currentBitacoraData.fecha).toLocaleDateString('es-CO');
+        const supervisor = currentBitacoraData.supervisor || 'N/A';
+        const cliente = currentBitacoraData.cliente || 'N/A';
+        const estado = currentBitacoraData.estado || 'N/A';
+        
+        yPosition = addText(`Cliente: ${cliente}`, 20, yPosition);
+        yPosition = addText(`Fecha: ${fecha}`, 20, yPosition);
+        yPosition = addText(`Supervisor: ${supervisor}`, 20, yPosition);
+        yPosition = addText(`Estado: ${estado.toUpperCase()}`, 20, yPosition);
+        
+        if (currentBitacoraData.observaciones) {
+          yPosition += 5;
+          yPosition = addText('Observaciones:', 20, yPosition, { fontWeight: 'bold' });
+          yPosition = addText(currentBitacoraData.observaciones, 20, yPosition);
+        }
+        
+        yPosition = addLine(yPosition + 5);
+        
+        // Resumen de áreas
+        if (currentBitacoraData.resumen) {
+          addText('RESUMEN DE SUPERVISIÓN', 20, yPosition, { 
+            fontSize: 14, 
+            fontWeight: 'bold',
+            color: accentColor 
+          });
+          yPosition += 10;
+          
+          const resumen = currentBitacoraData.resumen;
+          yPosition = addText(`Total de áreas: ${resumen.totalAreas || 0}`, 20, yPosition);
+          yPosition = addText(`Áreas completadas: ${resumen.areasCompletadas || 0}`, 20, yPosition);
+          yPosition = addText(`Total de elementos: ${resumen.totalElementos || 0}`, 20, yPosition);
+          yPosition = addText(`Elementos completados: ${resumen.elementosCompletados || 0}`, 20, yPosition);
+          
+          yPosition = addLine(yPosition + 5);
+        }
+        
+        // Detalles por área
+        if (supervisionAreas && Object.keys(supervisionAreas).length > 0) {
+          addText('DETALLES POR ÁREA', 20, yPosition, { 
+            fontSize: 14, 
+            fontWeight: 'bold',
+            color: accentColor 
+          });
+          yPosition += 10;
+          
+          Object.keys(supervisionAreas).forEach(areaKey => {
+            const area = supervisionAreas[areaKey];
+            const areaData = supervisionData[areaKey] || {};
+            const areaComments = supervisionComments[areaKey] || {};
+            const areaPhotos = supervisionPhotos[areaKey] || {};
+            
+            // Título del área
+            yPosition = addText(area.name, 20, yPosition, { 
+              fontSize: 12, 
+              fontWeight: 'bold',
+              color: area.color || accentColor 
+            });
+            yPosition += 2;
+            
+            // Items del área
+            area.items.forEach(item => {
+              const calificacion = areaData[item] || 'N/A';
+              const comentario = areaComments[item] || '';
+              const tieneFoto = areaPhotos[item] ? 'Sí' : 'No';
+              
+              let calificacionColor = primaryColor;
+              let calificacionTexto = calificacion;
+              
+              switch(calificacion) {
+                case 'E':
+                  calificacionColor = successColor;
+                  calificacionTexto = 'EXCELENTE';
+                  break;
+                case 'B':
+                  calificacionColor = accentColor;
+                  calificacionTexto = 'BUENO';
+                  break;
+                case 'R':
+                  calificacionColor = dangerColor;
+                  calificacionTexto = 'REGULAR';
+                  break;
+              }
+              
+              // Verificar si necesitamos nueva página
+              if (yPosition > 250) {
+                doc.addPage();
+                yPosition = 20;
+              }
+              
+              yPosition = addText(`  • ${item}: ${calificacionTexto}`, 25, yPosition, { 
+                color: calificacionColor,
+                fontSize: 10 
+              });
+              
+              if (comentario) {
+                yPosition = addText(`    Comentario: ${comentario}`, 30, yPosition, { 
+                  fontSize: 9,
+                  color: '#666666'
+                });
+              }
+              
+              if (tieneFoto === 'Sí') {
+                yPosition = addText(`    📷 Foto: ${tieneFoto}`, 30, yPosition, { 
+                  fontSize: 9,
+                  color: '#666666'
+                });
+                
+                // Si hay geolocalización, mostrarla
+                if (areaPhotos[item] && typeof areaPhotos[item] === 'object' && areaPhotos[item].metadata?.geolocation) {
+                  const geo = areaPhotos[item].metadata.geolocation;
+                  yPosition = addText(`    📍 GPS: ${geo.latitude.toFixed(6)}, ${geo.longitude.toFixed(6)}`, 30, yPosition, { 
+                    fontSize: 8,
+                    color: '#888888'
+                  });
+                }
+              }
+              
+              yPosition += 3;
+            });
+            
+            yPosition += 5;
+          });
+        }
+        
+        // Pie de página
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setTextColor('#666666');
+          doc.text(`Página ${i} de ${pageCount}`, 20, 290);
+          doc.text(`Generado el ${new Date().toLocaleDateString('es-CO')}`, 150, 290);
+        }
+        
+        // Generar nombre del archivo
+        const fechaArchivo = new Date().toISOString().split('T')[0];
+        const nombreArchivo = `Bitacora_${cliente.replace(/\s+/g, '_')}_${fechaArchivo}.pdf`;
+        
+        // Descargar PDF
+        doc.save(nombreArchivo);
+        
+        console.log('✅ PDF generado y descargado:', nombreArchivo);
+        
+      } catch (error) {
+        console.error('❌ Error generando PDF:', error);
+        alert('❌ Error al generar el PDF. Verifica la consola para más detalles.');
+      }
     }
 
     // Variables para geolocalización
@@ -956,6 +1162,12 @@
       };
 
       try {
+        // Generar PDF antes de enviar a la BD
+        console.log('📄 Generando PDF antes de guardar en BD...');
+        downloadPDF();
+        
+        // Pequeña pausa para que el PDF se genere
+        await new Promise(resolve => setTimeout(resolve, 1000));
         console.log('🚀 Enviando bitácora:', {
           url: `${window.API_BASE_URL}/bitacoras-supervision/${bitacoraIdToUse}/llenar`,
           payload: payload,
@@ -1410,6 +1622,8 @@
   
   <!-- Google Sign-In -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   <script src="./auth.js"></script>
 </head>
 <body>
@@ -1553,4 +1767,3 @@
   </script>
 </body>
 </html>
-

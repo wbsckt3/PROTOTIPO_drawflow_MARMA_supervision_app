@@ -147,6 +147,45 @@
       color: var(--text-dim);
     }
     
+    .bitacora-actions {
+      margin-top: 1rem;
+      display: flex;
+      justify-content: center;
+    }
+    
+    .download-pdf-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, #dc2626, #ef4444);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+      width: 100%;
+      justify-content: center;
+    }
+    
+    .download-pdf-btn:hover {
+      background: linear-gradient(135deg, #b91c1c, #dc2626);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+    }
+    
+    .download-pdf-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+    }
+    
+    .download-pdf-btn svg {
+      flex-shrink: 0;
+    }
+    
     .user-info {
       display: flex;
       align-items: center;
@@ -875,6 +914,31 @@
       }
     }
 
+    // Función para descargar PDF desde el dashboard
+    async function downloadPDFFromDashboard(bitacoraId) {
+      try {
+        console.log('📄 Descargando PDF desde dashboard para bitácora:', bitacoraId);
+        
+        // Cargar datos de la bitácora
+        await loadBitacoraDataById(bitacoraId);
+        
+        // Verificar que la bitácora esté completada
+        if (currentBitacoraData.estado !== 'completada') {
+          alert('⚠️ Solo se pueden descargar PDFs de bitácoras completadas');
+          return;
+        }
+        
+        // Generar y descargar el PDF
+        await downloadPDF();
+        
+        console.log('✅ PDF descargado exitosamente desde dashboard');
+        
+      } catch (error) {
+        console.error('❌ Error descargando PDF desde dashboard:', error);
+        alert('❌ Error al descargar el PDF. Verifica la consola para más detalles.');
+      }
+    }
+
     // Variables para geolocalización
     let currentLocation = null;
     let geolocationPermissionGranted = false;
@@ -1417,6 +1481,8 @@
             'cancelada': 'Cancelada'
           }[bitacora.estado] || bitacora.estado;
           
+          const isCompletada = bitacora.estado === 'completada';
+          
           return `
             <div class="bitacora-card" onclick="openBitacora('${bitacora._id}')">
               <div class="bitacora-header">
@@ -1429,6 +1495,20 @@
                 <div><strong>Supervisor:</strong> ${bitacora.supervisor}</div>
                 <div><strong>Observaciones:</strong> ${bitacora.observaciones || 'N/A'}</div>
               </div>
+              ${isCompletada ? `
+                <div class="bitacora-actions" onclick="event.stopPropagation();">
+                  <button class="download-pdf-btn" onclick="downloadPDFFromDashboard('${bitacora._id}')" title="Descargar PDF">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M10 9H9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Descargar PDF
+                  </button>
+                </div>
+              ` : ''}
             </div>
           `;
         }).join('');

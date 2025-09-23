@@ -825,7 +825,26 @@
         let infoY = yPosition + 18; // Aumentar margen superior
         infoLeft.forEach((info, index) => {
           addText(info, 25, infoY, { fontSize: 10 }); // Reducir tamaño de fuente
-          addText(infoRight[index], pageWidth / 2 + 10, infoY, { fontSize: 10 });
+          
+          // Aplicar color al estado
+          if (index === 1) { // El estado está en la segunda posición (índice 1)
+            const estadoColor = {
+              'programada': '#3b82f6',      // Azul
+              'en_progreso': '#f59e0b',     // Amarillo
+              'con_novedad': '#f59e0b',     // Amarillo
+              'completada': '#22c55e',      // Verde
+              'cancelada': '#ef4444'        // Rojo
+            }[estado] || '#6b7280'; // Gris por defecto
+            
+            addText(infoRight[index], pageWidth / 2 + 10, infoY, { 
+              fontSize: 10, 
+              color: estadoColor,
+              fontWeight: 'bold'
+            });
+          } else {
+            addText(infoRight[index], pageWidth / 2 + 10, infoY, { fontSize: 10 });
+          }
+          
           infoY += 7; // Aumentar espaciado entre líneas
         });
         
@@ -851,6 +870,55 @@
           addText(resumenText, 25, yPosition + 15, { fontSize: 11 });
           
           yPosition += 30;
+        }
+        
+        // Cuadro de novedades R (solo si el estado es con_novedad)
+        if (estado === 'con_novedad') {
+          // Recopilar elementos con calificación R
+          const novedadesR = [];
+          for (const areaKey in supervisionData) {
+            const areaData = supervisionData[areaKey] || {};
+            const area = supervisionAreas[areaKey];
+            if (area) {
+              for (const item in areaData) {
+                if (areaData[item] === 'R') {
+                  novedadesR.push({
+                    area: area.name,
+                    item: item,
+                    color: area.color
+                  });
+                }
+              }
+            }
+          }
+          
+          if (novedadesR.length > 0) {
+            // Calcular altura del cuadro basada en el número de novedades
+            const novedadesHeight = Math.max(25, 15 + (novedadesR.length * 6));
+            
+            doc.setFillColor(lightGray);
+            doc.roundedRect(20, yPosition, contentWidth, novedadesHeight, 5, 5, 'F');
+            doc.setDrawColor('#f59e0b'); // Amarillo para novedades
+            doc.setLineWidth(1);
+            doc.roundedRect(20, yPosition, contentWidth, novedadesHeight, 5, 5, 'S');
+            
+            addText('NOVEDADES DETECTADAS (Calificación R)', 25, yPosition + 8, { 
+              fontSize: 14, 
+              fontWeight: 'bold',
+              color: '#f59e0b' 
+            });
+            
+            let novedadY = yPosition + 15;
+            novedadesR.forEach(novedad => {
+              addText(`• ${novedad.area}: ${novedad.item}`, 25, novedadY, { 
+                fontSize: 10,
+                color: '#dc2626' // Rojo para destacar
+              });
+              novedadY += 6;
+            });
+            
+            yPosition += novedadesHeight + 10;
+          }
         }
         
         // Detalles por área en cuadros

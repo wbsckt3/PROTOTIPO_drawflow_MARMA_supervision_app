@@ -801,13 +801,6 @@
         
         // Detalles por área en cuadros
         if (supervisionAreas && Object.keys(supervisionAreas).length > 0) {
-          addText('DETALLES POR ÁREA', 20, yPosition, { 
-            fontSize: 16, 
-            fontWeight: 'bold',
-            color: accentColor 
-          });
-          yPosition += 15;
-          
           const areas = Object.keys(supervisionAreas);
           let currentY = yPosition;
           const boxHeight = 80;
@@ -823,6 +816,23 @@
             if (currentY > 120) {
               doc.addPage();
               currentY = 20;
+              // Agregar título en cada nueva página
+              addText('DETALLES POR ÁREA', 20, currentY, { 
+                fontSize: 16, 
+                fontWeight: 'bold',
+                color: accentColor 
+              });
+              currentY += 20;
+            }
+            
+            // Agregar título solo en la primera página
+            if (index === 0) {
+              addText('DETALLES POR ÁREA', 20, currentY, { 
+                fontSize: 16, 
+                fontWeight: 'bold',
+                color: accentColor 
+              });
+              currentY += 20;
             }
             
             // Determinar si es columna izquierda o derecha
@@ -840,15 +850,17 @@
           });
         }
         
-        // Pie de página mejorado
+        // Pie de página mejorado - Posición más baja para evitar solapamiento
         const pageCount = doc.internal.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
           doc.setPage(i);
           doc.setFontSize(10);
           doc.setTextColor(darkGray);
-          doc.text(`Página ${i} de ${pageCount}`, 20, 190);
-          doc.text(`Tech Guard Pro - Supervisión de Unidades Residenciales`, pageWidth / 2 - 50, 190);
-          doc.text(`Generado el ${new Date().toLocaleDateString('es-CO')}`, pageWidth - 80, 190);
+          // Posición más baja para evitar solapamiento con contenido
+          const footerY = 200; // Aumentar de 190 a 200
+          doc.text(`Página ${i} de ${pageCount}`, 20, footerY);
+          doc.text(`Tech Guard Pro - Supervisión de Unidades Residenciales`, pageWidth / 2 - 50, footerY);
+          doc.text(`Generado el ${new Date().toLocaleDateString('es-CO')}`, pageWidth - 80, footerY);
         }
         
         // Generar nombre del archivo

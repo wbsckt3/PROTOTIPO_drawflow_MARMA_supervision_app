@@ -1324,11 +1324,16 @@
       
       // Detectar si hay calificaciones "R" (Regular) para determinar el estado
       let hasRegularRatings = false;
+      console.log('🔍 Verificando calificaciones "R" en areas:', areas);
+      
       for (const areaKey in areas) {
         const areaData = areas[areaKey];
+        console.log(`🔍 Área ${areaKey}:`, areaData);
         for (const item in areaData) {
+          console.log(`🔍 Item ${item}: valor = "${areaData[item]}"`);
           if (areaData[item] === 'R') {
             hasRegularRatings = true;
+            console.log('🚨 ¡Encontrada calificación "R"!', { areaKey, item, valor: areaData[item] });
             break;
           }
         }
@@ -1337,6 +1342,7 @@
       
       // Determinar el estado final
       const finalEstado = hasRegularRatings ? 'con_novedad' : 'completada';
+      console.log('📊 Resultado de detección:', { hasRegularRatings, finalEstado });
       
       const payload = {
         areas,

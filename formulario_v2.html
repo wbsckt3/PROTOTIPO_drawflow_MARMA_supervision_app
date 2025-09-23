@@ -741,12 +741,13 @@
         const estado = currentBitacoraData.estado || 'N/A';
         const unidad = unidadResidencialData?.nombre || 'N/A';
         
-        // Cuadro de información principal
+        // Cuadro de información principal - Aumentar altura
+        const infoBoxHeight = 35; // Aumentar de 25 a 35
         doc.setFillColor(lightGray);
-        doc.roundedRect(20, yPosition, contentWidth, 25, 5, 5, 'F');
+        doc.roundedRect(20, yPosition, contentWidth, infoBoxHeight, 5, 5, 'F');
         doc.setDrawColor(accentColor);
         doc.setLineWidth(1);
-        doc.roundedRect(20, yPosition, contentWidth, 25, 5, 5, 'S');
+        doc.roundedRect(20, yPosition, contentWidth, infoBoxHeight, 5, 5, 'S');
         
         addText('INFORMACIÓN GENERAL', 25, yPosition + 8, { 
           fontSize: 14, 
@@ -754,7 +755,7 @@
           color: accentColor 
         });
         
-        // Información en dos columnas
+        // Información en dos columnas con mejor espaciado
         const infoLeft = [
           `Cliente: ${cliente}`,
           `Unidad: ${unidad}`,
@@ -767,14 +768,14 @@
           `ID: ${currentBitacoraData._id || 'N/A'}`
         ];
         
-        let infoY = yPosition + 15;
+        let infoY = yPosition + 18; // Aumentar margen superior
         infoLeft.forEach((info, index) => {
-          addText(info, 25, infoY, { fontSize: 11 });
-          addText(infoRight[index], pageWidth / 2 + 10, infoY, { fontSize: 11 });
-          infoY += 6;
+          addText(info, 25, infoY, { fontSize: 10 }); // Reducir tamaño de fuente
+          addText(infoRight[index], pageWidth / 2 + 10, infoY, { fontSize: 10 });
+          infoY += 7; // Aumentar espaciado entre líneas
         });
         
-        yPosition += 35;
+        yPosition += infoBoxHeight + 10; // Usar altura dinámica
         
         // Resumen de áreas en cuadros
         if (currentBitacoraData.resumen) {

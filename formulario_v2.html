@@ -584,9 +584,9 @@
       try {
         console.log('📄 Generando PDF de la bitácora...');
         
-        // Crear nuevo documento PDF
+        // Crear nuevo documento PDF (A4 en landscape para móviles)
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        const doc = new jsPDF('landscape', 'mm', 'a4');
         
         // Configuración de colores
         const primaryColor = '#1f2937';
@@ -594,180 +594,246 @@
         const successColor = '#22c55e';
         const warningColor = '#f59e0b';
         const dangerColor = '#ef4444';
+        const lightGray = '#f8fafc';
+        const darkGray = '#64748b';
         
         let yPosition = 20;
+        const pageWidth = 297; // A4 landscape width
+        const contentWidth = pageWidth - 40; // Margins
         
         // Función para agregar texto con estilo
         const addText = (text, x, y, options = {}) => {
-          doc.setFontSize(options.fontSize || 12);
+          doc.setFontSize(options.fontSize || 14);
           doc.setTextColor(options.color || primaryColor);
+          if (options.fontWeight === 'bold') {
+            doc.setFont(undefined, 'bold');
+          } else {
+            doc.setFont(undefined, 'normal');
+          }
           doc.text(text, x, y);
-          return y + (options.lineHeight || 7);
+          return y + (options.lineHeight || 8);
         };
         
         // Función para agregar línea
         const addLine = (y) => {
           doc.setDrawColor(200, 200, 200);
-          doc.line(20, y, 190, y);
-          return y + 5;
+          doc.line(20, y, pageWidth - 20, y);
+          return y + 8;
         };
         
-        // Encabezado
-        doc.setFillColor(primaryColor);
-        doc.rect(0, 0, 210, 30, 'F');
+        // Función para agregar cuadro de área
+        const addAreaBox = (area, areaData, areaComments, areaPhotos, startY) => {
+          const boxHeight = 60;
+          const boxWidth = (contentWidth - 20) / 2; // 2 columnas
+          const isLeftColumn = (startY % 2 === 0);
+          const x = isLeftColumn ? 20 : (pageWidth / 2) + 10;
+          const y = startY;
+          
+          // Fondo del cuadro
+          doc.setFillColor(lightGray);
+          doc.roundedRect(x, y, boxWidth, boxHeight, 5, 5, 'F');
+          
+          // Borde del cuadro
+          doc.setDrawColor(area.color || accentColor);
+          doc.setLineWidth(2);
+          doc.roundedRect(x, y, boxWidth, boxHeight, 5, 5, 'S');
+          
+          // Título del área
+          doc.setFillColor(area.color || accentColor);
+          doc.roundedRect(x, y, boxWidth, 15, 5, 5, 'F');
+          
+          addText(area.name, x + 5, y + 10, { 
+            color: '#ffffff', 
+            fontSize: 12, 
+            fontWeight: 'bold' 
+          });
+          
+          // Items del área
+          let itemY = y + 20;
+          const items = area.items || [];
+          const maxItems = 6; // Máximo 6 items por cuadro
+          
+          items.slice(0, maxItems).forEach((item, index) => {
+            const calificacion = areaData[item] || 'N/A';
+            const comentario = areaComments[item] || '';
+            const tieneFoto = areaPhotos[item] ? '📷' : '';
+            
+            let calificacionColor = primaryColor;
+            let calificacionTexto = calificacion;
+            
+            switch(calificacion) {
+              case 'E':
+                calificacionColor = successColor;
+                calificacionTexto = 'E';
+                break;
+              case 'B':
+                calificacionColor = accentColor;
+                calificacionTexto = 'B';
+                break;
+              case 'R':
+                calificacionColor = dangerColor;
+                calificacionTexto = 'R';
+                break;
+            }
+            
+            // Item con calificación
+            addText(`${item}:`, x + 5, itemY, { 
+              fontSize: 10,
+              color: primaryColor
+            });
+            
+            // Calificación con color
+            addText(calificacionTexto, x + boxWidth - 25, itemY, { 
+              fontSize: 12,
+              color: calificacionColor,
+              fontWeight: 'bold'
+            });
+            
+            // Indicador de foto
+            if (tieneFoto) {
+              addText(tieneFoto, x + boxWidth - 15, itemY, { 
+                fontSize: 10,
+                color: darkGray
+              });
+            }
+            
+            itemY += 6;
+          });
+          
+          // Si hay más items, mostrar "..."
+          if (items.length > maxItems) {
+            addText(`... y ${items.length - maxItems} más`, x + 5, itemY, { 
+              fontSize: 9,
+              color: darkGray
+            });
+          }
+          
+          return y + boxHeight + 10;
+        };
         
-        addText('TECH GUARD PRO', 20, 15, { 
+        // Encabezado mejorado
+        doc.setFillColor(primaryColor);
+        doc.rect(0, 0, pageWidth, 35, 'F');
+        
+        addText('TECH GUARD PRO', 20, 18, { 
           color: '#ffffff', 
-          fontSize: 16, 
+          fontSize: 20, 
           fontWeight: 'bold' 
         });
-        addText('Reporte de Supervisión', 20, 22, { 
+        addText('Reporte de Supervisión', 20, 26, { 
+          color: '#ffffff', 
+          fontSize: 12 
+        });
+        
+        // Fecha de generación
+        addText(`Generado: ${new Date().toLocaleDateString('es-CO')}`, pageWidth - 80, 18, { 
           color: '#ffffff', 
           fontSize: 10 
         });
         
-        yPosition = 40;
+        yPosition = 45;
         
-        // Información de la bitácora
-        addText('INFORMACIÓN GENERAL', 20, yPosition, { 
-          fontSize: 14, 
-          fontWeight: 'bold',
-          color: accentColor 
-        });
-        yPosition += 10;
-        
+        // Información de la bitácora en cuadros
         const fecha = new Date(currentBitacoraData.fecha).toLocaleDateString('es-CO');
         const supervisor = currentBitacoraData.supervisor || 'N/A';
         const cliente = currentBitacoraData.cliente || 'N/A';
         const estado = currentBitacoraData.estado || 'N/A';
+        const unidad = unidadResidencialData?.nombre || 'N/A';
         
-        yPosition = addText(`Cliente: ${cliente}`, 20, yPosition);
-        yPosition = addText(`Fecha: ${fecha}`, 20, yPosition);
-        yPosition = addText(`Supervisor: ${supervisor}`, 20, yPosition);
-        yPosition = addText(`Estado: ${estado.toUpperCase()}`, 20, yPosition);
+        // Cuadro de información principal
+        doc.setFillColor(lightGray);
+        doc.roundedRect(20, yPosition, contentWidth, 25, 5, 5, 'F');
+        doc.setDrawColor(accentColor);
+        doc.setLineWidth(1);
+        doc.roundedRect(20, yPosition, contentWidth, 25, 5, 5, 'S');
         
-        if (currentBitacoraData.observaciones) {
-          yPosition += 5;
-          yPosition = addText('Observaciones:', 20, yPosition, { fontWeight: 'bold' });
-          yPosition = addText(currentBitacoraData.observaciones, 20, yPosition);
-        }
+        addText('INFORMACIÓN GENERAL', 25, yPosition + 8, { 
+          fontSize: 14, 
+          fontWeight: 'bold',
+          color: accentColor 
+        });
         
-        yPosition = addLine(yPosition + 5);
+        // Información en dos columnas
+        const infoLeft = [
+          `Cliente: ${cliente}`,
+          `Unidad: ${unidad}`,
+          `Fecha: ${fecha}`
+        ];
         
-        // Resumen de áreas
+        const infoRight = [
+          `Supervisor: ${supervisor}`,
+          `Estado: ${estado.toUpperCase()}`,
+          `ID: ${currentBitacoraData._id || 'N/A'}`
+        ];
+        
+        let infoY = yPosition + 15;
+        infoLeft.forEach((info, index) => {
+          addText(info, 25, infoY, { fontSize: 11 });
+          addText(infoRight[index], pageWidth / 2 + 10, infoY, { fontSize: 11 });
+          infoY += 6;
+        });
+        
+        yPosition += 35;
+        
+        // Resumen de áreas en cuadros
         if (currentBitacoraData.resumen) {
-          addText('RESUMEN DE SUPERVISIÓN', 20, yPosition, { 
+          const resumen = currentBitacoraData.resumen;
+          
+          doc.setFillColor(lightGray);
+          doc.roundedRect(20, yPosition, contentWidth, 20, 5, 5, 'F');
+          doc.setDrawColor(successColor);
+          doc.setLineWidth(1);
+          doc.roundedRect(20, yPosition, contentWidth, 20, 5, 5, 'S');
+          
+          addText('RESUMEN DE SUPERVISIÓN', 25, yPosition + 8, { 
             fontSize: 14, 
             fontWeight: 'bold',
-            color: accentColor 
+            color: successColor 
           });
-          yPosition += 10;
           
-          const resumen = currentBitacoraData.resumen;
-          yPosition = addText(`Total de áreas: ${resumen.totalAreas || 0}`, 20, yPosition);
-          yPosition = addText(`Áreas completadas: ${resumen.areasCompletadas || 0}`, 20, yPosition);
-          yPosition = addText(`Total de elementos: ${resumen.totalElementos || 0}`, 20, yPosition);
-          yPosition = addText(`Elementos completados: ${resumen.elementosCompletados || 0}`, 20, yPosition);
+          const resumenText = `Áreas: ${resumen.areasCompletadas || 0}/${resumen.totalAreas || 0} | Elementos: ${resumen.elementosCompletados || 0}/${resumen.totalElementos || 0}`;
+          addText(resumenText, 25, yPosition + 15, { fontSize: 11 });
           
-          yPosition = addLine(yPosition + 5);
+          yPosition += 30;
         }
         
-        // Detalles por área
+        // Detalles por área en cuadros
         if (supervisionAreas && Object.keys(supervisionAreas).length > 0) {
           addText('DETALLES POR ÁREA', 20, yPosition, { 
-            fontSize: 14, 
+            fontSize: 16, 
             fontWeight: 'bold',
             color: accentColor 
           });
-          yPosition += 10;
+          yPosition += 15;
           
-          Object.keys(supervisionAreas).forEach(areaKey => {
+          const areas = Object.keys(supervisionAreas);
+          let currentY = yPosition;
+          
+          areas.forEach((areaKey, index) => {
             const area = supervisionAreas[areaKey];
             const areaData = supervisionData[areaKey] || {};
             const areaComments = supervisionComments[areaKey] || {};
             const areaPhotos = supervisionPhotos[areaKey] || {};
             
-            // Título del área
-            yPosition = addText(area.name, 20, yPosition, { 
-              fontSize: 12, 
-              fontWeight: 'bold',
-              color: area.color || accentColor 
-            });
-            yPosition += 2;
+            // Verificar si necesitamos nueva página
+            if (currentY > 150) {
+              doc.addPage();
+              currentY = 20;
+            }
             
-            // Items del área
-            area.items.forEach(item => {
-              const calificacion = areaData[item] || 'N/A';
-              const comentario = areaComments[item] || '';
-              const tieneFoto = areaPhotos[item] ? 'Sí' : 'No';
-              
-              let calificacionColor = primaryColor;
-              let calificacionTexto = calificacion;
-              
-              switch(calificacion) {
-                case 'E':
-                  calificacionColor = successColor;
-                  calificacionTexto = 'EXCELENTE';
-                  break;
-                case 'B':
-                  calificacionColor = accentColor;
-                  calificacionTexto = 'BUENO';
-                  break;
-                case 'R':
-                  calificacionColor = dangerColor;
-                  calificacionTexto = 'REGULAR';
-                  break;
-              }
-              
-              // Verificar si necesitamos nueva página
-              if (yPosition > 250) {
-                doc.addPage();
-                yPosition = 20;
-              }
-              
-              yPosition = addText(`  • ${item}: ${calificacionTexto}`, 25, yPosition, { 
-                color: calificacionColor,
-                fontSize: 10 
-              });
-              
-              if (comentario) {
-                yPosition = addText(`    Comentario: ${comentario}`, 30, yPosition, { 
-                  fontSize: 9,
-                  color: '#666666'
-                });
-              }
-              
-              if (tieneFoto === 'Sí') {
-                yPosition = addText(`    📷 Foto: ${tieneFoto}`, 30, yPosition, { 
-                  fontSize: 9,
-                  color: '#666666'
-                });
-                
-                // Si hay geolocalización, mostrarla
-                if (areaPhotos[item] && typeof areaPhotos[item] === 'object' && areaPhotos[item].metadata?.geolocation) {
-                  const geo = areaPhotos[item].metadata.geolocation;
-                  yPosition = addText(`    📍 GPS: ${geo.latitude.toFixed(6)}, ${geo.longitude.toFixed(6)}`, 30, yPosition, { 
-                    fontSize: 8,
-                    color: '#888888'
-                  });
-                }
-              }
-              
-              yPosition += 3;
-            });
-            
-            yPosition += 5;
+            currentY = addAreaBox(area, areaData, areaComments, areaPhotos, currentY);
           });
         }
         
-        // Pie de página
+        // Pie de página mejorado
         const pageCount = doc.internal.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
           doc.setPage(i);
-          doc.setFontSize(8);
-          doc.setTextColor('#666666');
-          doc.text(`Página ${i} de ${pageCount}`, 20, 290);
-          doc.text(`Generado el ${new Date().toLocaleDateString('es-CO')}`, 150, 290);
+          doc.setFontSize(10);
+          doc.setTextColor(darkGray);
+          doc.text(`Página ${i} de ${pageCount}`, 20, 190);
+          doc.text(`Tech Guard Pro - Supervisión de Unidades Residenciales`, pageWidth / 2 - 50, 190);
+          doc.text(`Generado el ${new Date().toLocaleDateString('es-CO')}`, pageWidth - 80, 190);
         }
         
         // Generar nombre del archivo

@@ -133,6 +133,12 @@
       border: 1px solid rgba(245, 158, 11, 0.3);
     }
     
+    .status-con_novedad {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    
     .status-completada {
       background: rgba(34, 197, 94, 0.2);
       color: #22c55e;
@@ -442,8 +448,8 @@
       const container = document.getElementById('accordion');
       if (!container) return;
       
-      // Determinar si la bitácora está completada (solo lectura)
-      const isReadOnly = currentBitacoraData && currentBitacoraData.estado === 'completada';
+      // Determinar si la bitácora está completada o con novedad (solo lectura)
+      const isReadOnly = currentBitacoraData && (currentBitacoraData.estado === 'completada' || currentBitacoraData.estado === 'con_novedad');
       
       container.innerHTML = '';
       Object.keys(supervisionAreas).forEach((areaKey)=>{
@@ -601,7 +607,7 @@
       const saveBtn = document.getElementById('save-btn');
       if (!saveBtn || !currentBitacoraData) return;
       
-      const isCompleted = currentBitacoraData.estado === 'completada';
+      const isCompleted = currentBitacoraData.estado === 'completada' || currentBitacoraData.estado === 'con_novedad';
       
       if (isCompleted) {
         saveBtn.innerHTML = '📄 Descargar PDF';
@@ -801,9 +807,18 @@
           `Fecha: ${fecha}`
         ];
         
+        // Mapear estados para mostrar en el PDF
+        const estadoText = {
+          'programada': 'PROGRAMADA',
+          'en_progreso': 'EN PROGRESO',
+          'con_novedad': 'CON NOVEDAD',
+          'completada': 'COMPLETADA',
+          'cancelada': 'CANCELADA'
+        }[estado] || estado.toUpperCase();
+        
         const infoRight = [
           `Supervisor: ${supervisor}`,
-          `Estado: ${estado.toUpperCase()}`,
+          `Estado: ${estadoText}`,
           `ID: ${currentBitacoraData._id || 'N/A'}`
         ];
         
@@ -922,9 +937,9 @@
         // Cargar datos de la bitácora
         await loadBitacoraDataById(bitacoraId);
         
-        // Verificar que la bitácora esté completada
-        if (currentBitacoraData.estado !== 'completada') {
-          alert('⚠️ Solo se pueden descargar PDFs de bitácoras completadas');
+        // Verificar que la bitácora esté completada o con novedad
+        if (currentBitacoraData.estado !== 'completada' && currentBitacoraData.estado !== 'con_novedad') {
+          alert('⚠️ Solo se pueden descargar PDFs de bitácoras completadas o con novedad');
           return;
         }
         
@@ -1307,12 +1322,28 @@
         return;
       }
       
+      // Detectar si hay calificaciones "R" (Regular) para determinar el estado
+      let hasRegularRatings = false;
+      for (const areaKey in areas) {
+        const areaData = areas[areaKey];
+        for (const item in areaData) {
+          if (areaData[item] === 'R') {
+            hasRegularRatings = true;
+            break;
+          }
+        }
+        if (hasRegularRatings) break;
+      }
+      
+      // Determinar el estado final
+      const finalEstado = hasRegularRatings ? 'con_novedad' : 'completada';
+      
       const payload = {
         areas,
         comentarios: supervisionComments,
         evidencias: processedPhotos,
         deshabilitadas: areasDisabled,
-        estado: 'completada'
+        estado: finalEstado
       };
 
       try {
@@ -1477,11 +1508,12 @@
           const estadoText = {
             'programada': 'Programada',
             'en_progreso': 'En Progreso',
+            'con_novedad': 'Con Novedad',
             'completada': 'Completada',
             'cancelada': 'Cancelada'
           }[bitacora.estado] || bitacora.estado;
           
-          const isCompletada = bitacora.estado === 'completada';
+          const isCompletada = bitacora.estado === 'completada' || bitacora.estado === 'con_novedad';
           
           return `
             <div class="bitacora-card" onclick="openBitacora('${bitacora._id}')">
@@ -1937,5 +1969,3 @@
   </script>
 </body>
 </html>
-
-

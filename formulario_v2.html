@@ -809,7 +809,8 @@
           
           const areas = Object.keys(supervisionAreas);
           let currentY = yPosition;
-          let isLeftColumn = true; // Controlar alternancia de columnas
+          const boxHeight = 80;
+          const boxWidth = (contentWidth - 20) / 2;
           
           areas.forEach((areaKey, index) => {
             const area = supervisionAreas[areaKey];
@@ -821,24 +822,19 @@
             if (currentY > 120) {
               doc.addPage();
               currentY = 20;
-              isLeftColumn = true;
             }
             
-            // Calcular posición de la caja
-            const boxHeight = 80;
-            const boxWidth = (contentWidth - 20) / 2;
+            // Determinar si es columna izquierda o derecha
+            const isLeftColumn = (index % 2 === 0);
             const x = isLeftColumn ? 20 : (pageWidth / 2) + 10;
             const y = currentY;
             
             // Dibujar la caja
-            currentY = addAreaBox(area, areaData, areaComments, areaPhotos, y, x, boxWidth, boxHeight);
+            addAreaBox(area, areaData, areaComments, areaPhotos, y, x, boxWidth, boxHeight);
             
-            // Alternar columnas
-            if (isLeftColumn) {
-              isLeftColumn = false;
-            } else {
-              isLeftColumn = true;
-              currentY = y + boxHeight + 15; // Mover a la siguiente fila
+            // Si es columna derecha, mover a la siguiente fila
+            if (!isLeftColumn) {
+              currentY = y + boxHeight + 15;
             }
           });
         }

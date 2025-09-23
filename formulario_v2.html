@@ -622,11 +622,7 @@
         };
         
         // Función para agregar cuadro de área
-        const addAreaBox = (area, areaData, areaComments, areaPhotos, startY) => {
-          const boxHeight = 60;
-          const boxWidth = (contentWidth - 20) / 2; // 2 columnas
-          const isLeftColumn = (startY % 2 === 0);
-          const x = isLeftColumn ? 20 : (pageWidth / 2) + 10;
+        const addAreaBox = (area, areaData, areaComments, areaPhotos, startY, x, boxWidth, boxHeight) => {
           const y = startY;
           
           // Fondo del cuadro
@@ -640,22 +636,22 @@
           
           // Título del área
           doc.setFillColor(area.color || accentColor);
-          doc.roundedRect(x, y, boxWidth, 15, 5, 5, 'F');
+          doc.roundedRect(x, y, boxWidth, 18, 5, 5, 'F');
           
-          addText(area.name, x + 5, y + 10, { 
+          addText(area.name, x + 8, y + 12, { 
             color: '#ffffff', 
-            fontSize: 12, 
+            fontSize: 11, 
             fontWeight: 'bold' 
           });
           
           // Items del área
-          let itemY = y + 20;
+          let itemY = y + 25;
           const items = area.items || [];
-          const maxItems = 6; // Máximo 6 items por cuadro
+          const maxItems = 8; // Aumentar items por cuadro
+          const itemHeight = 6; // Altura entre items
           
           items.slice(0, maxItems).forEach((item, index) => {
             const calificacion = areaData[item] || 'N/A';
-            const comentario = areaComments[item] || '';
             const tieneFoto = areaPhotos[item] ? '📷' : '';
             
             let calificacionColor = primaryColor;
@@ -676,39 +672,44 @@
                 break;
             }
             
+            // Truncar nombre del item si es muy largo
+            const maxItemLength = 25;
+            const itemName = item.length > maxItemLength ? item.substring(0, maxItemLength) + '...' : item;
+            
             // Item con calificación
-            addText(`${item}:`, x + 5, itemY, { 
-              fontSize: 10,
+            addText(`${itemName}:`, x + 8, itemY, { 
+              fontSize: 9,
               color: primaryColor
             });
             
-            // Calificación con color
-            addText(calificacionTexto, x + boxWidth - 25, itemY, { 
-              fontSize: 12,
+            // Calificación con color (alineada a la derecha)
+            const califX = x + boxWidth - 20;
+            addText(calificacionTexto, califX, itemY, { 
+              fontSize: 10,
               color: calificacionColor,
               fontWeight: 'bold'
             });
             
             // Indicador de foto
             if (tieneFoto) {
-              addText(tieneFoto, x + boxWidth - 15, itemY, { 
-                fontSize: 10,
+              addText(tieneFoto, califX - 8, itemY, { 
+                fontSize: 8,
                 color: darkGray
               });
             }
             
-            itemY += 6;
+            itemY += itemHeight;
           });
           
           // Si hay más items, mostrar "..."
           if (items.length > maxItems) {
-            addText(`... y ${items.length - maxItems} más`, x + 5, itemY, { 
-              fontSize: 9,
+            addText(`... y ${items.length - maxItems} más`, x + 8, itemY, { 
+              fontSize: 8,
               color: darkGray
             });
           }
           
-          return y + boxHeight + 10;
+          return y + boxHeight + 15; // Más espacio entre cuadros
         };
         
         // Encabezado mejorado
@@ -808,6 +809,7 @@
           
           const areas = Object.keys(supervisionAreas);
           let currentY = yPosition;
+          let isLeftColumn = true; // Controlar alternancia de columnas
           
           areas.forEach((areaKey, index) => {
             const area = supervisionAreas[areaKey];
@@ -816,12 +818,28 @@
             const areaPhotos = supervisionPhotos[areaKey] || {};
             
             // Verificar si necesitamos nueva página
-            if (currentY > 150) {
+            if (currentY > 120) {
               doc.addPage();
               currentY = 20;
+              isLeftColumn = true;
             }
             
-            currentY = addAreaBox(area, areaData, areaComments, areaPhotos, currentY);
+            // Calcular posición de la caja
+            const boxHeight = 80;
+            const boxWidth = (contentWidth - 20) / 2;
+            const x = isLeftColumn ? 20 : (pageWidth / 2) + 10;
+            const y = currentY;
+            
+            // Dibujar la caja
+            currentY = addAreaBox(area, areaData, areaComments, areaPhotos, y, x, boxWidth, boxHeight);
+            
+            // Alternar columnas
+            if (isLeftColumn) {
+              isLeftColumn = false;
+            } else {
+              isLeftColumn = true;
+              currentY = y + boxHeight + 15; // Mover a la siguiente fila
+            }
           });
         }
         

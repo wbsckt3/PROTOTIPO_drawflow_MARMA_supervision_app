@@ -82,7 +82,7 @@
     
     /* Estilos para Autenticación */
     .auth-overlay{ position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg, #0f172a, #1e293b); display:flex; justify-content:center; align-items:center; z-index:9999 }
-    .auth-container{ width:100%; max-width:400px; padding:2rem }
+    .auth-container{ width:100%; max-width:600px; padding:2rem }
     .auth-card{ background:var(--panel); border:1px solid #1f2937; border-radius:16px; padding:2rem; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.3) }
     .auth-header h2{ font-size:2rem; font-weight:700; color:var(--accent); margin:0 0 0.5rem 0 }
     .auth-header p{ color:var(--text-dim); margin:0 0 2rem 0; font-size:1.1rem }
@@ -93,20 +93,30 @@
     /* Estilos personalizados para Google Sign-in */
     .g_id_signin{ 
       width: 100% !important; 
-      max-width: 300px !important; 
+      max-width: 500px !important; 
       margin: 0 auto !important; 
+      display: block !important;
     }
     .g_id_signin > div{ 
       width: 100% !important; 
-      height: 50px !important; 
-      border-radius: 8px !important; 
-      font-size: 16px !important; 
-      font-weight: 500 !important; 
+      height: 60px !important; 
+      border-radius: 12px !important; 
+      font-size: 18px !important; 
+      font-weight: 600 !important; 
+      min-width: 300px !important;
+      max-width: 500px !important;
     }
     .g_id_signin iframe{ 
       width: 100% !important; 
-      height: 50px !important; 
-      border-radius: 8px !important; 
+      height: 60px !important; 
+      border-radius: 12px !important; 
+      min-width: 300px !important;
+      max-width: 500px !important;
+    }
+    /* Forzar estilos en elementos internos de Google */
+    .g_id_signin * {
+      font-size: 18px !important;
+      line-height: 60px !important;
     }
     
     @media (max-width:720px){
@@ -115,11 +125,18 @@
       .header-actions{ width:100%; flex-wrap:wrap; gap:.4rem }
       .admin-main{ flex-direction:column }
       .admin-sidebar{ width:100%; height:200px }
-      .auth-container{ padding:1rem }
+      .auth-container{ padding:1rem; max-width: 100% !important; }
       .auth-card{ padding:1.5rem }
       .g_id_signin{ max-width: 100% !important; }
-      .g_id_signin > div{ height: 60px !important; font-size: 18px !important; }
-      .g_id_signin iframe{ height: 60px !important; }
+      .g_id_signin > div{ 
+        height: 70px !important; 
+        font-size: 20px !important; 
+        min-width: 100% !important;
+      }
+      .g_id_signin iframe{ 
+        height: 70px !important; 
+        min-width: 100% !important;
+      }
     }
     .acc-body{ display:none; padding:1rem; border-top:1px solid #334155; background:rgba(11,18,32,.6) }
     .acc-item.open .acc-body{ display:block }
@@ -563,10 +580,10 @@
       <div class="auth-card">
         <div class="auth-header">
           <h2>🏢 Tech Guard Pro</h2>
-          <p>Dashboard Administrativo</p>
+          <p>MARMA | Dashboard Administrativo</p>
         </div>
         <div class="auth-content">
-          <p>Inicia sesión con tu cuenta de Google para acceder al panel administrativo</p>
+          <p>Inicia sesión con tu cuenta de administrador para acceder al panel administrativo</p>
           <div id="g_id_onload"
                data-client_id="980822676255-vntch0t28qbesul2bp5oc1galtoi8a97.apps.googleusercontent.com"
                data-callback="handleCredentialResponse"
@@ -578,7 +595,8 @@
                data-theme="outline"
                data-text="sign_in_with"
                data-shape="rectangular"
-               data-logo_alignment="left">
+               data-logo_alignment="left"
+               style="width: 100%; max-width: 500px; margin: 0 auto; display: block;">
           </div>
         </div>
         <div class="auth-footer">
@@ -800,6 +818,35 @@
     // Inicialización del dashboard
     document.addEventListener('DOMContentLoaded', function() {
       checkAuthStatus();
+      
+      // Forzar estilos del botón de Google después de que se cargue
+      setTimeout(() => {
+        const googleButton = document.querySelector('.g_id_signin');
+        if (googleButton) {
+          googleButton.style.width = '100%';
+          googleButton.style.maxWidth = '500px';
+          googleButton.style.margin = '0 auto';
+          googleButton.style.display = 'block';
+          
+          const googleDiv = googleButton.querySelector('div');
+          if (googleDiv) {
+            googleDiv.style.width = '100%';
+            googleDiv.style.height = '60px';
+            googleDiv.style.minWidth = '300px';
+            googleDiv.style.maxWidth = '500px';
+            googleDiv.style.fontSize = '18px';
+            googleDiv.style.fontWeight = '600';
+          }
+          
+          const googleIframe = googleButton.querySelector('iframe');
+          if (googleIframe) {
+            googleIframe.style.width = '100%';
+            googleIframe.style.height = '60px';
+            googleIframe.style.minWidth = '300px';
+            googleIframe.style.maxWidth = '500px';
+          }
+        }
+      }, 1000);
     });
     
     // Verificar estado de autenticación

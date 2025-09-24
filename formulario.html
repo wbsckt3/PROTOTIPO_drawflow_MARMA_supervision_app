@@ -119,6 +119,39 @@
       line-height: 60px !important;
     }
     
+    /* Estilos específicos para cuando hay email pre-seleccionado */
+    .g_id_signin[data-auto_select="true"] {
+      width: 100% !important;
+      max-width: 500px !important;
+    }
+    .g_id_signin[data-auto_select="true"] > div {
+      width: 100% !important;
+      height: 60px !important;
+      min-width: 300px !important;
+      max-width: 500px !important;
+      font-size: 18px !important;
+      font-weight: 600 !important;
+    }
+    .g_id_signin[data-auto_select="true"] iframe {
+      width: 100% !important;
+      height: 60px !important;
+      min-width: 300px !important;
+      max-width: 500px !important;
+    }
+    
+    /* Estilos para el contenido interno cuando hay email */
+    .g_id_signin div[role="button"] {
+      width: 100% !important;
+      height: 60px !important;
+      min-width: 300px !important;
+      max-width: 500px !important;
+      font-size: 18px !important;
+      font-weight: 600 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    
     @media (max-width:720px){
       .acc-header{ flex-direction:column; align-items:flex-start; gap:.4rem }
       .acc-title{ margin-bottom:.1rem }
@@ -845,8 +878,38 @@
             googleIframe.style.minWidth = '300px';
             googleIframe.style.maxWidth = '500px';
           }
+          
+          // Buscar y estilizar el botón interno cuando hay email pre-seleccionado
+          const internalButton = googleButton.querySelector('div[role="button"]');
+          if (internalButton) {
+            internalButton.style.width = '100%';
+            internalButton.style.height = '60px';
+            internalButton.style.minWidth = '300px';
+            internalButton.style.maxWidth = '500px';
+            internalButton.style.fontSize = '18px';
+            internalButton.style.fontWeight = '600';
+            internalButton.style.display = 'flex';
+            internalButton.style.alignItems = 'center';
+            internalButton.style.justifyContent = 'center';
+          }
         }
       }, 1000);
+      
+      // También aplicar estilos después de más tiempo por si Google tarda más
+      setTimeout(() => {
+        const googleButton = document.querySelector('.g_id_signin');
+        if (googleButton) {
+          const allDivs = googleButton.querySelectorAll('div');
+          allDivs.forEach(div => {
+            div.style.width = '100%';
+            div.style.height = '60px';
+            div.style.minWidth = '300px';
+            div.style.maxWidth = '500px';
+            div.style.fontSize = '18px';
+            div.style.fontWeight = '600';
+          });
+        }
+      }, 2000);
     });
     
     // Verificar estado de autenticación

@@ -92,64 +92,9 @@
     
     /* Estilos personalizados para Google Sign-in */
     .g_id_signin{ 
-      width: 100% !important; 
-      max-width: 500px !important; 
       margin: 0 auto !important; 
       display: block !important;
-    }
-    .g_id_signin > div{ 
-      width: 100% !important; 
-      height: 60px !important; 
-      border-radius: 12px !important; 
-      font-size: 18px !important; 
-      font-weight: 600 !important; 
-      min-width: 300px !important;
-      max-width: 500px !important;
-    }
-    .g_id_signin iframe{ 
-      width: 100% !important; 
-      height: 60px !important; 
-      border-radius: 12px !important; 
-      min-width: 300px !important;
-      max-width: 500px !important;
-    }
-    /* Forzar estilos en elementos internos de Google */
-    .g_id_signin * {
-      font-size: 18px !important;
-      line-height: 60px !important;
-    }
-    
-    /* Estilos específicos para cuando hay email pre-seleccionado */
-    .g_id_signin[data-auto_select="true"] {
-      width: 100% !important;
-      max-width: 500px !important;
-    }
-    .g_id_signin[data-auto_select="true"] > div {
-      width: 100% !important;
-      height: 60px !important;
-      min-width: 300px !important;
-      max-width: 500px !important;
-      font-size: 18px !important;
-      font-weight: 600 !important;
-    }
-    .g_id_signin[data-auto_select="true"] iframe {
-      width: 100% !important;
-      height: 60px !important;
-      min-width: 300px !important;
-      max-width: 500px !important;
-    }
-    
-    /* Estilos para el contenido interno cuando hay email */
-    .g_id_signin div[role="button"] {
-      width: 100% !important;
-      height: 60px !important;
-      min-width: 300px !important;
-      max-width: 500px !important;
-      font-size: 18px !important;
-      font-weight: 600 !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
+      text-align: center !important;
     }
     
     @media (max-width:720px){
@@ -628,8 +573,7 @@
                data-theme="outline"
                data-text="sign_in_with"
                data-shape="rectangular"
-               data-logo_alignment="left"
-               style="width: 100%; max-width: 500px; margin: 0 auto; display: block;">
+               data-logo_alignment="left">
           </div>
         </div>
         <div class="auth-footer">
@@ -852,64 +796,15 @@
     document.addEventListener('DOMContentLoaded', function() {
       checkAuthStatus();
       
-      // Forzar estilos del botón de Google después de que se cargue
+      // Centrar el botón de Google después de que se cargue
       setTimeout(() => {
         const googleButton = document.querySelector('.g_id_signin');
         if (googleButton) {
-          googleButton.style.width = '100%';
-          googleButton.style.maxWidth = '500px';
           googleButton.style.margin = '0 auto';
           googleButton.style.display = 'block';
-          
-          const googleDiv = googleButton.querySelector('div');
-          if (googleDiv) {
-            googleDiv.style.width = '100%';
-            googleDiv.style.height = '60px';
-            googleDiv.style.minWidth = '300px';
-            googleDiv.style.maxWidth = '500px';
-            googleDiv.style.fontSize = '18px';
-            googleDiv.style.fontWeight = '600';
-          }
-          
-          const googleIframe = googleButton.querySelector('iframe');
-          if (googleIframe) {
-            googleIframe.style.width = '100%';
-            googleIframe.style.height = '60px';
-            googleIframe.style.minWidth = '300px';
-            googleIframe.style.maxWidth = '500px';
-          }
-          
-          // Buscar y estilizar el botón interno cuando hay email pre-seleccionado
-          const internalButton = googleButton.querySelector('div[role="button"]');
-          if (internalButton) {
-            internalButton.style.width = '100%';
-            internalButton.style.height = '60px';
-            internalButton.style.minWidth = '300px';
-            internalButton.style.maxWidth = '500px';
-            internalButton.style.fontSize = '18px';
-            internalButton.style.fontWeight = '600';
-            internalButton.style.display = 'flex';
-            internalButton.style.alignItems = 'center';
-            internalButton.style.justifyContent = 'center';
-          }
+          googleButton.style.textAlign = 'center';
         }
       }, 1000);
-      
-      // También aplicar estilos después de más tiempo por si Google tarda más
-      setTimeout(() => {
-        const googleButton = document.querySelector('.g_id_signin');
-        if (googleButton) {
-          const allDivs = googleButton.querySelectorAll('div');
-          allDivs.forEach(div => {
-            div.style.width = '100%';
-            div.style.height = '60px';
-            div.style.minWidth = '300px';
-            div.style.maxWidth = '500px';
-            div.style.fontSize = '18px';
-            div.style.fontWeight = '600';
-          });
-        }
-      }, 2000);
     });
     
     // Verificar estado de autenticación

@@ -176,7 +176,19 @@
         </div>
         <div class="auth-content">
           <p>Registra tu especialidad y encuentra oportunidades de prestación de servicios cerca de ti</p>
-          <div id="g_id_signin" style="margin: 0 auto; display: block; text-align: center;"></div>
+          <div id="g_id_onload"
+               data-client_id="980822676255-vntch0t28qbesul2bp5oc1galtoi8a97.apps.googleusercontent.com"
+               data-callback="handleCredentialResponse"
+               data-auto_prompt="false">
+          </div>
+          <div class="g_id_signin"
+               data-type="standard"
+               data-size="large"
+               data-theme="outline"
+               data-text="sign_in_with"
+               data-shape="rectangular"
+               data-logo_alignment="left">
+          </div>
         </div>
         <div class="auth-footer">
           <p>Acceso para clientes y técnicos</p>
@@ -337,7 +349,6 @@
     document.addEventListener('DOMContentLoaded', function() {
       checkAuthStatus();
       setupEventListeners();
-      initializeGoogleSignIn();
       
       // Centrar el botón de Google después de que se cargue
       setTimeout(() => {
@@ -350,37 +361,6 @@
       }, 1000);
     });
 
-    // Inicializar Google Sign-in
-    function initializeGoogleSignIn() {
-      // Esperar a que Google Sign-in se cargue
-      const checkGoogleSignIn = () => {
-        if (typeof google !== 'undefined' && google.accounts) {
-          google.accounts.id.initialize({
-            client_id: '980822676255-vntch0t28qbesul2bp5oc1galtoi8a97.apps.googleusercontent.com',
-            callback: handleCredentialResponse,
-            auto_select: false
-          });
-          
-          google.accounts.id.renderButton(
-            document.getElementById('g_id_signin'),
-            {
-              theme: 'outline',
-              size: 'large',
-              text: 'sign_in_with',
-              shape: 'rectangular',
-              logo_alignment: 'left'
-            }
-          );
-          
-          console.log('✅ Google Sign-in inicializado correctamente');
-        } else {
-          // Reintentar después de 100ms
-          setTimeout(checkGoogleSignIn, 100);
-        }
-      };
-      
-      checkGoogleSignIn();
-    }
 
     // Configurar event listeners
     function setupEventListeners() {
@@ -427,8 +407,19 @@
 
     // Verificar estado de autenticación
     function checkAuthStatus() {
-      const token = localStorage.getItem('user_token');
+      const token = localStorage.getItem('refactorii_token');
       const userData = localStorage.getItem('user_data');
+      const tokenExpiry = localStorage.getItem('token_expiry');
+      
+      // Verificar si el token ha expirado
+      if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
+        console.log('Token expirado, limpiando datos');
+        localStorage.removeItem('refactorii_token');
+        localStorage.removeItem('token_expiry');
+        localStorage.removeItem('user_data');
+        showAuthOverlay();
+        return;
+      }
       
       if (token && userData) {
         try {
@@ -464,10 +455,11 @@
     async function handleCredentialResponse(response) {
       try {
         console.log('🔐 Iniciando autenticación con Google...');
-        const credential = response.credential;
-        const payload = JSON.parse(atob(credential.split('.')[1]));
+        console.log('Respuesta de Google:', response);
         
-        console.log('👤 Usuario autenticado:', payload.email, payload.name);
+        // Decodificar el JWT token
+        const payload = JSON.parse(atob(response.credential.split('.')[1]));
+        console.log('Payload decodificado:', payload);
         
         // Crear objeto de usuario
         const userData = {
@@ -477,16 +469,40 @@
           ImageURL: payload.picture,
           Email: payload.email
         };
-
-        // Guardar en localStorage
-        localStorage.setItem('user_token', credential);
+        
+        // Enviar datos al backend para autenticación (opcional)
+        try {
+          const authResponse = await fetch(`${API_BASE_URL}/auth/google-signin`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(userData)
+          });
+          
+          if (!authResponse.ok) {
+            console.warn(`⚠️ Error del servidor (${authResponse.status}), continuando con autenticación local`);
+          } else {
+            const authResult = await authResponse.json();
+            console.log('Resultado de autenticación:', authResult);
+          }
+        } catch (serverError) {
+          console.warn('⚠️ Servidor no disponible, continuando con autenticación local:', serverError.message);
+        }
+        
+        // Guardar token y datos de usuario
+        const tokenExpiry = Date.now() + (24 * 60 * 60 * 1000); // 24 horas
+        localStorage.setItem('refactorii_token', response.credential);
+        localStorage.setItem('token_expiry', tokenExpiry.toString());
         localStorage.setItem('user_data', JSON.stringify(userData));
+        
+        console.log('✅ Usuario autenticado exitosamente:', userData.Email);
         
         currentUser = userData;
         initializeApp();
         
       } catch (error) {
-        console.error('Error procesando credencial:', error);
+        console.error('❌ Error procesando credencial:', error);
         showNotification('Error en la autenticación', 'error');
       }
     }
@@ -1578,7 +1594,8 @@
 
     // Cerrar sesión
     function logout() {
-      localStorage.removeItem('user_token');
+      localStorage.removeItem('refactorii_token');
+      localStorage.removeItem('token_expiry');
       localStorage.removeItem('user_data');
       currentUser = null;
       showAuthOverlay();

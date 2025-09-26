@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tech Guard Pro — Mapa de Supervisión de Daños</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+  
+  <!-- Google Sign-in -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  
+  <!-- Socket.IO -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  
+  <style>
+    :root{
+      --bg:#0f172a; --panel:#111827; --muted:#1f2937; --accent:#22c55e; --accent-2:#3b82f6; 
+      --text:#e5e7eb; --text-dim:#9ca3af; --danger:#ef4444; --yellow:#f59e0b; --warning:#f59e0b;
+      --success:#22c55e; --info:#3b82f6;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%; margin:0; padding:0}
+    body{background:linear-gradient(180deg,#0b1220,#0f172a); color:var(--text); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    
+    /* Layout principal */
+    .app{display:flex; flex-direction:column; height:100vh}
+    .header{background:rgba(17,24,39,.95); backdrop-filter:blur(8px); border-bottom:1px solid #1f2937; padding:1rem; display:flex; justify-content:space-between; align-items:center; z-index:1000}
+    .main{flex:1; display:flex; overflow:hidden}
+    .sidebar{width:350px; background:var(--panel); border-right:1px solid #1f2937; overflow-y:auto}
+    .map-container{flex:1; position:relative}
+    
+    /* Header */
+    .brand{font-size:1.5rem; font-weight:700; color:var(--accent)}
+    .user-info{display:flex; align-items:center; gap:1rem}
+    .user-avatar{width:40px; height:40px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; font-weight:700}
+    .btn{background:var(--muted); border:1px solid #293548; color:var(--text); padding:.5rem 1rem; border-radius:.6rem; cursor:pointer; transition:.15s; display:inline-flex; align-items:center; gap:.4rem; text-decoration:none}
+    .btn:hover{background:#243042}
+    .btn.primary{background:linear-gradient(135deg,var(--accent),#16a34a); border-color:transparent; color:#02130a; font-weight:700}
+    .btn.danger{background:linear-gradient(135deg,var(--danger),#dc2626); border-color:transparent; color:#fff; font-weight:700}
+    
+    /* Sidebar */
+    .sidebar-section{padding:1rem; border-bottom:1px solid #1f2937}
+    .sidebar-title{font-size:1rem; font-weight:600; color:var(--accent); margin-bottom:.5rem}
+    .card{background:var(--muted); border:1px solid #334155; border-radius:8px; padding:1rem; margin-bottom:.5rem}
+    .card h4{margin:0 0 .5rem 0; color:var(--text)}
+    .card p{margin:0; color:var(--text-dim); font-size:.9rem}
+    
+    /* Mapa */
+    #map{width:100%; height:100%}
+    
+    /* Estilos para marcadores personalizados */
+    .damage-marker{background:var(--danger); color:white; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-weight:700; border:2px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+    .damage-marker.high{background:var(--danger)}
+    .damage-marker.medium{background:var(--warning)}
+    .damage-marker.low{background:var(--info)}
+    
+    /* Popup personalizado */
+    .popup-content{min-width:200px}
+    .popup-image{width:100%; height:150px; object-fit:cover; border-radius:8px; margin-bottom:.5rem}
+    .popup-title{font-weight:700; margin-bottom:.5rem; color:var(--text)}
+    .popup-description{color:var(--text-dim); font-size:.9rem; margin-bottom:.5rem}
+    .popup-actions{display:flex; gap:.5rem; margin-top:.5rem}
+    .popup-actions .btn{font-size:.8rem; padding:.3rem .6rem}
+    
+    /* Autenticación */
+    .auth-overlay{position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg, #0f172a, #1e293b); display:flex; justify-content:center; align-items:center; z-index:9999}
+    .auth-container{width:100%; max-width:500px; padding:2rem}
+    .auth-card{background:var(--panel); border:1px solid #1f2937; border-radius:16px; padding:2rem; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.3)}
+    .auth-header h2{font-size:2rem; font-weight:700; color:var(--accent); margin:0 0 0.5rem 0}
+    .auth-header p{color:var(--text-dim); margin:0 0 2rem 0; font-size:1.1rem}
+    .auth-content p{color:var(--text); margin-bottom:2rem; line-height:1.6}
+    .auth-footer{margin-top:2rem; padding-top:1rem; border-top:1px solid #1f2937}
+    .auth-footer p{color:var(--text-dim); font-size:0.9rem; margin:0}
+    
+    /* Google Sign-in */
+    .g_id_signin{margin: 0 auto !important; display: block !important; text-align: center !important;}
+    
+    /* Modales */
+    .modal{position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:none; justify-content:center; align-items:center; z-index:1000}
+    .modal.active{display:flex}
+    .modal-content{background:var(--panel); border:1px solid #1f2937; border-radius:12px; padding:2rem; max-width:600px; width:90%; max-height:80vh; overflow-y:auto}
+    .modal-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem}
+    .modal-title{font-size:1.2rem; font-weight:700}
+    .modal-close{background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:1.5rem}
+    
+    /* Formularios */
+    .form-group{margin-bottom:1rem}
+    .form-group label{display:block; margin-bottom:.5rem; font-weight:500; color:var(--text)}
+    .form-group input, .form-group select, .form-group textarea{width:100%; background:#0b1220; border:1px solid #283245; border-radius:.6rem; color:var(--text); padding:.5rem .6rem; outline:none}
+    .form-group textarea{min-height:100px; resize:vertical}
+    
+    /* Estados */
+    .status-badge{padding:.2rem .5rem; border-radius:4px; font-size:.8rem; font-weight:600; text-transform:uppercase}
+    .status-pending{background:rgba(245,158,11,.2); color:var(--warning)}
+    .status-accepted{background:rgba(34,197,94,.2); color:var(--success)}
+    .status-completed{background:rgba(59,130,246,.2); color:var(--info)}
+    .status-canceled{background:rgba(239,68,68,.2); color:var(--danger)}
+    
+    /* Responsive */
+    @media (max-width:768px){
+      .sidebar{width:100%; position:absolute; top:0; left:0; height:100%; z-index:500; transform:translateX(-100%); transition:transform 0.3s ease}
+      .sidebar.open{transform:translateX(0)}
+      .main{flex-direction:column}
+      .header{padding:.5rem}
+      .brand{font-size:1.2rem}
+    }
+    
+    /* Loading */
+    .loading{display:inline-block; width:20px; height:20px; border:3px solid rgba(59,130,246,0.3); border-radius:50%; border-top-color:#3b82f6; animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    
+    /* Notificaciones */
+    .notification{position:fixed; top:20px; right:20px; background:var(--panel); border:1px solid #1f2937; border-radius:8px; padding:1rem; box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:1001; max-width:300px}
+    .notification.success{border-left:4px solid var(--success)}
+    .notification.error{border-left:4px solid var(--danger)}
+    .notification.warning{border-left:4px solid var(--warning)}
+  </style>
+</head>
+<body>
+  <!-- Overlay de autenticación -->
+  <div class="auth-overlay" id="auth-overlay">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-header">
+          <h2>🏢 Tech Guard Pro</h2>
+          <p>Mapa de Supervisión de Daños</p>
+        </div>
+        <div class="auth-content">
+          <p>Inicia sesión con tu cuenta de Google para acceder al mapa de supervisión</p>
+          <div id="g_id_onload"
+               data-client_id="980822676255-vntch0t28qbesul2bp5oc1galtoi8a97.apps.googleusercontent.com"
+               data-callback="handleCredentialResponse"
+               data-auto_prompt="false">
+          </div>
+          <div class="g_id_signin"
+               data-type="standard"
+               data-size="large"
+               data-theme="outline"
+               data-text="sign_in_with"
+               data-shape="rectangular"
+               data-logo_alignment="left">
+          </div>
+        </div>
+        <div class="auth-footer">
+          <p>Acceso para administradores y técnicos</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aplicación principal -->
+  <div class="app" id="main-app" style="display:none;">
+    <!-- Header -->
+    <div class="header">
+      <div class="brand">🗺️ Tech Guard Pro - Mapa de Daños</div>
+      <div class="user-info">
+        <span id="user-name">Usuario</span>
+        <div class="user-avatar" id="user-avatar">U</div>
+        <button class="btn danger" onclick="logout()">Cerrar Sesión</button>
+      </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="main">
+      <!-- Sidebar -->
+      <div class="sidebar" id="sidebar">
+        <div class="sidebar-section">
+          <div class="sidebar-title">📍 Mi Ubicación</div>
+          <div class="card">
+            <p id="current-location">Obteniendo ubicación...</p>
+            <button class="btn" onclick="getCurrentLocation()">🔄 Actualizar</button>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-title">👤 Perfil</div>
+          <div class="card">
+            <h4 id="user-role">Cargando...</h4>
+            <p id="user-email">-</p>
+            <button class="btn primary" onclick="toggleServiceProvider()" id="toggle-provider-btn">
+              <span id="provider-status">Registrarse como Técnico</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="sidebar-section" id="services-section" style="display:none;">
+          <div class="sidebar-title">🔧 Mis Servicios</div>
+          <div id="services-list">
+            <!-- Se llenará dinámicamente -->
+          </div>
+          <button class="btn" onclick="showAddServiceModal()">➕ Agregar Servicio</button>
+        </div>
+
+        <div class="sidebar-section" id="requests-section" style="display:none;">
+          <div class="sidebar-title">📋 Solicitudes Cercanas</div>
+          <div id="nearby-requests">
+            <!-- Se llenará dinámicamente -->
+          </div>
+        </div>
+
+        <div class="sidebar-section" id="admin-section" style="display:none;">
+          <div class="sidebar-title">👨‍💼 Panel Admin</div>
+          <div class="card">
+            <h4>Gestión de Servicios</h4>
+            <p>Administra servicios y solicitudes</p>
+            <button class="btn" onclick="showAdminServices()">Ver Servicios</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mapa -->
+      <div class="map-container">
+        <div id="map"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para agregar servicio -->
+  <div class="modal" id="add-service-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Agregar Servicio</h3>
+        <button class="modal-close" onclick="hideModal('add-service-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Nombre del Servicio</label>
+          <input type="text" id="service-name" placeholder="Ej: Reparación de Piscinas">
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea id="service-description" placeholder="Describe los servicios que ofreces"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Categoría</label>
+          <select id="service-category">
+            <option value="piscinas">Piscinas</option>
+            <option value="zonas_comunes">Zonas Comunes</option>
+            <option value="zonas_externas">Zonas Externas</option>
+            <option value="oficinas">Oficinas</option>
+            <option value="operario">Operario</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Precio Base (USD)</label>
+          <input type="number" id="service-base-price" placeholder="2.50" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>Precio por KM (USD)</label>
+          <input type="number" id="service-price-per-km" placeholder="1.00" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>Radio de Servicio (metros)</label>
+          <input type="number" id="service-radius" placeholder="10000">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="hideModal('add-service-modal')">Cancelar</button>
+        <button class="btn primary" onclick="createService()">Crear Servicio</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para hacer puja -->
+  <div class="modal" id="bid-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Hacer Propuesta</h3>
+        <button class="modal-close" onclick="hideModal('bid-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Precio Propuesto (USD)</label>
+          <input type="number" id="bid-price" placeholder="0.00" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>Tiempo Estimado (minutos)</label>
+          <input type="number" id="bid-duration" placeholder="60">
+        </div>
+        <div class="form-group">
+          <label>Comentarios</label>
+          <textarea id="bid-comment" placeholder="Describe tu propuesta de solución"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="hideModal('bid-modal')">Cancelar</button>
+        <button class="btn primary" onclick="submitBid()">Enviar Propuesta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // Variables globales
+    let map;
+    let currentUser = null;
+    let currentCompany = null;
+    let userLocation = null;
+    let userMarker = null;
+    let damageMarkers = [];
+    let socket = null;
+    let isServiceProvider = false;
+    let currentServices = [];
+    let nearbyRequests = [];
+    let selectedRequest = null;
+
+    // Configuración de la API
+    const API_BASE_URL = 'https://www.refactorii.com/api/tenant/geofence';
+    const SOCKET_URL = 'https://www.refactorii.com';
+
+    // Inicialización
+    document.addEventListener('DOMContentLoaded', function() {
+      checkAuthStatus();
+      
+      // Centrar el botón de Google después de que se cargue
+      setTimeout(() => {
+        const googleButton = document.querySelector('.g_id_signin');
+        if (googleButton) {
+          googleButton.style.margin = '0 auto';
+          googleButton.style.display = 'block';
+          googleButton.style.textAlign = 'center';
+        }
+      }, 1000);
+    });
+
+    // Verificar estado de autenticación
+    function checkAuthStatus() {
+      const token = localStorage.getItem('user_token');
+      const userData = localStorage.getItem('user_data');
+      
+      if (token && userData) {
+        try {
+          currentUser = JSON.parse(userData);
+          initializeApp();
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          showAuthOverlay();
+        }
+      } else {
+        showAuthOverlay();
+      }
+    }
+
+    // Mostrar overlay de autenticación
+    function showAuthOverlay() {
+      document.getElementById('auth-overlay').style.display = 'flex';
+      document.getElementById('main-app').style.display = 'none';
+    }
+
+    // Ocultar overlay de autenticación
+    function hideAuthOverlay() {
+      document.getElementById('auth-overlay').style.display = 'none';
+      document.getElementById('main-app').style.display = 'flex';
+    }
+
+    // Manejar respuesta de Google Sign-in
+    async function handleCredentialResponse(response) {
+      try {
+        console.log('🔐 Iniciando autenticación con Google...');
+        const credential = response.credential;
+        const payload = JSON.parse(atob(credential.split('.')[1]));
+        
+        console.log('👤 Usuario autenticado:', payload.email, payload.name);
+        
+        // Crear objeto de usuario
+        const userData = {
+          FullName: payload.name,
+          GivenName: payload.given_name,
+          FamilyName: payload.family_name,
+          ImageURL: payload.picture,
+          Email: payload.email
+        };
+
+        // Guardar en localStorage
+        localStorage.setItem('user_token', credential);
+        localStorage.setItem('user_data', JSON.stringify(userData));
+        
+        currentUser = userData;
+        initializeApp();
+        
+      } catch (error) {
+        console.error('Error procesando credencial:', error);
+        showNotification('Error en la autenticación', 'error');
+      }
+    }
+
+    // Inicializar aplicación
+    async function initializeApp() {
+      try {
+        // Obtener información de la empresa
+        await loadCompanyInfo();
+        
+        // Configurar UI
+        setupUserInterface();
+        
+        // Inicializar mapa
+        initializeMap();
+        
+        // Obtener ubicación actual
+        getCurrentLocation();
+        
+        // Conectar Socket.IO
+        connectSocket();
+        
+        // Cargar datos iniciales
+        await loadInitialData();
+        
+        hideAuthOverlay();
+        
+      } catch (error) {
+        console.error('Error inicializando app:', error);
+        showNotification('Error al inicializar la aplicación', 'error');
+      }
+    }
+
+    // Cargar información de la empresa
+    async function loadCompanyInfo() {
+      try {
+        const response = await fetch(`${API_BASE_URL.replace('/geofence', '')}/companies`, {
+          headers: {
+            'x-user-email': currentUser.Email
+          }
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          currentCompany = result.data?.[0] || {
+            _id: 'demo-company-id',
+            name: 'Empresa Demo'
+          };
+        } else {
+          currentCompany = {
+            _id: 'demo-company-id',
+            name: 'Empresa Demo'
+          };
+        }
+      } catch (error) {
+        console.warn('Error cargando empresa:', error);
+        currentCompany = {
+          _id: 'demo-company-id',
+          name: 'Empresa Demo'
+        };
+      }
+    }
+
+    // Configurar interfaz de usuario
+    function setupUserInterface() {
+      document.getElementById('user-name').textContent = currentUser.GivenName || 'Usuario';
+      document.getElementById('user-email').textContent = currentUser.Email;
+      
+      // Configurar avatar
+      const avatar = document.getElementById('user-avatar');
+      if (currentUser.ImageURL) {
+        avatar.style.backgroundImage = `url(${currentUser.ImageURL})`;
+        avatar.style.backgroundSize = 'cover';
+        avatar.textContent = '';
+      } else {
+        avatar.textContent = (currentUser.GivenName || 'U').charAt(0).toUpperCase();
+      }
+    }
+
+    // Inicializar mapa
+    function initializeMap() {
+      // Crear mapa centrado en Bogotá
+      map = L.map('map').setView([4.6097, -74.0817], 13);
+      
+      // Agregar capa de OpenStreetMap
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+      
+      // Agregar marcadores de ejemplo (daños)
+      addSampleDamageMarkers();
+    }
+
+    // Obtener ubicación actual
+    function getCurrentLocation() {
+      if (!navigator.geolocation) {
+        showNotification('Geolocalización no soportada por este navegador', 'error');
+        return;
+      }
+
+      document.getElementById('current-location').textContent = 'Obteniendo ubicación...';
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          userLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          
+          // Actualizar UI
+          document.getElementById('current-location').textContent = 
+            `${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}`;
+          
+          // Centrar mapa en ubicación del usuario
+          map.setView([userLocation.lat, userLocation.lng], 15);
+          
+          // Agregar marcador del usuario
+          if (userMarker) {
+            map.removeLayer(userMarker);
+          }
+          
+          userMarker = L.marker([userLocation.lat, userLocation.lng], {
+            icon: L.divIcon({
+              className: 'user-marker',
+              html: '<div style="background: #22c55e; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white;">U</div>',
+              iconSize: [20, 20],
+              iconAnchor: [10, 10]
+            })
+          }).addTo(map);
+          
+          // Registrar móvil si es proveedor de servicios
+          if (isServiceProvider) {
+            registerMobileDevice();
+          }
+          
+          // Cargar solicitudes cercanas
+          loadNearbyRequests();
+          
+        },
+        (error) => {
+          console.error('Error obteniendo ubicación:', error);
+          document.getElementById('current-location').textContent = 'Error obteniendo ubicación';
+          showNotification('Error obteniendo ubicación', 'error');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000
+        }
+      );
+    }
+
+    // Agregar marcadores de daños de ejemplo
+    function addSampleDamageMarkers() {
+      const sampleDamages = [
+        {
+          id: 'damage-1',
+          lat: 4.6097,
+          lng: -74.0817,
+          title: 'Fuga en Piscina',
+          description: 'Fuga detectada en el sistema de filtración',
+          image: 'https://via.placeholder.com/200x150/ef4444/ffffff?text=Fuga+Piscina',
+          severity: 'high',
+          category: 'piscinas',
+          timestamp: new Date().toISOString()
+        },
+        {
+          id: 'damage-2',
+          lat: 4.6107,
+          lng: -74.0827,
+          title: 'Pintura Desgastada',
+          description: 'Pintura en mal estado en zona común',
+          image: 'https://via.placeholder.com/200x150/f59e0b/ffffff?text=Pintura+Desgastada',
+          severity: 'medium',
+          category: 'zonas_comunes',
+          timestamp: new Date().toISOString()
+        },
+        {
+          id: 'damage-3',
+          lat: 4.6087,
+          lng: -74.0807,
+          title: 'Lámpara Fundida',
+          description: 'Lámpara en oficina principal fundida',
+          image: 'https://via.placeholder.com/200x150/3b82f6/ffffff?text=Lámpara+Fundida',
+          severity: 'low',
+          category: 'oficinas',
+          timestamp: new Date().toISOString()
+        }
+      ];
+
+      sampleDamages.forEach(damage => {
+        addDamageMarker(damage);
+      });
+    }
+
+    // Agregar marcador de daño
+    function addDamageMarker(damage) {
+      const marker = L.marker([damage.lat, damage.lng], {
+        icon: L.divIcon({
+          className: 'damage-marker',
+          html: `<div class="damage-marker ${damage.severity}">!</div>`,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        })
+      });
+
+      const popupContent = `
+        <div class="popup-content">
+          <img src="${damage.image}" alt="${damage.title}" class="popup-image">
+          <div class="popup-title">${damage.title}</div>
+          <div class="popup-description">${damage.description}</div>
+          <div class="popup-actions">
+            <button class="btn primary" onclick="createServiceRequest('${damage.id}')">Solicitar Servicio</button>
+          </div>
+        </div>
+      `;
+
+      marker.bindPopup(popupContent);
+      marker.addTo(map);
+      
+      damageMarkers.push({
+        marker: marker,
+        data: damage
+      });
+    }
+
+    // Conectar Socket.IO
+    function connectSocket() {
+      socket = io(SOCKET_URL);
+      
+      socket.on('connect', () => {
+        console.log('🔌 Conectado a Socket.IO');
+        socket.emit('join', currentUser.Email);
+      });
+      
+      socket.on('disconnect', () => {
+        console.log('🔌 Desconectado de Socket.IO');
+      });
+      
+      socket.on('new_service_request', (data) => {
+        console.log('📋 Nueva solicitud de servicio:', data);
+        showNotification('Nueva solicitud de servicio disponible', 'info');
+        loadNearbyRequests();
+      });
+      
+      socket.on('service_request_accepted', (data) => {
+        console.log('✅ Solicitud aceptada:', data);
+        showNotification('Tu solicitud ha sido aceptada', 'success');
+      });
+    }
+
+    // Cargar datos iniciales
+    async function loadInitialData() {
+      try {
+        // Determinar rol del usuario
+        await determineUserRole();
+        
+        // Cargar servicios si es proveedor
+        if (isServiceProvider) {
+          await loadUserServices();
+        }
+        
+      } catch (error) {
+        console.error('Error cargando datos iniciales:', error);
+      }
+    }
+
+    // Determinar rol del usuario
+    async function determineUserRole() {
+      try {
+        // Por ahora, asumimos que todos pueden ser proveedores
+        // En una implementación real, esto vendría de la API
+        isServiceProvider = true;
+        document.getElementById('services-section').style.display = 'block';
+        document.getElementById('requests-section').style.display = 'block';
+        document.getElementById('user-role').textContent = 'Técnico';
+        document.getElementById('provider-status').textContent = 'Técnico Registrado';
+        document.getElementById('toggle-provider-btn').textContent = 'Desregistrarse';
+        
+      } catch (error) {
+        console.error('Error determinando rol:', error);
+      }
+    }
+
+    // Cargar servicios del usuario
+    async function loadUserServices() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/companies/${currentCompany._id}/services`, {
+          headers: {
+            'x-user-email': currentUser.Email
+          }
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          currentServices = result.data || [];
+          renderServicesList();
+        }
+      } catch (error) {
+        console.error('Error cargando servicios:', error);
+        // Usar servicios de ejemplo
+        currentServices = [
+          {
+            _id: 'service-1',
+            name: 'Reparación de Piscinas',
+            description: 'Servicio especializado en reparación de piscinas',
+            category: 'piscinas',
+            pricing: { basePrice: 50, pricePerKm: 2 }
+          }
+        ];
+        renderServicesList();
+      }
+    }
+
+    // Renderizar lista de servicios
+    function renderServicesList() {
+      const container = document.getElementById('services-list');
+      container.innerHTML = '';
+      
+      currentServices.forEach(service => {
+        const serviceCard = document.createElement('div');
+        serviceCard.className = 'card';
+        serviceCard.innerHTML = `
+          <h4>${service.name}</h4>
+          <p>${service.description}</p>
+          <p><strong>Precio:</strong> $${service.pricing.basePrice} + $${service.pricing.pricePerKm}/km</p>
+        `;
+        container.appendChild(serviceCard);
+      });
+    }
+
+    // Cargar solicitudes cercanas
+    async function loadNearbyRequests() {
+      if (!userLocation || !isServiceProvider) return;
+      
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/companies/${currentCompany._id}/mobile/nearby-providers?` +
+          `latitude=${userLocation.lat}&longitude=${userLocation.lng}&maxRadius=5000`,
+          {
+            headers: {
+              'x-user-email': currentUser.Email
+            }
+          }
+        );
+        
+        if (response.ok) {
+          const result = await response.json();
+          nearbyRequests = result.data || [];
+          renderNearbyRequests();
+        }
+      } catch (error) {
+        console.error('Error cargando solicitudes cercanas:', error);
+        // Usar datos de ejemplo
+        nearbyRequests = [
+          {
+            id: 'request-1',
+            title: 'Reparación Urgente de Piscina',
+            description: 'Fuga en sistema de filtración',
+            distance: '0.5 km',
+            price: '$75',
+            status: 'pending'
+          }
+        ];
+        renderNearbyRequests();
+      }
+    }
+
+    // Renderizar solicitudes cercanas
+    function renderNearbyRequests() {
+      const container = document.getElementById('nearby-requests');
+      container.innerHTML = '';
+      
+      nearbyRequests.forEach(request => {
+        const requestCard = document.createElement('div');
+        requestCard.className = 'card';
+        requestCard.innerHTML = `
+          <h4>${request.title}</h4>
+          <p>${request.description}</p>
+          <p><strong>Distancia:</strong> ${request.distance}</p>
+          <p><strong>Precio estimado:</strong> ${request.price}</p>
+          <div class="status-badge status-${request.status}">${request.status}</div>
+          <button class="btn primary" onclick="showBidModal('${request.id}')">Hacer Propuesta</button>
+        `;
+        container.appendChild(requestCard);
+      });
+    }
+
+    // Mostrar modal de puja
+    function showBidModal(requestId) {
+      selectedRequest = requestId;
+      document.getElementById('bid-modal').classList.add('active');
+    }
+
+    // Enviar puja
+    async function submitBid() {
+      const price = document.getElementById('bid-price').value;
+      const duration = document.getElementById('bid-duration').value;
+      const comment = document.getElementById('bid-comment').value;
+      
+      if (!price || !duration) {
+        showNotification('Por favor completa todos los campos', 'error');
+        return;
+      }
+      
+      try {
+        // Aquí se enviaría la puja a la API
+        console.log('Enviando puja:', { price, duration, comment, requestId: selectedRequest });
+        
+        showNotification('Propuesta enviada exitosamente', 'success');
+        hideModal('bid-modal');
+        
+        // Limpiar formulario
+        document.getElementById('bid-price').value = '';
+        document.getElementById('bid-duration').value = '';
+        document.getElementById('bid-comment').value = '';
+        
+      } catch (error) {
+        console.error('Error enviando puja:', error);
+        showNotification('Error enviando propuesta', 'error');
+      }
+    }
+
+    // Crear solicitud de servicio
+    async function createServiceRequest(damageId) {
+      if (!userLocation) {
+        showNotification('Necesitas permitir la ubicación para crear solicitudes', 'error');
+        return;
+      }
+      
+      try {
+        const damage = damageMarkers.find(d => d.data.id === damageId)?.data;
+        if (!damage) return;
+        
+        const requestData = {
+          requesterId: 'demo-requester-id',
+          serviceId: 'demo-service-id',
+          requestLocation: {
+            latitude: damage.lat,
+            longitude: damage.lng
+          },
+          description: `Solicitud de reparación: ${damage.title}`,
+          priority: damage.severity === 'high' ? 'high' : 'medium'
+        };
+        
+        const response = await fetch(`${API_BASE_URL}/companies/${currentCompany._id}/service-requests`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-email': currentUser.Email
+          },
+          body: JSON.stringify(requestData)
+        });
+        
+        if (response.ok) {
+          showNotification('Solicitud de servicio creada', 'success');
+        } else {
+          throw new Error('Error creando solicitud');
+        }
+        
+      } catch (error) {
+        console.error('Error creando solicitud:', error);
+        showNotification('Error creando solicitud de servicio', 'error');
+      }
+    }
+
+    // Mostrar modal para agregar servicio
+    function showAddServiceModal() {
+      document.getElementById('add-service-modal').classList.add('active');
+    }
+
+    // Crear servicio
+    async function createService() {
+      const name = document.getElementById('service-name').value;
+      const description = document.getElementById('service-description').value;
+      const category = document.getElementById('service-category').value;
+      const basePrice = parseFloat(document.getElementById('service-base-price').value);
+      const pricePerKm = parseFloat(document.getElementById('service-price-per-km').value);
+      const radius = parseInt(document.getElementById('service-radius').value);
+      
+      if (!name || !description || !basePrice || !pricePerKm || !radius) {
+        showNotification('Por favor completa todos los campos', 'error');
+        return;
+      }
+      
+      try {
+        const serviceData = {
+          name,
+          description,
+          category,
+          pricing: {
+            basePrice,
+            pricePerKm,
+            currency: 'USD'
+          },
+          serviceRadius: radius
+        };
+        
+        const response = await fetch(`${API_BASE_URL}/companies/${currentCompany._id}/services`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-email': currentUser.Email
+          },
+          body: JSON.stringify(serviceData)
+        });
+        
+        if (response.ok) {
+          showNotification('Servicio creado exitosamente', 'success');
+          hideModal('add-service-modal');
+          loadUserServices();
+          
+          // Limpiar formulario
+          document.getElementById('service-name').value = '';
+          document.getElementById('service-description').value = '';
+          document.getElementById('service-base-price').value = '';
+          document.getElementById('service-price-per-km').value = '';
+          document.getElementById('service-radius').value = '';
+        } else {
+          throw new Error('Error creando servicio');
+        }
+        
+      } catch (error) {
+        console.error('Error creando servicio:', error);
+        showNotification('Error creando servicio', 'error');
+      }
+    }
+
+    // Registrar dispositivo móvil
+    async function registerMobileDevice() {
+      if (!userLocation) return;
+      
+      try {
+        const deviceData = {
+          deviceId: 'web-' + Date.now(),
+          name: currentUser.FullName,
+          latitude: userLocation.lat,
+          longitude: userLocation.lng,
+          accuracy: userLocation.accuracy,
+          isServiceProvider: isServiceProvider,
+          services: currentServices.map(s => s._id),
+          preferences: {
+            notifications: true,
+            categories: ['piscinas', 'zonas_comunes', 'zonas_externas', 'oficinas', 'operario'],
+            maxRadius: 10000
+          }
+        };
+        
+        const response = await fetch(`${API_BASE_URL}/companies/${currentCompany._id}/mobile/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-email': currentUser.Email
+          },
+          body: JSON.stringify(deviceData)
+        });
+        
+        if (response.ok) {
+          console.log('Dispositivo móvil registrado');
+        }
+        
+      } catch (error) {
+        console.error('Error registrando dispositivo:', error);
+      }
+    }
+
+    // Alternar estado de proveedor de servicios
+    function toggleServiceProvider() {
+      isServiceProvider = !isServiceProvider;
+      
+      if (isServiceProvider) {
+        document.getElementById('services-section').style.display = 'block';
+        document.getElementById('requests-section').style.display = 'block';
+        document.getElementById('user-role').textContent = 'Técnico';
+        document.getElementById('provider-status').textContent = 'Técnico Registrado';
+        document.getElementById('toggle-provider-btn').textContent = 'Desregistrarse';
+        
+        if (userLocation) {
+          registerMobileDevice();
+          loadNearbyRequests();
+        }
+      } else {
+        document.getElementById('services-section').style.display = 'none';
+        document.getElementById('requests-section').style.display = 'none';
+        document.getElementById('user-role').textContent = 'Usuario';
+        document.getElementById('provider-status').textContent = 'Registrarse como Técnico';
+        document.getElementById('toggle-provider-btn').textContent = 'Registrarse como Técnico';
+      }
+    }
+
+    // Mostrar notificación
+    function showNotification(message, type = 'info') {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.innerHTML = `
+        <div>${message}</div>
+        <button onclick="this.parentElement.remove()" style="background:none; border:none; color:var(--text-dim); cursor:pointer; float:right;">&times;</button>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      // Auto-remover después de 5 segundos
+      setTimeout(() => {
+        if (notification.parentElement) {
+          notification.remove();
+        }
+      }, 5000);
+    }
+
+    // Ocultar modal
+    function hideModal(modalId) {
+      document.getElementById(modalId).classList.remove('active');
+    }
+
+    // Cerrar sesión
+    function logout() {
+      localStorage.removeItem('user_token');
+      localStorage.removeItem('user_data');
+      currentUser = null;
+      showAuthOverlay();
+      
+      if (socket) {
+        socket.disconnect();
+      }
+    }
+
+    // Funciones adicionales para admin
+    function showAdminServices() {
+      showNotification('Funcionalidad de admin en desarrollo', 'info');
+    }
+  </script>
+</body>
+</html>

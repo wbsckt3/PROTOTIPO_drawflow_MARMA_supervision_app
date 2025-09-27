@@ -1183,47 +1183,73 @@
     }
 
     // Mostrar vista de servicios
-    function showServicesView() {
+    async function showServicesView() {
       console.log('🔧 Ejecutando showServicesView()');
       switchTab('services');
       const container = document.getElementById('card-container');
       console.log('🔧 Container encontrado:', container);
       container.innerHTML = '';
       
-      if (currentServices.length === 0) {
+      // Mostrar loading
+      container.innerHTML = `
+        <div class="card visible">
+          <div class="card-content">
+            <p>Cargando servicios...</p>
+          </div>
+        </div>
+      `;
+      
+      try {
+        // Cargar propuestas del técnico desde la API
+        const proposals = await loadTechnicianProposals();
+        console.log('🔧 Propuestas cargadas:', proposals);
+        
+        if (proposals.length === 0) {
+          container.innerHTML = `
+            <div class="card visible">
+              <div class="card-content">
+                <p>No tienes propuestas enviadas</p>
+                <p>Ve al mapa para encontrar oportunidades de servicio</p>
+              </div>
+            </div>
+          `;
+          return;
+        }
+        
+        // Mostrar propuestas
+        proposals.forEach(proposal => {
+          const proposalCard = document.createElement('div');
+          proposalCard.className = 'card visible';
+          proposalCard.innerHTML = `
+            <div class="card-header">
+              <h3 class="card-title">Propuesta de Servicio</h3>
+              <button class="card-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+            </div>
+            <div class="card-content">
+              <div class="service-card">
+                <div class="service-icon">🔧</div>
+                <div class="service-info">
+                  <div class="service-name">${proposal.description}</div>
+                  <div class="service-desc">Precio: $${proposal.price} | Duración: ${proposal.duration} días</div>
+                  <div class="service-desc">Estado: ${proposal.status}</div>
+                </div>
+              </div>
+            </div>
+          `;
+          container.appendChild(proposalCard);
+        });
+        
+      } catch (error) {
+        console.error('🔧 Error cargando propuestas:', error);
         container.innerHTML = `
           <div class="card visible">
             <div class="card-content">
-              <p>No tienes servicios registrados</p>
-              <button class="btn full" onclick="showAddServiceModal()">Agregar Primer Servicio</button>
+              <p>Error cargando propuestas</p>
+              <p>${error.message}</p>
             </div>
           </div>
         `;
-        return;
       }
-      
-      currentServices.forEach(service => {
-        const serviceCard = document.createElement('div');
-        serviceCard.className = 'card visible';
-        serviceCard.innerHTML = `
-          <div class="card-header">
-            <h3 class="card-title">Mis Servicios</h3>
-            <button class="card-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
-          </div>
-          <div class="card-content">
-            <div class="service-card">
-              <div class="service-icon">🔧</div>
-              <div class="service-info">
-                <div class="service-name">${service.name}</div>
-                <div class="service-desc">${service.description}</div>
-              </div>
-              <div class="service-price">$${service.pricing.basePrice}</div>
-            </div>
-            <button class="btn full" onclick="showAddServiceModal()">Agregar Servicio</button>
-          </div>
-        `;
-        container.appendChild(serviceCard);
-      });
     }
 
     // Mostrar vista de perfil

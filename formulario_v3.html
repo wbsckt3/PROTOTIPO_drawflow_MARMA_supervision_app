@@ -908,7 +908,6 @@
           }
         ];
       }
-    }
 
     // Cargar solicitudes cercanas
     async function loadNearbyRequests() {
@@ -926,7 +925,6 @@
           }
         ];
       }
-    }
 
     // Mostrar vista del mapa
     function showMapView() {
@@ -1276,21 +1274,18 @@
 
     // Crear servicio
     async function createService() {
-      // TODO: Implementar cuando se creen los endpoints de servicios
-      console.log('createService: Función no implementada aún');
-      showNotification('Función de crear servicios no implementada aún', 'info');
-      hideModal('add-service-modal');
-          
-          // Limpiar formulario
-          document.getElementById('service-name').value = '';
-          document.getElementById('service-description').value = '';
-          document.getElementById('service-base-price').value = '';
-          document.getElementById('service-price-per-km').value = '';
-          document.getElementById('service-radius').value = '';
-        } else {
-          throw new Error('Error creando servicio');
-        }
-        
+      try {
+        // TODO: Implementar cuando se creen los endpoints de servicios
+        console.log('createService: Función no implementada aún');
+        showNotification('Función de crear servicios no implementada aún', 'info');
+        hideModal('add-service-modal');
+            
+        // Limpiar formulario
+        document.getElementById('service-name').value = '';
+        document.getElementById('service-description').value = '';
+        document.getElementById('service-base-price').value = '';
+        document.getElementById('service-price-per-km').value = '';
+        document.getElementById('service-radius').value = '';
       } catch (error) {
         console.error('Error creando servicio:', error);
         showNotification('Error creando servicio', 'error');

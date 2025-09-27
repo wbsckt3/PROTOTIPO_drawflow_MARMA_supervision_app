@@ -324,9 +324,6 @@
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  
-  <!-- Auth.js para Google Sign-in -->
-  <script src="./auth.js"></script>
 
   <script>
     // Variables globales
@@ -350,23 +347,72 @@
 
     // ===== FUNCIONES GLOBALES (fuera de DOMContentLoaded) =====
 
-    // Override de la función de auth.js para formulario_v3.html
-    function handleAuthSuccess() {
-      console.log('🎉 Autenticación exitosa, inicializando app...');
-      
-      // Obtener datos del usuario del localStorage
-      const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-      currentUser = userData;
-      
-      // Inicializar la aplicación
-      setTimeout(() => {
+    // Manejar respuesta de Google Sign-in (DEBE SER GLOBAL)
+    async function handleCredentialResponse(response) {
+      try {
+        console.log('🔐 Iniciando autenticación con Google...');
+        console.log('Respuesta de Google:', response);
+        
+        // Decodificar el JWT token
+        const payload = JSON.parse(atob(response.credential.split('.')[1]));
+        console.log('Payload decodificado:', payload);
+        
+        // Crear objeto de usuario
+        const userData = {
+          FullName: payload.name,
+          GivenName: payload.given_name,
+          FamilyName: payload.family_name,
+          ImageURL: payload.picture,
+          Email: payload.email
+        };
+        
+        // Enviar datos al backend para autenticación (opcional)
         try {
-          initializeApp();
-        } catch (error) {
-          console.error('❌ Error en initializeApp:', error);
-          hideAuthOverlay();
+          const authResponse = await fetch(`${API_BASE_URL}/auth/google-signin`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(userData)
+          });
+          
+          if (!authResponse.ok) {
+            console.warn(`⚠️ Error del servidor (${authResponse.status}), continuando con autenticación local`);
+          } else {
+            const authResult = await authResponse.json();
+            console.log('Resultado de autenticación:', authResult);
+          }
+        } catch (serverError) {
+          console.warn('⚠️ Servidor no disponible, continuando con autenticación local:', serverError.message);
         }
-      }, 100);
+        
+        // Guardar token y datos de usuario
+        const tokenExpiry = Date.now() + (24 * 60 * 60 * 1000); // 24 horas
+        localStorage.setItem('refactorii_token', response.credential);
+        localStorage.setItem('token_expiry', tokenExpiry.toString());
+        localStorage.setItem('user_data', JSON.stringify(userData));
+        
+        console.log('✅ Usuario autenticado exitosamente:', userData.Email);
+        
+        currentUser = userData;
+        console.log('🔄 Iniciando aplicación...');
+        
+        // Inicializar la aplicación
+        setTimeout(() => {
+          try {
+            initializeApp();
+          } catch (error) {
+            console.error('❌ Error en initializeApp, usando fallback:', error);
+            // Fallback: solo ocultar overlay y mostrar app básica
+            hideAuthOverlay();
+            showNotification('Aplicación iniciada en modo básico', 'info');
+          }
+        }, 100);
+        
+      } catch (error) {
+        console.error('❌ Error procesando credencial:', error);
+        showNotification('Error en la autenticación', 'error');
+      }
     }
 
     // Ocultar overlay de autenticación (DEBE SER GLOBAL)

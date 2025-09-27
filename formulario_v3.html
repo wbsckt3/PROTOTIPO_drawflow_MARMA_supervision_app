@@ -1208,8 +1208,13 @@
       `;
       
       try {
-        // Cargar propuestas del técnico desde la API
-        const proposals = await loadTechnicianProposals();
+        // Cargar propuestas del técnico desde la API con timeout
+        const proposalsPromise = loadTechnicianProposals();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 8000)
+        );
+        
+        const proposals = await Promise.race([proposalsPromise, timeoutPromise]);
         console.log('🔧 Propuestas cargadas:', proposals);
         
         if (proposals.length === 0) {
@@ -1306,7 +1311,9 @@
 
     // Mostrar servicios
     function showServices() {
+      console.log('🔧 FAB Services clicked');
       switchTab('services');
+      showServicesView();
     }
 
     // Mostrar modal de puja
@@ -1482,21 +1489,35 @@
     // Función para obtener propuestas del técnico
     async function loadTechnicianProposals() {
       try {
+        console.log('🔧 Cargando propuestas del técnico...');
+        
+        // Crear AbortController para timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos timeout
+        
         const response = await fetch(`${API_BASE_URL}/proposals/technician/${getUserEmail()}`, {
           headers: {
             'x-user-email': getUserEmail()
-          }
+          },
+          signal: controller.signal
         });
         
+        clearTimeout(timeoutId);
+        
         if (!response.ok) {
-          console.warn(`⚠️ Error del servidor (${response.status}), usando datos de demo`);
+          console.warn(`⚠️ Error del servidor (${response.status}), retornando array vacío`);
           return [];
         }
         
         const responseData = await response.json();
+        console.log('🔧 Propuestas recibidas:', responseData);
         return responseData.data || [];
       } catch (error) {
-        console.warn('⚠️ Servidor no disponible, usando datos de demo:', error.message);
+        if (error.name === 'AbortError') {
+          console.warn('⚠️ Timeout cargando propuestas, retornando array vacío');
+        } else {
+          console.warn('⚠️ Error cargando propuestas:', error.message);
+        }
         return [];
       }
     }

@@ -1233,21 +1233,36 @@
       console.log('👤 Ejecutando showProfileView()');
       console.log('👤 currentUser:', currentUser);
       console.log('👤 isServiceProvider:', isServiceProvider);
-      switchTab('profile');
+      
       const container = document.getElementById('card-container');
       console.log('👤 Container encontrado:', container);
+      
+      if (!container) {
+        console.error('👤 Error: No se encontró el container');
+        return;
+      }
+      
+      // Limpiar el container primero
+      container.innerHTML = '';
       
       if (!currentUser) {
         console.error('👤 Error: currentUser no está definido');
         container.innerHTML = `
           <div class="card visible">
+            <div class="card-header">
+              <h3 class="card-title">Mi Perfil</h3>
+              <button class="card-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+            </div>
             <div class="card-content">
               <p>Error: Usuario no autenticado</p>
+              <button class="btn full" onclick="logout()">Cerrar Sesión</button>
             </div>
           </div>
         `;
         return;
       }
+      
+      console.log('👤 Mostrando perfil del usuario:', currentUser.FullName);
       
       container.innerHTML = `
         <div class="card visible">
@@ -1270,6 +1285,8 @@
           </div>
         </div>
       `;
+      
+      console.log('👤 Perfil mostrado correctamente');
     }
 
     // Mostrar servicios

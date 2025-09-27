@@ -577,6 +577,9 @@
         // Configurar UI primero
         setupUserInterface();
         
+        // Configurar event listeners
+        setupEventListeners();
+        
         // Obtener información de la empresa (opcional)
         try {
           await loadCompanyInfo();

@@ -795,75 +795,13 @@
           });
           return;
         } else {
-          console.log('⚠️ No se encontraron daños reales, usando datos de demo');
+          console.log('⚠️ No se encontraron daños reales en la base de datos');
+          showNotification('No hay daños reportados en tu área', 'info');
         }
       } catch (error) {
-        console.warn('⚠️ Error cargando daños reales, usando datos de demo:', error.message);
+        console.warn('⚠️ Error cargando daños reales:', error.message);
+        showNotification('Error cargando daños desde el servidor', 'error');
       }
-      
-      // Fallback a datos de ejemplo
-      console.log('📋 Cargando datos de demo...');
-      const sampleDamages = [
-        {
-          id: 'damage-1',
-          lat: 6.2442,
-          lng: -75.5812,
-          title: 'Fuga en Piscina - Calificación R',
-          description: 'Fuga detectada en el sistema de filtración. Requiere reparación especializada.',
-          image: 'https://via.placeholder.com/200x150/ea4335/ffffff?text=Fuga+Piscina',
-          severity: 'high',
-          category: 'piscinas',
-          timestamp: new Date().toISOString()
-        },
-        {
-          id: 'damage-2',
-          lat: 6.2452,
-          lng: -75.5802,
-          title: 'Pintura Desgastada - Calificación R',
-          description: 'Pintura en mal estado en zona común. Necesita restauración completa.',
-          image: 'https://via.placeholder.com/200x150/f9ab00/ffffff?text=Pintura+Desgastada',
-          severity: 'medium',
-          category: 'zonas_comunes',
-          timestamp: new Date().toISOString()
-        },
-        {
-          id: 'damage-3',
-          lat: 6.2432,
-          lng: -75.5822,
-          title: 'Lámpara Fundida - Calificación R',
-          description: 'Lámpara en oficina principal fundida. Requiere cambio de bombilla y posible reparación eléctrica.',
-          image: 'https://via.placeholder.com/200x150/4285f4/ffffff?text=Lámpara+Fundida',
-          severity: 'low',
-          category: 'oficinas',
-          timestamp: new Date().toISOString()
-        },
-        {
-          id: 'damage-4',
-          lat: 6.2462,
-          lng: -75.5792,
-          title: 'Ascensor Averiado - Calificación R',
-          description: 'Ascensor con problemas de funcionamiento. Requiere revisión técnica especializada.',
-          image: 'https://via.placeholder.com/200x150/ea4335/ffffff?text=Ascensor+Averiado',
-          severity: 'high',
-          category: 'zonas_comunes',
-          timestamp: new Date().toISOString()
-        },
-        {
-          id: 'damage-5',
-          lat: 6.2422,
-          lng: -75.5832,
-          title: 'Grieta en Pared - Calificación R',
-          description: 'Grieta visible en pared exterior. Necesita evaluación estructural y reparación.',
-          image: 'https://via.placeholder.com/200x150/f9ab00/ffffff?text=Grieta+Pared',
-          severity: 'medium',
-          category: 'zonas_externas',
-          timestamp: new Date().toISOString()
-        }
-      ];
-
-      sampleDamages.forEach(damage => {
-        addDamageMarker(damage);
-      });
     }
 
     // Agregar marcador de daño
@@ -1148,10 +1086,9 @@
         
         console.log('📋 Solicitudes generadas:', nearbyRequests);
         
-        // Si no hay daños, usar datos de demo
+        // Si no hay daños, mostrar mensaje informativo
         if (nearbyRequests.length === 0) {
-          console.log('⚠️ No hay daños reales, usando datos de demo');
-          nearbyRequests = generateSampleRequests();
+          console.log('⚠️ No hay daños reales en la base de datos');
         }
         
         // Actualizar la card con los datos
@@ -1174,8 +1111,8 @@
       } catch (error) {
         console.error('Error cargando oportunidades:', error);
         
-        // Fallback a datos de demo
-        nearbyRequests = generateSampleRequests();
+        // Mostrar mensaje de error
+        nearbyRequests = [];
         
         loadingCard.innerHTML = `
           <div class="card-header">
@@ -1183,12 +1120,12 @@
             <button class="card-close" onclick="hideCard()">&times;</button>
           </div>
           <div class="card-body">
-            <div style="background: #e3f2fd; border: 1px solid #bbdefb; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
-              <div style="color: #1976d2; font-size: 14px; font-weight: 600; margin-bottom: 4px;">📍 Radio de búsqueda: 1 km</div>
-              <div style="color: #1976d2; font-size: 12px;">Oportunidades de servicio cerca de tu ubicación</div>
+            <div style="background: #ffebee; border: 1px solid #ffcdd2; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+              <div style="color: #c62828; font-size: 14px; font-weight: 600; margin-bottom: 4px;">⚠️ Error de Conexión</div>
+              <div style="color: #c62828; font-size: 12px;">No se pudieron cargar las oportunidades de servicio</div>
             </div>
-            <div id="requests-list">
-              ${generateNearbyRequestsHTML()}
+            <div style="text-align: center; padding: 2rem;">
+              <p style="color: var(--text-secondary);">Intenta nuevamente más tarde</p>
             </div>
           </div>
         `;
@@ -1470,8 +1407,8 @@
         console.log('📡 Respuesta de la API:', response.status, response.statusText);
         
         if (!response.ok) {
-          console.warn(`⚠️ Error del servidor (${response.status}), usando datos de demo`);
-          return generateSampleDamages();
+          console.warn(`⚠️ Error del servidor (${response.status}), retornando array vacío`);
+          return [];
         }
         
         const responseData = await response.json();
@@ -1482,8 +1419,8 @@
         
         return damages;
       } catch (error) {
-        console.warn('⚠️ Servidor no disponible, usando datos de demo:', error.message);
-        return generateSampleDamages();
+        console.warn('⚠️ Servidor no disponible, retornando array vacío:', error.message);
+        return [];
       }
     }
     

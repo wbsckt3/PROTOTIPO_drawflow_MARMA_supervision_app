@@ -142,6 +142,19 @@
     .loading{display:inline-block; width:20px; height:20px; border:2px solid rgba(26,115,232,0.3); border-radius:50%; border-top-color:var(--primary); animation:spin 1s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
     
+    /* Estados de botones */
+    .btn.loading{opacity:0.7; cursor:not-allowed; position:relative}
+    .btn.loading::after{content:''; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-radius:50%; border-top-color:white; animation:spin 1s linear infinite}
+    .btn.loading .btn-text{opacity:0.5}
+    
+    /* Estados de navegación */
+    .nav-item.loading{opacity:0.7; pointer-events:none}
+    .nav-item.loading .nav-icon{animation:spin 1s linear infinite}
+    
+    /* Estados de FAB */
+    .fab.loading{opacity:0.7; cursor:not-allowed; pointer-events:none}
+    .fab.loading::after{content:''; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:20px; height:20px; border:2px solid rgba(255,255,255,0.3); border-radius:50%; border-top-color:white; animation:spin 1s linear infinite}
+    
     /* Asegurar que el mapa ocupe toda la pantalla */
     .leaflet-container{width:100% !important; height:100% !important; position:absolute !important; top:0 !important; left:0 !important; right:0 !important; bottom:0 !important}
     .leaflet-map-pane{width:100% !important; height:100% !important}
@@ -350,6 +363,42 @@
     const SOCKET_URL = 'https://www.refactorii.com';
 
     // ===== FUNCIONES GLOBALES (fuera de DOMContentLoaded) =====
+    
+    // Funciones helper para estados de loading
+    function setButtonLoading(buttonId, isLoading) {
+      const button = document.getElementById(buttonId);
+      if (button) {
+        if (isLoading) {
+          button.classList.add('loading');
+          button.disabled = true;
+        } else {
+          button.classList.remove('loading');
+          button.disabled = false;
+        }
+      }
+    }
+    
+    function setNavItemLoading(tabName, isLoading) {
+      const navItem = document.querySelector(`[data-tab="${tabName}"]`);
+      if (navItem) {
+        if (isLoading) {
+          navItem.classList.add('loading');
+        } else {
+          navItem.classList.remove('loading');
+        }
+      }
+    }
+    
+    function setFabLoading(fabId, isLoading) {
+      const fab = document.getElementById(fabId);
+      if (fab) {
+        if (isLoading) {
+          fab.classList.add('loading');
+        } else {
+          fab.classList.remove('loading');
+        }
+      }
+    }
 
     // Manejar respuesta de Google Sign-in (DEBE SER GLOBAL)
     async function handleCredentialResponse(response) {
@@ -723,6 +772,8 @@
         return;
       }
 
+      // Activar loading en el FAB de ubicación
+      setFabLoading('location-fab', true);
       showNotification('Obteniendo ubicación...', 'info');
       
       navigator.geolocation.getCurrentPosition(
@@ -760,10 +811,16 @@
           // Cargar solicitudes cercanas
           loadNearbyRequests();
           
+          // Desactivar loading del FAB
+          setFabLoading('location-fab', false);
+          
         },
         (error) => {
           console.error('Error obteniendo ubicación:', error);
           showNotification('Error obteniendo ubicación', 'error');
+          
+          // Desactivar loading del FAB
+          setFabLoading('location-fab', false);
         },
         {
           enableHighAccuracy: true,
@@ -1043,6 +1100,11 @@
 
     // Mostrar vista de solicitudes
     async function showRequestsView() {
+      console.log('📋 Iniciando showRequestsView()');
+      
+      // Activar loading en el botón de navegación
+      setNavItemLoading('requests', true);
+      
       switchTab('requests');
       const container = document.getElementById('card-container');
       container.innerHTML = '';
@@ -1058,7 +1120,7 @@
         <div class="card-body">
           <div style="text-align: center; padding: 2rem;">
             <div class="loading"></div>
-            <p style="margin-top: 1rem; color: var(--text-dim);">Cargando oportunidades...</p>
+            <p style="margin-top: 1rem; color: var(--text-secondary);">Cargando oportunidades...</p>
           </div>
         </div>
       `;
@@ -1156,6 +1218,9 @@
           map.invalidateSize();
         }
       }, 100);
+      
+      // Desactivar loading
+      setNavItemLoading('requests', false);
     }
 
     // Ocultar card
@@ -1173,6 +1238,10 @@
     // Mostrar vista de servicios
     async function showServicesView() {
       console.log('🔧 Ejecutando showServicesView()');
+      
+      // Activar loading en el botón de navegación
+      setNavItemLoading('services', true);
+      
       switchTab('services');
       const container = document.getElementById('card-container');
       console.log('🔧 Container encontrado:', container);
@@ -1181,8 +1250,15 @@
       // Mostrar loading
       container.innerHTML = `
         <div class="card visible">
+          <div class="card-header">
+            <h3 class="card-title">Mis Servicios</h3>
+            <button class="card-close" onclick="hideCard()">&times;</button>
+          </div>
           <div class="card-content">
-            <p>Cargando servicios...</p>
+            <div style="text-align: center; padding: 2rem;">
+              <div class="loading"></div>
+              <p style="margin-top: 1rem; color: var(--text-secondary);">Cargando servicios...</p>
+            </div>
           </div>
         </div>
       `;
@@ -1191,7 +1267,7 @@
         // Cargar propuestas del técnico desde la API con timeout
         const proposalsPromise = loadTechnicianProposals();
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout')), 8000)
+          setTimeout(() => reject(new Error('Timeout')), 5000)
         );
         
         const proposals = await Promise.race([proposalsPromise, timeoutPromise]);
@@ -1250,6 +1326,9 @@
           map.invalidateSize();
         }
       }, 100);
+      
+      // Desactivar loading
+      setNavItemLoading('services', false);
     }
 
     // Mostrar vista de perfil
@@ -1258,11 +1337,15 @@
       console.log('👤 currentUser:', currentUser);
       console.log('👤 isServiceProvider:', isServiceProvider);
       
+      // Activar loading en el botón de navegación
+      setNavItemLoading('profile', true);
+      
       const container = document.getElementById('card-container');
       console.log('👤 Container encontrado:', container);
       
       if (!container) {
         console.error('👤 Error: No se encontró el container');
+        setNavItemLoading('profile', false);
         return;
       }
       
@@ -1318,13 +1401,23 @@
           map.invalidateSize();
         }
       }, 100);
+      
+      // Desactivar loading
+      setNavItemLoading('profile', false);
     }
 
     // Mostrar servicios
     function showServices() {
       console.log('🔧 FAB Services clicked');
+      
+      // Activar loading en el FAB
+      setFabLoading('services-fab', true);
+      
       switchTab('services');
-      showServicesView();
+      showServicesView().finally(() => {
+        // Desactivar loading del FAB
+        setFabLoading('services-fab', false);
+      });
     }
 
     // Mostrar modal de puja
@@ -1522,7 +1615,7 @@
         
         // Crear AbortController para timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos timeout
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 segundos timeout
         
         const response = await fetch(`${API_BASE_URL}/proposals/technician/${getUserEmail()}`, {
           headers: {

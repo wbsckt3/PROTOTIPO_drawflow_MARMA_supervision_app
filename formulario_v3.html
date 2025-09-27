@@ -502,6 +502,7 @@
 
     // Cambiar tab
     function switchTab(tab) {
+      console.log('🔄 Cambiando a tab:', tab);
       currentTab = tab;
       
       // Actualizar navegación
@@ -1183,8 +1184,10 @@
 
     // Mostrar vista de servicios
     function showServicesView() {
+      console.log('🔧 Ejecutando showServicesView()');
       switchTab('services');
       const container = document.getElementById('card-container');
+      console.log('🔧 Container encontrado:', container);
       container.innerHTML = '';
       
       if (currentServices.length === 0) {
@@ -1225,8 +1228,25 @@
 
     // Mostrar vista de perfil
     function showProfileView() {
+      console.log('👤 Ejecutando showProfileView()');
+      console.log('👤 currentUser:', currentUser);
+      console.log('👤 isServiceProvider:', isServiceProvider);
       switchTab('profile');
       const container = document.getElementById('card-container');
+      console.log('👤 Container encontrado:', container);
+      
+      if (!currentUser) {
+        console.error('👤 Error: currentUser no está definido');
+        container.innerHTML = `
+          <div class="card visible">
+            <div class="card-content">
+              <p>Error: Usuario no autenticado</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
       container.innerHTML = `
         <div class="card visible">
           <div class="card-header">

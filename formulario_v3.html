@@ -830,10 +830,10 @@
       );
     }
 
-    // Agregar marcadores de daños de ejemplo
+    // Agregar marcadores de daños reales
     async function addSampleDamageMarkers() {
       try {
-        // Intentar cargar daños reales desde la API
+        // Cargar daños reales desde la API
         const realDamages = await loadDamagesNearby();
         
         if (realDamages && realDamages.length > 0) {
@@ -854,7 +854,6 @@
             };
             addDamageMarker(damageData);
           });
-          return;
         } else {
           console.log('⚠️ No se encontraron daños reales en la base de datos');
           showNotification('No hay daños reportados en tu área', 'info');
@@ -1003,66 +1002,6 @@
       });
     }
 
-    // Generar solicitudes de ejemplo
-    function generateSampleRequests() {
-      return [
-        {
-          id: 'req-1',
-          title: 'Fuga en Piscina - Calificación R',
-          description: 'Fuga detectada en el sistema de filtración. Requiere reparación especializada.',
-          distance: '0.3 km',
-          price: '$120,000 - $180,000',
-          category: 'Piscinas',
-          severity: 'high',
-          timestamp: 'Hace 2 horas',
-          image: 'https://via.placeholder.com/80x60/ea4335/ffffff?text=Fuga'
-        },
-        {
-          id: 'req-2',
-          title: 'Pintura Desgastada - Calificación R',
-          description: 'Pintura en mal estado en zona común. Necesita restauración completa.',
-          distance: '0.5 km',
-          price: '$80,000 - $120,000',
-          category: 'Zonas Comunes',
-          severity: 'medium',
-          timestamp: 'Hace 4 horas',
-          image: 'https://via.placeholder.com/80x60/f9ab00/ffffff?text=Pintura'
-        },
-        {
-          id: 'req-3',
-          title: 'Ascensor Averiado - Calificación R',
-          description: 'Ascensor con problemas de funcionamiento. Requiere revisión técnica especializada.',
-          distance: '0.7 km',
-          price: '$200,000 - $300,000',
-          category: 'Zonas Comunes',
-          severity: 'high',
-          timestamp: 'Hace 6 horas',
-          image: 'https://via.placeholder.com/80x60/ea4335/ffffff?text=Ascensor'
-        },
-        {
-          id: 'req-4',
-          title: 'Grieta en Pared - Calificación R',
-          description: 'Grieta visible en pared exterior. Necesita evaluación estructural y reparación.',
-          distance: '0.9 km',
-          price: '$150,000 - $250,000',
-          category: 'Zonas Externas',
-          severity: 'medium',
-          timestamp: 'Hace 8 horas',
-          image: 'https://via.placeholder.com/80x60/f9ab00/ffffff?text=Grieta'
-        },
-        {
-          id: 'req-5',
-          title: 'Lámpara Fundida - Calificación R',
-          description: 'Lámpara en oficina principal fundida. Requiere cambio de bombilla y posible reparación eléctrica.',
-          distance: '0.2 km',
-          price: '$30,000 - $50,000',
-          category: 'Oficinas',
-          severity: 'low',
-          timestamp: 'Hace 1 hora',
-          image: 'https://via.placeholder.com/80x60/4285f4/ffffff?text=Lámpara'
-        }
-      ];
-    }
 
     // Generar HTML de solicitudes cercanas
     function generateNearbyRequestsHTML() {
@@ -1664,15 +1603,15 @@
         });
         
         if (!response.ok) {
-          console.warn(`⚠️ Error del servidor (${response.status}), usando datos de demo`);
-          return generateSampleDamages();
+          console.warn(`⚠️ Error del servidor (${response.status})`);
+          return [];
         }
         
         const responseData = await response.json();
         return responseData.data || [];
       } catch (error) {
-        console.warn('⚠️ Servidor no disponible, usando datos de demo:', error.message);
-        return generateSampleDamages();
+        console.warn('⚠️ Servidor no disponible:', error.message);
+        return [];
       }
     }
     
@@ -1686,161 +1625,18 @@
         });
         
         if (!response.ok) {
-          console.warn(`⚠️ Error del servidor (${response.status}), usando datos de demo`);
+          console.warn(`⚠️ Error del servidor (${response.status})`);
           return [];
         }
         
         const responseData = await response.json();
         return responseData.data || [];
       } catch (error) {
-        console.warn('⚠️ Servidor no disponible, usando datos de demo:', error.message);
+        console.warn('⚠️ Servidor no disponible:', error.message);
         return [];
       }
     }
     
-    // Función para generar datos de demo de daños
-    function generateSampleDamages() {
-      return [
-        {
-          _id: 'demo-damage-1',
-          area: 'piscinas',
-          item: 'BAÑOS',
-          rating: 'R',
-          description: 'Fuga detectada en el sistema de filtración',
-          comment: 'Requiere reparación especializada',
-          severity: 'high',
-          status: 'reported',
-          location: {
-            latitude: 6.2442,
-            longitude: -75.5812,
-            accuracy: 5
-          },
-          image: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
-          unidadNombre: 'Conjunto Residencial Marma',
-          companyName: 'Marma',
-          createdAt: new Date().toISOString()
-        },
-        {
-          _id: 'demo-damage-2',
-          area: 'zonas_comunes',
-          item: 'GIMNASIO',
-          rating: 'R',
-          description: 'Equipos de ejercicio con fallas mecánicas',
-          comment: 'Necesita mantenimiento preventivo',
-          severity: 'medium',
-          status: 'reported',
-          location: {
-            latitude: 6.2450,
-            longitude: -75.5820,
-            accuracy: 5
-          },
-          image: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
-          unidadNombre: 'Conjunto Residencial Marma',
-          companyName: 'Marma',
-          createdAt: new Date().toISOString()
-        },
-        {
-          _id: 'demo-damage-3',
-          area: 'zonas_externas',
-          item: 'JARDINES',
-          rating: 'R',
-          description: 'Sistema de riego con fallas',
-          comment: 'Requiere revisión del sistema hidráulico',
-          severity: 'low',
-          status: 'reported',
-          location: {
-            latitude: 6.2435,
-            longitude: -75.5805,
-            accuracy: 5
-          },
-          image: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
-          unidadNombre: 'Conjunto Residencial Marma',
-          companyName: 'Marma',
-          createdAt: new Date().toISOString()
-        }
-      ];
-    }
-    
-    // Función para generar datos de demo de solicitudes
-    function generateSampleRequests() {
-      return [
-        {
-          _id: 'demo-request-1',
-          title: 'Reparación Sistema de Filtración',
-          description: 'Fuga detectada en el sistema de filtración de la piscina',
-          distance: '0.2 km',
-          priceRange: '$120,000 - $180,000',
-          category: 'Piscinas',
-          severity: 'high',
-          timestamp: 'Hace 2 horas',
-          image: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
-          location: {
-            latitude: 6.2442,
-            longitude: -75.5812
-          }
-        },
-        {
-          _id: 'demo-request-2',
-          title: 'Mantenimiento Equipos Gimnasio',
-          description: 'Equipos de ejercicio con fallas mecánicas',
-          distance: '0.3 km',
-          priceRange: '$80,000 - $120,000',
-          category: 'Zonas Comunes',
-          severity: 'medium',
-          timestamp: 'Hace 4 horas',
-          image: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
-          location: {
-            latitude: 6.2450,
-            longitude: -75.5820
-          }
-        },
-        {
-          _id: 'demo-request-3',
-          title: 'Reparación Sistema de Riego',
-          description: 'Sistema de riego con fallas en jardines',
-          distance: '0.5 km',
-          priceRange: '$60,000 - $90,000',
-          category: 'Zonas Externas',
-          severity: 'low',
-          timestamp: 'Hace 6 horas',
-          image: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
-          location: {
-            latitude: 6.2435,
-            longitude: -75.5805
-          }
-        },
-        {
-          _id: 'demo-request-4',
-          title: 'Mantenimiento Portería',
-          description: 'Sistema de acceso con fallas intermitentes',
-          distance: '0.7 km',
-          priceRange: '$100,000 - $150,000',
-          category: 'Zonas Comunes',
-          severity: 'medium',
-          timestamp: 'Hace 8 horas',
-          image: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
-          location: {
-            latitude: 6.2460,
-            longitude: -75.5830
-          }
-        },
-        {
-          _id: 'demo-request-5',
-          title: 'Reparación Iluminación Externa',
-          description: 'Luminarias con fallas en zonas comunes',
-          distance: '0.9 km',
-          priceRange: '$70,000 - $110,000',
-          category: 'Zonas Externas',
-          severity: 'low',
-          timestamp: 'Hace 12 horas',
-          image: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...',
-          location: {
-            latitude: 6.2470,
-            longitude: -75.5840
-          }
-        }
-      ];
-    }
 
     // Cerrar sesión
     function logout() {

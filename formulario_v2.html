@@ -25,11 +25,6 @@
       justify-content: center;
     }
 
-    .auth-card{ background:var(--panel); border:1px solid #1f2937; border-radius:16px; padding:2rem; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.3) }
-    .auth-header h2{ font-size:2rem; font-weight:700; color:var(--accent); margin:0 0 0.5rem 0 }
-    .auth-header p{ color:var(--text-dim); margin:0 0 2rem 0; font-size:1.1rem }
-    
-    
     .auth-content {
       background: rgba(255, 255, 255, 0.20);
       padding: 2rem;
@@ -1484,6 +1479,12 @@
         console.log('✅ Bitácora guardada:', result);
         alert(`Bitácora guardada exitosamente. ID: ${result.id || bitacoraIdToUse}`);
         
+        // Crear daños para calificaciones "R"
+        if (hasRegularRatings) {
+          console.log('🚨 Creando daños para calificaciones R...');
+          await createDamagesForRegularRatings(areas, processedPhotos, bitacoraIdToUse);
+        }
+        
         // Limpiar draft local
         localStorage.removeItem(DRAFT_KEY);
         
@@ -1517,6 +1518,82 @@
         });
         
         alert(`Error al guardar: ${errorMessage}`);
+      }
+    }
+
+    // Función para crear daños automáticamente para calificaciones "R"
+    async function createDamagesForRegularRatings(areas, processedPhotos, bitacoraId) {
+      try {
+        console.log('🚨 Iniciando creación de daños para calificaciones R...');
+        
+        for (const areaKey in areas) {
+          const areaData = areas[areaKey];
+          for (const item in areaData) {
+            if (areaData[item] === 'R') {
+              console.log(`🚨 Creando daño para: ${areaKey} - ${item}`);
+              
+              // Obtener la foto correspondiente
+              const photoData = processedPhotos[areaKey] && processedPhotos[areaKey][item];
+              if (!photoData) {
+                console.warn(`⚠️ No hay foto para ${areaKey} - ${item}, saltando...`);
+                continue;
+              }
+              
+              // Obtener geolocalización de la foto
+              let latitude = 6.2442; // Medellín por defecto
+              let longitude = -75.5812;
+              let accuracy = 0;
+              
+              if (typeof photoData === 'object' && photoData.metadata && photoData.metadata.geolocation) {
+                latitude = photoData.metadata.geolocation.latitude;
+                longitude = photoData.metadata.geolocation.longitude;
+                accuracy = photoData.metadata.geolocation.accuracy;
+              }
+              
+              // Obtener comentario
+              const comment = supervisionComments[areaKey] && supervisionComments[areaKey][item] || '';
+              
+              // Crear el daño
+              const damageData = {
+                bitacoraId: bitacoraId,
+                area: areaKey,
+                item: item,
+                rating: 'R',
+                latitude: latitude,
+                longitude: longitude,
+                accuracy: accuracy,
+                description: `Daño detectado en ${areaKey} - ${item}`,
+                comment: comment,
+                image: typeof photoData === 'string' ? photoData : photoData.base64,
+                severity: 'medium'
+              };
+              
+              try {
+                const response = await fetch(`${window.API_BASE_URL}/damages`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-email': getUserEmail()
+                  },
+                  body: JSON.stringify(damageData)
+                });
+                
+                if (response.ok) {
+                  const result = await response.json();
+                  console.log(`✅ Daño creado exitosamente:`, result);
+                } else {
+                  console.error(`❌ Error creando daño para ${areaKey} - ${item}:`, response.status);
+                }
+              } catch (error) {
+                console.error(`❌ Error creando daño para ${areaKey} - ${item}:`, error);
+              }
+            }
+          }
+        }
+        
+        console.log('✅ Proceso de creación de daños completado');
+      } catch (error) {
+        console.error('❌ Error en createDamagesForRegularRatings:', error);
       }
     }
 
@@ -1912,10 +1989,15 @@
   <div id="auth-overlay">
     <div class="auth-blur"></div>
     <div class="auth-content">	
-      <div class="auth-header">
-          <h2>🏢 Tech Guard Pro</h2>
-          <p>MARMA | Dashboard de Supervisión</p>
-      </div>
+      <p style="font-weight: bold; font-size: 22px; width: 92%;">
+        <div class="header-marma">
+          <span class="icon">🔎</span>
+            <div class="text-content">
+              <h2>Tech Guard Pro</h2>
+              <p>Plataforma de supervisión</p>
+            </div>
+        </div>
+      </p>
       <br>
       <div class="auth-container">
         <div id="g_id_onload"
@@ -1935,6 +2017,20 @@
              data-logo_alignment="left">
         </div>
       </div>
+      <br>
+      <hr/>
+      
+      <p style="font-weight: bold; font-size: 20px;">
+        🔍 Agenda y supervisa la <strong>calidad</strong>, <strong>mantenimiento</strong> y <strong>el estado</strong> de atención a tus clientes
+      </p>
+
+      <p style="font-weight: bold; font-size: 20px;">
+        📋 Registra <strong>evidencias fotográficas</strong> y <strong>comentarios detallados</strong> por áreas
+      </p>
+
+      <p style="font-weight: bold; font-size: 20px;">
+        📊 Trazabilidad y generación de reportes automáticos de las visitas 
+      </p>
     </div>
   </div>
 
@@ -2029,7 +2125,3 @@
   </script>
 </body>
 </html>
-
-
-
-

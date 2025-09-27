@@ -778,6 +778,7 @@
         if (realDamages && realDamages.length > 0) {
           console.log('✅ Cargando daños reales desde la API:', realDamages.length);
           realDamages.forEach(damage => {
+            console.log('🔍 Procesando daño real:', damage);
             const damageData = {
               id: damage._id,
               lat: damage.location.latitude,
@@ -793,12 +794,15 @@
             addDamageMarker(damageData);
           });
           return;
+        } else {
+          console.log('⚠️ No se encontraron daños reales, usando datos de demo');
         }
       } catch (error) {
         console.warn('⚠️ Error cargando daños reales, usando datos de demo:', error.message);
       }
       
       // Fallback a datos de ejemplo
+      console.log('📋 Cargando datos de demo...');
       const sampleDamages = [
         {
           id: 'damage-1',
@@ -1121,25 +1125,32 @@
       try {
         // Cargar daños cercanos desde la API
         const damages = await loadDamagesNearby();
+        console.log('📋 Daños cargados para solicitudes:', damages);
         
         // Convertir daños a formato de solicitudes
-        nearbyRequests = damages.map(damage => ({
-          id: damage._id,
-          title: `${damage.item} - ${damage.area}`,
-          description: damage.description,
-          distance: '0.2 km', // Calcular distancia real
-          price: damage.severity === 'high' ? '$120,000 - $180,000' : 
-                 damage.severity === 'medium' ? '$80,000 - $120,000' : '$60,000 - $90,000',
-          category: damage.area,
-          severity: damage.severity,
-          timestamp: new Date(damage.createdAt).toLocaleString('es-ES'),
-          image: damage.image,
-          location: damage.location,
-          damageData: damage
-        }));
+        nearbyRequests = damages.map(damage => {
+          console.log('🔄 Convirtiendo daño a solicitud:', damage);
+          return {
+            id: damage._id,
+            title: `${damage.item} - ${damage.area}`,
+            description: damage.description,
+            distance: '0.2 km', // Calcular distancia real
+            price: damage.severity === 'high' ? '$120,000 - $180,000' : 
+                   damage.severity === 'medium' ? '$80,000 - $120,000' : '$60,000 - $90,000',
+            category: damage.area,
+            severity: damage.severity,
+            timestamp: new Date(damage.createdAt).toLocaleString('es-ES'),
+            image: damage.image,
+            location: damage.location,
+            damageData: damage
+          };
+        });
+        
+        console.log('📋 Solicitudes generadas:', nearbyRequests);
         
         // Si no hay daños, usar datos de demo
         if (nearbyRequests.length === 0) {
+          console.log('⚠️ No hay daños reales, usando datos de demo');
           nearbyRequests = generateSampleRequests();
         }
         
@@ -1434,17 +1445,29 @@
     
     // Función para obtener daños cercanos desde la API
     async function loadDamagesNearby() {
-      if (!userLocation) {
-        console.warn('No hay ubicación del usuario');
-        return [];
+      console.log('🔍 Cargando daños cercanos...');
+      
+      // Si no hay ubicación del usuario, usar ubicación por defecto (Medellín)
+      let latitude = 6.2442;
+      let longitude = -75.5812;
+      
+      if (userLocation) {
+        latitude = userLocation.lat;
+        longitude = userLocation.lng;
+        console.log('📍 Usando ubicación del usuario:', latitude, longitude);
+      } else {
+        console.log('📍 Usando ubicación por defecto (Medellín):', latitude, longitude);
       }
       
       try {
-        const response = await fetch(`${API_BASE_URL}/damages/nearby?latitude=${userLocation.lat}&longitude=${userLocation.lng}&radius=1000`, {
+        console.log('🌐 Haciendo petición a la API...');
+        const response = await fetch(`${API_BASE_URL}/damages/nearby?latitude=${latitude}&longitude=${longitude}&radius=5000`, {
           headers: {
             'x-user-email': getUserEmail()
           }
         });
+        
+        console.log('📡 Respuesta de la API:', response.status, response.statusText);
         
         if (!response.ok) {
           console.warn(`⚠️ Error del servidor (${response.status}), usando datos de demo`);
@@ -1452,7 +1475,12 @@
         }
         
         const responseData = await response.json();
-        return responseData.data || [];
+        console.log('📊 Datos recibidos de la API:', responseData);
+        
+        const damages = responseData.data || [];
+        console.log(`✅ Se encontraron ${damages.length} daños reales`);
+        
+        return damages;
       } catch (error) {
         console.warn('⚠️ Servidor no disponible, usando datos de demo:', error.message);
         return generateSampleDamages();

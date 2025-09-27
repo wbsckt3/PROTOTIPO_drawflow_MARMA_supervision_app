@@ -491,6 +491,7 @@
         item.addEventListener('click', (e) => {
           e.preventDefault();
           const tab = item.dataset.tab;
+          console.log('🖱️ Click en navegación:', tab);
           switchTab(tab);
         });
       });
@@ -512,19 +513,26 @@
       document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
       
       // Mostrar contenido correspondiente
+      console.log('🔄 Ejecutando switch para tab:', tab);
       switch(tab) {
         case 'map':
+          console.log('📍 Ejecutando showMapView()');
           showMapView();
           break;
         case 'requests':
+          console.log('📋 Ejecutando showRequestsView()');
           showRequestsView();
           break;
         case 'services':
+          console.log('🔧 Ejecutando showServicesView()');
           showServicesView();
           break;
         case 'profile':
+          console.log('👤 Ejecutando showProfileView()');
           showProfileView();
           break;
+        default:
+          console.warn('⚠️ Tab no reconocido:', tab);
       }
     }
 

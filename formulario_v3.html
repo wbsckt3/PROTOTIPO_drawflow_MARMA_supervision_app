@@ -152,8 +152,9 @@
     .nav-item.loading .nav-icon{animation:spin 1s linear infinite}
     
     /* Estados de FAB */
-    .fab.loading{opacity:0.7; cursor:not-allowed; pointer-events:none}
-    .fab.loading::after{content:''; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:20px; height:20px; border:2px solid rgba(255,255,255,0.3); border-radius:50%; border-top-color:white; animation:spin 1s linear infinite}
+    .fab.loading{opacity:0.8; cursor:not-allowed; pointer-events:none}
+    .fab.loading::before{content:''; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:24px; height:24px; border:2px solid rgba(255,255,255,0.4); border-radius:50%; border-top-color:white; animation:spin 1.5s linear infinite; z-index:1}
+    .fab.loading .fab-icon{opacity:0.3}
     
     /* Asegurar que el mapa ocupe toda la pantalla */
     .leaflet-container{width:100% !important; height:100% !important; position:absolute !important; top:0 !important; left:0 !important; right:0 !important; bottom:0 !important}
@@ -234,8 +235,8 @@
     </div>
 
     <!-- Floating Action Buttons -->
-    <button class="fab" id="location-fab" onclick="getCurrentLocation()">📍</button>
-    <button class="fab secondary" id="services-fab" onclick="showServices()">🔧</button>
+    <button class="fab" id="location-fab" onclick="getCurrentLocation()"><span class="fab-icon">📍</span></button>
+    <button class="fab secondary" id="services-fab" onclick="showServices()"><span class="fab-icon">🔧</span></button>
 
     <!-- Cards deslizables -->
     <div class="card-container" id="card-container">
@@ -1053,59 +1054,87 @@
       loadingCard.className = 'card visible';
       loadingCard.innerHTML = `
         <div class="card-header">
-          <h3 class="card-title">Oportunidades de Servicio</h3>
+          <h3 class="card-title">Solicitudes Cercanas</h3>
           <button class="card-close" onclick="hideCard()">&times;</button>
         </div>
         <div class="card-body">
           <div style="text-align: center; padding: 2rem;">
             <div class="loading"></div>
-            <p style="margin-top: 1rem; color: var(--text-secondary);">Cargando oportunidades...</p>
+            <p style="margin-top: 1rem; color: var(--text-secondary);">Cargando solicitudes...</p>
           </div>
         </div>
       `;
       container.appendChild(loadingCard);
       
       try {
-        // Cargar daños cercanos desde la API
-        const damages = await loadDamagesNearby();
-        console.log('📋 Daños cargados para solicitudes:', damages);
+        // Usar los mismos daños que ya están en el mapa (damageMarkers)
+        console.log('📋 Usando daños del mapa:', damageMarkers.length);
         
-        // Convertir daños a formato de solicitudes
-        nearbyRequests = damages.map(damage => {
-          console.log('🔄 Convirtiendo daño a solicitud:', damage);
-          return {
-            id: damage._id,
-            title: `${damage.item} - ${damage.area}`,
-            description: damage.description,
-            distance: '0.2 km', // Calcular distancia real
-            price: damage.severity === 'high' ? '$120,000 - $180,000' : 
-                   damage.severity === 'medium' ? '$80,000 - $120,000' : '$60,000 - $90,000',
-            category: damage.area,
-            severity: damage.severity,
-            timestamp: new Date(damage.createdAt).toLocaleString('es-ES'),
-            image: damage.image,
-            location: damage.location,
-            damageData: damage
-          };
-        });
-        
-        console.log('📋 Solicitudes generadas:', nearbyRequests);
+        if (damageMarkers.length > 0) {
+          // Convertir marcadores del mapa a formato de solicitudes
+          nearbyRequests = damageMarkers.map(markerData => {
+            const damage = markerData.data;
+            console.log('🔄 Convirtiendo marcador del mapa a solicitud:', damage);
+            return {
+              id: damage.id,
+              title: damage.title,
+              description: damage.description,
+              distance: '0.2 km', // Calcular distancia real
+              price: damage.severity === 'high' ? '$120,000 - $180,000' : 
+                     damage.severity === 'medium' ? '$80,000 - $120,000' : '$60,000 - $90,000',
+              category: damage.category,
+              severity: damage.severity,
+              timestamp: damage.timestamp,
+              image: damage.image,
+              location: { latitude: damage.lat, longitude: damage.lng },
+              damageData: damage.damageData
+            };
+          });
+          
+          console.log('📋 Solicitudes generadas desde marcadores del mapa:', nearbyRequests);
+        } else {
+          // Si no hay marcadores en el mapa, intentar cargar desde la API
+          console.log('📋 No hay marcadores en el mapa, cargando desde API...');
+          const damages = await loadDamagesNearby();
+          console.log('📋 Daños cargados desde API:', damages);
+          
+          // Convertir daños a formato de solicitudes
+          nearbyRequests = damages.map(damage => {
+            console.log('🔄 Convirtiendo daño de API a solicitud:', damage);
+            return {
+              id: damage._id,
+              title: `${damage.item} - ${damage.area}`,
+              description: damage.description,
+              distance: '0.2 km', // Calcular distancia real
+              price: damage.severity === 'high' ? '$120,000 - $180,000' : 
+                     damage.severity === 'medium' ? '$80,000 - $120,000' : '$60,000 - $90,000',
+              category: damage.area,
+              severity: damage.severity,
+              timestamp: new Date(damage.createdAt).toLocaleString('es-ES'),
+              image: damage.image,
+              location: damage.location,
+              damageData: damage
+            };
+          });
+          
+          console.log('📋 Solicitudes generadas desde API:', nearbyRequests);
+        }
         
         // Actualizar la card con los datos
         if (nearbyRequests.length === 0) {
-          console.log('⚠️ No hay daños reales en la base de datos');
+          console.log('⚠️ No hay solicitudes disponibles');
           loadingCard.innerHTML = `
             <div class="card-header">
-              <h3 class="card-title">Oportunidades de Servicio</h3>
+              <h3 class="card-title">Solicitudes Cercanas</h3>
               <button class="card-close" onclick="hideCard()">&times;</button>
             </div>
             <div class="card-body">
               <div style="background: #fff3e0; border: 1px solid #ffcc02; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
                 <div style="color: #f57c00; font-size: 14px; font-weight: 600; margin-bottom: 4px;">📍 Radio de búsqueda: 20 km</div>
-                <div style="color: #f57c00; font-size: 12px;">Buscando oportunidades de servicio cerca de tu ubicación</div>
+                <div style="color: #f57c00; font-size: 12px;">Buscando solicitudes de servicio cerca de tu ubicación</div>
               </div>
               <div style="text-align: center; padding: 2rem;">
-                <p style="color: var(--text-secondary);">No hay daños reportados en tu área</p>
+                <p style="color: var(--text-secondary);">No hay solicitudes de servicio en tu área</p>
                 <p style="color: var(--text-secondary); font-size: 12px;">Los supervisores aún no han reportado daños con calificación R</p>
               </div>
             </div>
@@ -1113,13 +1142,13 @@
         } else {
           loadingCard.innerHTML = `
             <div class="card-header">
-              <h3 class="card-title">Oportunidades de Servicio</h3>
+              <h3 class="card-title">Solicitudes Cercanas</h3>
               <button class="card-close" onclick="hideCard()">&times;</button>
             </div>
             <div class="card-body">
               <div style="background: #e3f2fd; border: 1px solid #bbdefb; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
                 <div style="color: #1976d2; font-size: 14px; font-weight: 600; margin-bottom: 4px;">📍 Radio de búsqueda: 20 km</div>
-                <div style="color: #1976d2; font-size: 12px;">Oportunidades de servicio cerca de tu ubicación</div>
+                <div style="color: #1976d2; font-size: 12px;">Solicitudes de servicio cerca de tu ubicación</div>
               </div>
               <div id="requests-list">
                 ${generateNearbyRequestsHTML()}
@@ -1136,13 +1165,13 @@
         
         loadingCard.innerHTML = `
           <div class="card-header">
-            <h3 class="card-title">Oportunidades de Servicio</h3>
+            <h3 class="card-title">Solicitudes Cercanas</h3>
             <button class="card-close" onclick="hideCard()">&times;</button>
           </div>
           <div class="card-body">
             <div style="background: #ffebee; border: 1px solid #ffcdd2; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
               <div style="color: #c62828; font-size: 14px; font-weight: 600; margin-bottom: 4px;">⚠️ Error de Conexión</div>
-              <div style="color: #c62828; font-size: 12px;">No se pudieron cargar las oportunidades de servicio</div>
+              <div style="color: #c62828; font-size: 12px;">No se pudieron cargar las solicitudes de servicio</div>
             </div>
             <div style="text-align: center; padding: 2rem;">
               <p style="color: var(--text-secondary);">Intenta nuevamente más tarde</p>
@@ -1493,8 +1522,12 @@
       
       try {
         console.log('🌐 Haciendo petición a la API...');
+        const url = `${API_BASE_URL}/damages/nearby?latitude=${latitude}&longitude=${longitude}&radius=20000`;
+        console.log('🔗 URL de la API:', url);
+        console.log('👤 Email del usuario:', getUserEmail());
+        
         // Aumentar el radio a 20km para capturar más daños
-        const response = await fetch(`${API_BASE_URL}/damages/nearby?latitude=${latitude}&longitude=${longitude}&radius=20000`, {
+        const response = await fetch(url, {
           headers: {
             'x-user-email': getUserEmail()
           }
@@ -1503,7 +1536,8 @@
         console.log('📡 Respuesta de la API:', response.status, response.statusText);
         
         if (!response.ok) {
-          console.warn(`⚠️ Error del servidor (${response.status}), retornando array vacío`);
+          const errorText = await response.text();
+          console.warn(`⚠️ Error del servidor (${response.status}):`, errorText);
           return [];
         }
         
@@ -1512,6 +1546,10 @@
         
         const damages = responseData.data || [];
         console.log(`✅ Se encontraron ${damages.length} daños reales`);
+        
+        if (damages.length > 0) {
+          console.log('🔍 Primer daño encontrado:', damages[0]);
+        }
         
         return damages;
       } catch (error) {

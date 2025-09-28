@@ -261,7 +261,7 @@
       </a>
       <a href="#" class="nav-item" data-tab="requests">
         <div class="nav-icon">📋</div>
-        <div class="nav-label">Solicitudes</div>
+        <div class="nav-label">Oportunidades</div>
       </a>
       <a href="#" class="nav-item" data-tab="services">
         <div class="nav-icon">🔧</div>
@@ -642,7 +642,7 @@
           break;
         case 'requests':
           console.log('📋 Ejecutando showRequestsView()');
-          showTabLoadingOverlay('Cargando Oportunidades Cercanas', 'Buscando solicitudes de servicio...');
+          showTabLoadingOverlay('Cargando Oportunidades Cercanas', 'Buscando oportunidades de servicio...');
           showRequestsView();
           break;
         case 'services':
@@ -1138,13 +1138,13 @@
       loadingCard.className = 'card visible';
       loadingCard.innerHTML = `
         <div class="card-header">
-          <h3 class="card-title">Solicitudes Cercanas</h3>
+          <h3 class="card-title">Oportunidades de Servicio Cercanas</h3>
           <button class="card-close" onclick="hideCard()">&times;</button>
         </div>
         <div class="card-body">
           <div style="text-align: center; padding: 2rem;">
             <div class="loading"></div>
-            <p style="margin-top: 1rem; color: var(--text-secondary);">Cargando solicitudes...</p>
+            <p style="margin-top: 1rem; color: var(--text-secondary);">Cargando oportunidades...</p>
           </div>
         </div>
       `;
@@ -1213,16 +1213,16 @@
           console.log('⚠️ No hay solicitudes disponibles');
           loadingCard.innerHTML = `
             <div class="card-header">
-              <h3 class="card-title">Solicitudes Cercanas</h3>
+              <h3 class="card-title">Oportunidades de Servicio Cercanas</h3>
               <button class="card-close" onclick="hideCard()">&times;</button>
             </div>
             <div class="card-body">
               <div style="background: #fff3e0; border: 1px solid #ffcc02; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
                 <div style="color: #f57c00; font-size: 14px; font-weight: 600; margin-bottom: 4px;">📍 Radio de búsqueda: 20 km</div>
-                <div style="color: #f57c00; font-size: 12px;">Buscando solicitudes de servicio cerca de tu ubicación</div>
+                <div style="color: #f57c00; font-size: 12px;">Buscando oportunidades de servicio cerca de tu ubicación</div>
               </div>
               <div style="text-align: center; padding: 2rem;">
-                <p style="color: var(--text-secondary);">No hay solicitudes de servicio en tu área</p>
+                <p style="color: var(--text-secondary);">No hay oportunidades de servicio en tu área</p>
                 <p style="color: var(--text-secondary); font-size: 12px;">Los supervisores aún no han reportado daños con calificación R</p>
               </div>
             </div>
@@ -1230,13 +1230,13 @@
         } else {
           loadingCard.innerHTML = `
             <div class="card-header">
-              <h3 class="card-title">Solicitudes Cercanas</h3>
+              <h3 class="card-title">Oportunidades de Servicio Cercanas</h3>
               <button class="card-close" onclick="hideCard()">&times;</button>
             </div>
             <div class="card-body">
               <div style="background: #e3f2fd; border: 1px solid #bbdefb; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
                 <div style="color: #1976d2; font-size: 14px; font-weight: 600; margin-bottom: 4px;">📍 Radio de búsqueda: 20 km</div>
-                <div style="color: #1976d2; font-size: 12px;">Solicitudes de servicio cerca de tu ubicación</div>
+                <div style="color: #1976d2; font-size: 12px;">Oportunidades de servicio cerca de tu ubicación</div>
               </div>
               <div id="requests-list">
                 ${generateNearbyRequestsHTML()}
@@ -1253,13 +1253,13 @@
         
         loadingCard.innerHTML = `
           <div class="card-header">
-            <h3 class="card-title">Solicitudes Cercanas</h3>
+            <h3 class="card-title">Oportunidades de Servicio Cercanas</h3>
             <button class="card-close" onclick="hideCard()">&times;</button>
           </div>
           <div class="card-body">
             <div style="background: #ffebee; border: 1px solid #ffcdd2; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
               <div style="color: #c62828; font-size: 14px; font-weight: 600; margin-bottom: 4px;">⚠️ Error de Conexión</div>
-              <div style="color: #c62828; font-size: 12px;">No se pudieron cargar las solicitudes de servicio</div>
+              <div style="color: #c62828; font-size: 12px;">No se pudieron cargar las oportunidades de servicio</div>
             </div>
             <div style="text-align: center; padding: 2rem;">
               <p style="color: var(--text-secondary);">Intenta nuevamente más tarde</p>

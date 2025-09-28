@@ -1128,7 +1128,6 @@
       // Activar loading en el botón de navegación
       setNavItemLoading('requests', true);
       
-      switchTab('requests');
       const container = document.getElementById('card-container');
       container.innerHTML = '';
       
@@ -1150,14 +1149,13 @@
       container.appendChild(loadingCard);
       
       try {
-        // Usar los mismos daños que ya están en el mapa (damageMarkers)
+        // Usar los mismos daños que ya están en el mapa (damageMarkers) - MÁS RÁPIDO
         console.log('📋 Usando daños del mapa:', damageMarkers.length);
         
         if (damageMarkers.length > 0) {
-          // Convertir marcadores del mapa a formato de solicitudes
+          // Convertir marcadores del mapa a formato de solicitudes - SINCRÓNICO
           nearbyRequests = damageMarkers.map(markerData => {
             const damage = markerData.data;
-            console.log('🔄 Convirtiendo marcador del mapa a solicitud:', damage);
             return {
               id: damage.id,
               title: damage.title,
@@ -1174,16 +1172,21 @@
             };
           });
           
-          console.log('📋 Solicitudes generadas desde marcadores del mapa:', nearbyRequests);
+          console.log('📋 Solicitudes generadas desde marcadores del mapa:', nearbyRequests.length);
         } else {
-          // Si no hay marcadores en el mapa, intentar cargar desde la API
+          // Si no hay marcadores en el mapa, intentar cargar desde la API con timeout corto
           console.log('📋 No hay marcadores en el mapa, cargando desde API...');
-          const damages = await loadDamagesNearby();
+          
+          const damagesPromise = loadDamagesNearby();
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 2000) // Timeout muy corto: 2 segundos
+          );
+          
+          const damages = await Promise.race([damagesPromise, timeoutPromise]);
           console.log('📋 Daños cargados desde API:', damages);
           
           // Convertir daños a formato de solicitudes
           nearbyRequests = damages.map(damage => {
-            console.log('🔄 Convirtiendo daño de API a solicitud:', damage);
             return {
               id: damage._id,
               title: `${damage.item} - ${damage.area}`,
@@ -1200,7 +1203,7 @@
             };
           });
           
-          console.log('📋 Solicitudes generadas desde API:', nearbyRequests);
+          console.log('📋 Solicitudes generadas desde API:', nearbyRequests.length);
         }
         
         // Actualizar la card con los datos

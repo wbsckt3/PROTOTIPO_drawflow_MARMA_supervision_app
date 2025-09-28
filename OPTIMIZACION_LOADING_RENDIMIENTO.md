@@ -41,7 +41,7 @@ Usuario: "ok mejoró notablemente, pero debe onerse un loading de circulo cuando
 
 ### **Interacción 3: Optimización de Velocidad**
 ```
-Usuario: "uffff que es esa genialidad!! quedo increiblemente fluido hermoso, rápido, , ahora mejora los estilos de las notificación de ubicación encontrada con un fondo verdecito pastel está genial como está la funcionalidad un poco de estilo con un fondo verde pastel, también para el header principal está blanco, podria mejorar con un color mas oscuro, mas fuerte no se, mejoralo"
+Usuario: "Quedó rápido, fluido, ahora mejora los estilos de las notificación de ubicación encontrada con un fondo verde pastel está genial como está la funcionalidad un poco de estilo con un fondo verde pastel, también para el header principal está blanco, podria mejorar con un color mas oscuro, mas fuerte no se, mejoralo"
 ```
 
 **Resultado:**
@@ -406,5 +406,6 @@ function getCurrentLocation() {
 - App se siente rápida y profesional
 
 **La optimización transformó completamente la experiencia de usuario, pasando de una app frustrante a una aplicación fluida y profesional.**
+
 
 

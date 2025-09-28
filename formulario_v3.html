@@ -140,7 +140,15 @@
     
     /* Loading */
     .loading{display:inline-block; width:20px; height:20px; border:2px solid rgba(26,115,232,0.3); border-radius:50%; border-top-color:var(--primary); animation:spin 1s linear infinite}
+    .loading-large{display:inline-block; width:40px; height:40px; border:4px solid rgba(26,115,232,0.2); border-radius:50%; border-top-color:var(--primary); animation:spin 1s linear infinite; margin:0 auto}
     @keyframes spin{to{transform:rotate(360deg)}}
+    
+    /* Loading overlay para pestañas */
+    .tab-loading-overlay{position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:2000; backdrop-filter:blur(2px)}
+    .tab-loading-content{text-align:center; padding:20px; background:white; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.1); max-width:280px; margin:0 20px}
+    .tab-loading-spinner{margin-bottom:16px}
+    .tab-loading-text{color:var(--text); font-size:16px; font-weight:600; margin:0}
+    .tab-loading-subtext{color:var(--text-secondary); font-size:14px; margin:8px 0 0 0}
     
     /* Estados de botones */
     .btn.loading{opacity:0.7; cursor:not-allowed; position:relative}
@@ -419,7 +427,41 @@
         btn.disabled = false;
       });
       
+      // Ocultar overlay de loading
+      hideTabLoadingOverlay();
+      
       console.log('🧹 Estados de loading limpiados');
+    }
+    
+    // Mostrar overlay de loading para pestañas
+    function showTabLoadingOverlay(title, subtitle = '') {
+      // Remover overlay existente si hay uno
+      hideTabLoadingOverlay();
+      
+      const overlay = document.createElement('div');
+      overlay.className = 'tab-loading-overlay';
+      overlay.id = 'tab-loading-overlay';
+      overlay.innerHTML = `
+        <div class="tab-loading-content">
+          <div class="tab-loading-spinner">
+            <div class="loading-large"></div>
+          </div>
+          <div class="tab-loading-text">${title}</div>
+          ${subtitle ? `<div class="tab-loading-subtext">${subtitle}</div>` : ''}
+        </div>
+      `;
+      
+      document.body.appendChild(overlay);
+      console.log('⏳ Mostrando loading overlay:', title);
+    }
+    
+    // Ocultar overlay de loading para pestañas
+    function hideTabLoadingOverlay() {
+      const overlay = document.getElementById('tab-loading-overlay');
+      if (overlay) {
+        overlay.remove();
+        console.log('✅ Ocultando loading overlay');
+      }
     }
 
     // Manejar respuesta de Google Sign-in (DEBE SER GLOBAL)
@@ -590,8 +632,7 @@
       });
       document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
       
-      // Mostrar contenido correspondiente
-      console.log('🔄 Ejecutando switch para tab:', tab);
+      // Mostrar loading overlay específico para cada pestaña
       switch(tab) {
         case 'map':
           console.log('📍 Ejecutando showMapView()');
@@ -599,14 +640,17 @@
           break;
         case 'requests':
           console.log('📋 Ejecutando showRequestsView()');
+          showTabLoadingOverlay('Cargando Oportunidades Cercanas', 'Buscando solicitudes de servicio...');
           showRequestsView();
           break;
         case 'services':
           console.log('🔧 Ejecutando showServicesView()');
+          showTabLoadingOverlay('Cargando Mis Servicios', 'Obteniendo tus propuestas...');
           showServicesView();
           break;
         case 'profile':
           console.log('👤 Ejecutando showProfileView()');
+          showTabLoadingOverlay('Cargando Perfil', 'Obteniendo información del usuario...');
           showProfileView();
           break;
         default:
@@ -799,6 +843,10 @@
 
       // Activar loading en el FAB de ubicación
       setFabLoading('location-fab', true);
+      
+      // Mostrar loading overlay
+      showTabLoadingOverlay('Obteniendo Ubicación', 'Detectando tu posición actual...');
+      
       showNotification('Obteniendo ubicación...', 'info');
       
       navigator.geolocation.getCurrentPosition(
@@ -843,6 +891,9 @@
           } finally {
             // Siempre desactivar loading del FAB
             setFabLoading('location-fab', false);
+            
+            // Ocultar overlay de loading
+            hideTabLoadingOverlay();
           }
         },
         (error) => {
@@ -851,6 +902,9 @@
           
           // Desactivar loading del FAB
           setFabLoading('location-fab', false);
+          
+          // Ocultar overlay de loading
+          hideTabLoadingOverlay();
         },
         {
           enableHighAccuracy: true,
@@ -1211,6 +1265,9 @@
         // Siempre desactivar loading
         setNavItemLoading('requests', false);
         
+        // Ocultar overlay de loading
+        hideTabLoadingOverlay();
+        
         // Redimensionar el mapa cuando se muestra la card
         setTimeout(() => {
           if (map) {
@@ -1325,6 +1382,9 @@
         // Siempre desactivar loading, sin importar si hay error o éxito
         setNavItemLoading('services', false);
         
+        // Ocultar overlay de loading
+        hideTabLoadingOverlay();
+        
         // Redimensionar el mapa cuando se muestra la card
         setTimeout(() => {
           if (map) {
@@ -1417,6 +1477,9 @@
         // Siempre desactivar loading
         setNavItemLoading('profile', false);
         
+        // Ocultar overlay de loading
+        hideTabLoadingOverlay();
+        
         // Redimensionar el mapa cuando se muestra la card
         setTimeout(() => {
           if (map) {
@@ -1432,6 +1495,9 @@
       
       // Activar loading en el FAB
       setFabLoading('services-fab', true);
+      
+      // Mostrar loading overlay
+      showTabLoadingOverlay('Cargando Mis Servicios', 'Obteniendo tus propuestas...');
       
       // Cambiar a la pestaña de servicios
       switchTab('services');

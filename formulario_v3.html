@@ -400,6 +400,27 @@
         }
       }
     }
+    
+    // Limpiar todos los estados de loading
+    function clearAllLoadingStates() {
+      // Limpiar loading de navegación
+      document.querySelectorAll('.nav-item.loading').forEach(item => {
+        item.classList.remove('loading');
+      });
+      
+      // Limpiar loading de FABs
+      document.querySelectorAll('.fab.loading').forEach(fab => {
+        fab.classList.remove('loading');
+      });
+      
+      // Limpiar loading de botones
+      document.querySelectorAll('.btn.loading').forEach(btn => {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      });
+      
+      console.log('🧹 Estados de loading limpiados');
+    }
 
     // Manejar respuesta de Google Sign-in (DEBE SER GLOBAL)
     async function handleCredentialResponse(response) {
@@ -559,6 +580,9 @@
     function switchTab(tab) {
       console.log('🔄 Cambiando a tab:', tab);
       currentTab = tab;
+      
+      // Limpiar todos los estados de loading primero
+      clearAllLoadingStates();
       
       // Actualizar navegación
       document.querySelectorAll('.nav-item').forEach(item => {
@@ -779,42 +803,47 @@
       
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          userLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracy: position.coords.accuracy
-          };
-          
-          // Centrar mapa en ubicación del usuario
-          map.setView([userLocation.lat, userLocation.lng], 15);
-          
-          // Agregar marcador del usuario
-          if (userMarker) {
-            map.removeLayer(userMarker);
+          try {
+            userLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              accuracy: position.coords.accuracy
+            };
+            
+            // Centrar mapa en ubicación del usuario
+            map.setView([userLocation.lat, userLocation.lng], 15);
+            
+            // Agregar marcador del usuario
+            if (userMarker) {
+              map.removeLayer(userMarker);
+            }
+            
+            userMarker = L.marker([userLocation.lat, userLocation.lng], {
+              icon: L.divIcon({
+                className: 'user-marker',
+                html: '<div style="background: #34a853; color: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border: 3px solid white; box-shadow: 0 3px 12px rgba(0,0,0,0.4);">📍</div>',
+                iconSize: [36, 36],
+                iconAnchor: [18, 18]
+              })
+            }).addTo(map);
+            
+            showNotification('Ubicación obtenida', 'success');
+            
+            // Registrar móvil si es proveedor de servicios
+            if (isServiceProvider) {
+              registerMobileDevice();
+            }
+            
+            // Cargar solicitudes cercanas
+            loadNearbyRequests();
+            
+          } catch (error) {
+            console.error('Error procesando ubicación:', error);
+            showNotification('Error procesando ubicación', 'error');
+          } finally {
+            // Siempre desactivar loading del FAB
+            setFabLoading('location-fab', false);
           }
-          
-          userMarker = L.marker([userLocation.lat, userLocation.lng], {
-            icon: L.divIcon({
-              className: 'user-marker',
-              html: '<div style="background: #34a853; color: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border: 3px solid white; box-shadow: 0 3px 12px rgba(0,0,0,0.4);">📍</div>',
-              iconSize: [36, 36],
-              iconAnchor: [18, 18]
-            })
-          }).addTo(map);
-          
-          showNotification('Ubicación obtenida', 'success');
-          
-          // Registrar móvil si es proveedor de servicios
-          if (isServiceProvider) {
-            registerMobileDevice();
-          }
-          
-          // Cargar solicitudes cercanas
-          loadNearbyRequests();
-          
-          // Desactivar loading del FAB
-          setFabLoading('location-fab', false);
-          
         },
         (error) => {
           console.error('Error obteniendo ubicación:', error);
@@ -825,7 +854,7 @@
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
+          timeout: 8000, // Reducido a 8 segundos
           maximumAge: 300000
         }
       );
@@ -1178,17 +1207,17 @@
             </div>
           </div>
         `;
+      } finally {
+        // Siempre desactivar loading
+        setNavItemLoading('requests', false);
+        
+        // Redimensionar el mapa cuando se muestra la card
+        setTimeout(() => {
+          if (map) {
+            map.invalidateSize();
+          }
+        }, 100);
       }
-      
-      // Redimensionar el mapa cuando se muestra la card
-      setTimeout(() => {
-        if (map) {
-          map.invalidateSize();
-        }
-      }, 100);
-      
-      // Desactivar loading
-      setNavItemLoading('requests', false);
     }
 
     // Ocultar card
@@ -1210,7 +1239,6 @@
       // Activar loading en el botón de navegación
       setNavItemLoading('services', true);
       
-      switchTab('services');
       const container = document.getElementById('card-container');
       console.log('🔧 Container encontrado:', container);
       container.innerHTML = '';
@@ -1232,10 +1260,10 @@
       `;
       
       try {
-        // Cargar propuestas del técnico desde la API con timeout
+        // Cargar propuestas del técnico desde la API con timeout más corto
         const proposalsPromise = loadTechnicianProposals();
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout')), 5000)
+          setTimeout(() => reject(new Error('Timeout')), 3000) // Reducido a 3 segundos
         );
         
         const proposals = await Promise.race([proposalsPromise, timeoutPromise]);
@@ -1244,59 +1272,66 @@
         if (proposals.length === 0) {
           container.innerHTML = `
             <div class="card visible">
+              <div class="card-header">
+                <h3 class="card-title">Mis Servicios</h3>
+                <button class="card-close" onclick="hideCard()">&times;</button>
+              </div>
               <div class="card-content">
                 <p>No tienes propuestas enviadas</p>
                 <p>Ve al mapa para encontrar oportunidades de servicio</p>
               </div>
             </div>
           `;
-          return;
-        }
-        
-        // Mostrar propuestas
-        proposals.forEach(proposal => {
-          const proposalCard = document.createElement('div');
-          proposalCard.className = 'card visible';
-          proposalCard.innerHTML = `
-            <div class="card-header">
-              <h3 class="card-title">Propuesta de Servicio</h3>
-              <button class="card-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
-            </div>
-            <div class="card-content">
-              <div class="service-card">
-                <div class="service-icon">🔧</div>
-                <div class="service-info">
-                  <div class="service-name">${proposal.description}</div>
-                  <div class="service-desc">Precio: $${proposal.price} | Duración: ${proposal.duration} días</div>
-                  <div class="service-desc">Estado: ${proposal.status}</div>
+        } else {
+          // Mostrar propuestas
+          proposals.forEach(proposal => {
+            const proposalCard = document.createElement('div');
+            proposalCard.className = 'card visible';
+            proposalCard.innerHTML = `
+              <div class="card-header">
+                <h3 class="card-title">Propuesta de Servicio</h3>
+                <button class="card-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+              </div>
+              <div class="card-content">
+                <div class="service-card">
+                  <div class="service-icon">🔧</div>
+                  <div class="service-info">
+                    <div class="service-name">${proposal.description}</div>
+                    <div class="service-desc">Precio: $${proposal.price} | Duración: ${proposal.duration} días</div>
+                    <div class="service-desc">Estado: ${proposal.status}</div>
+                  </div>
                 </div>
               </div>
-            </div>
-          `;
-          container.appendChild(proposalCard);
-        });
+            `;
+            container.appendChild(proposalCard);
+          });
+        }
         
       } catch (error) {
         console.error('🔧 Error cargando propuestas:', error);
         container.innerHTML = `
           <div class="card visible">
+            <div class="card-header">
+              <h3 class="card-title">Mis Servicios</h3>
+              <button class="card-close" onclick="hideCard()">&times;</button>
+            </div>
             <div class="card-content">
               <p>Error cargando propuestas</p>
               <p>${error.message}</p>
             </div>
           </div>
         `;
+      } finally {
+        // Siempre desactivar loading, sin importar si hay error o éxito
+        setNavItemLoading('services', false);
+        
+        // Redimensionar el mapa cuando se muestra la card
+        setTimeout(() => {
+          if (map) {
+            map.invalidateSize();
+          }
+        }, 100);
       }
-      
-      // Redimensionar el mapa cuando se muestra la card
-      setTimeout(() => {
-        if (map) {
-          map.invalidateSize();
-        }
-      }, 100);
-      
-      // Desactivar loading
-      setNavItemLoading('services', false);
     }
 
     // Mostrar vista de perfil
@@ -1320,8 +1355,26 @@
       // Limpiar el container primero
       container.innerHTML = '';
       
-      if (!currentUser) {
-        console.error('👤 Error: currentUser no está definido');
+      try {
+        if (!currentUser) {
+          console.error('👤 Error: currentUser no está definido');
+          container.innerHTML = `
+            <div class="card visible">
+              <div class="card-header">
+                <h3 class="card-title">Mi Perfil</h3>
+                <button class="card-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+              </div>
+              <div class="card-content">
+                <p>Error: Usuario no autenticado</p>
+                <button class="btn full" onclick="logout()">Cerrar Sesión</button>
+              </div>
+            </div>
+          `;
+          return;
+        }
+        
+        console.log('👤 Mostrando perfil del usuario:', currentUser.FullName);
+        
         container.innerHTML = `
           <div class="card visible">
             <div class="card-header">
@@ -1329,49 +1382,48 @@
               <button class="card-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
             </div>
             <div class="card-content">
-              <p>Error: Usuario no autenticado</p>
+              <div style="text-align: center; margin-bottom: 20px;">
+                <div class="user-avatar" style="width: 80px; height: 80px; margin: 0 auto 12px; font-size: 32px;">${(currentUser.GivenName || 'U').charAt(0).toUpperCase()}</div>
+                <h3 style="margin: 0 0 4px 0;">${currentUser.FullName}</h3>
+                <p style="color: var(--text-secondary); margin: 0;">${currentUser.Email}</p>
+              </div>
+              <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                <button class="btn outline" onclick="toggleServiceProvider()" style="flex: 1;">
+                  ${isServiceProvider ? 'Desregistrarse' : 'Registrarse como Técnico'}
+                </button>
+              </div>
+              <button class="btn danger full" onclick="logout()">Cerrar Sesión</button>
+            </div>
+          </div>
+        `;
+        
+        console.log('👤 Perfil mostrado correctamente');
+        
+      } catch (error) {
+        console.error('👤 Error mostrando perfil:', error);
+        container.innerHTML = `
+          <div class="card visible">
+            <div class="card-header">
+              <h3 class="card-title">Mi Perfil</h3>
+              <button class="card-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+            </div>
+            <div class="card-content">
+              <p>Error cargando perfil</p>
               <button class="btn full" onclick="logout()">Cerrar Sesión</button>
             </div>
           </div>
         `;
-        return;
+      } finally {
+        // Siempre desactivar loading
+        setNavItemLoading('profile', false);
+        
+        // Redimensionar el mapa cuando se muestra la card
+        setTimeout(() => {
+          if (map) {
+            map.invalidateSize();
+          }
+        }, 100);
       }
-      
-      console.log('👤 Mostrando perfil del usuario:', currentUser.FullName);
-      
-      container.innerHTML = `
-        <div class="card visible">
-          <div class="card-header">
-            <h3 class="card-title">Mi Perfil</h3>
-            <button class="card-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
-          </div>
-          <div class="card-content">
-            <div style="text-align: center; margin-bottom: 20px;">
-              <div class="user-avatar" style="width: 80px; height: 80px; margin: 0 auto 12px; font-size: 32px;">${(currentUser.GivenName || 'U').charAt(0).toUpperCase()}</div>
-              <h3 style="margin: 0 0 4px 0;">${currentUser.FullName}</h3>
-              <p style="color: var(--text-secondary); margin: 0;">${currentUser.Email}</p>
-            </div>
-            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-              <button class="btn outline" onclick="toggleServiceProvider()" style="flex: 1;">
-                ${isServiceProvider ? 'Desregistrarse' : 'Registrarse como Técnico'}
-              </button>
-            </div>
-            <button class="btn danger full" onclick="logout()">Cerrar Sesión</button>
-          </div>
-        </div>
-      `;
-      
-      console.log('👤 Perfil mostrado correctamente');
-      
-      // Redimensionar el mapa cuando se muestra la card
-      setTimeout(() => {
-        if (map) {
-          map.invalidateSize();
-        }
-      }, 100);
-      
-      // Desactivar loading
-      setNavItemLoading('profile', false);
     }
 
     // Mostrar servicios
@@ -1381,7 +1433,10 @@
       // Activar loading en el FAB
       setFabLoading('services-fab', true);
       
+      // Cambiar a la pestaña de servicios
       switchTab('services');
+      
+      // Ejecutar la vista de servicios
       showServicesView().finally(() => {
         // Desactivar loading del FAB
         setFabLoading('services-fab', false);

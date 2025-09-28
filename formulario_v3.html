@@ -265,7 +265,7 @@
       </a>
       <a href="#" class="nav-item" data-tab="services">
         <div class="nav-icon">🔧</div>
-        <div class="nav-label">Servicios</div>
+        <div class="nav-label">Propuestas</div>
       </a>
       <a href="#" class="nav-item" data-tab="profile">
         <div class="nav-icon">👤</div>
@@ -647,7 +647,7 @@
           break;
         case 'services':
           console.log('🔧 Ejecutando showServicesView()');
-          showTabLoadingOverlay('Cargando Mis Servicios', 'Obteniendo tus propuestas...');
+          showTabLoadingOverlay('Cargando Mis Propuestas', 'Obteniendo tus propuestas enviadas...');
           showServicesView();
           break;
         case 'profile':
@@ -1018,7 +1018,7 @@
         // Determinar rol del usuario
         await determineUserRole();
         
-        // Cargar servicios si es proveedor
+        // Cargar propuestas si es proveedor
         if (isServiceProvider) {
           await loadUserServices();
         }
@@ -1041,9 +1041,9 @@
 
     // Cargar servicios del usuario
     async function loadUserServices() {
-      // TODO: Implementar cuando se creen los endpoints de servicios
+      // TODO: Implementar cuando se creen los endpoints de propuestas
       console.log('loadUserServices: Función no implementada aún');
-      // Usar servicios de ejemplo
+      // Usar propuestas de ejemplo
       currentServices = [
           {
             _id: 'service-1',
@@ -1294,7 +1294,7 @@
       }, 100);
     }
 
-    // Mostrar vista de servicios
+    // Mostrar vista de propuestas
     async function showServicesView() {
       console.log('🔧 Ejecutando showServicesView()');
       
@@ -1309,13 +1309,13 @@
       container.innerHTML = `
         <div class="card visible">
           <div class="card-header">
-            <h3 class="card-title">Mis Servicios</h3>
+            <h3 class="card-title">Mis Propuestas Enviadas</h3>
             <button class="card-close" onclick="hideCard()">&times;</button>
           </div>
           <div class="card-content">
             <div style="text-align: center; padding: 2rem;">
               <div class="loading"></div>
-              <p style="margin-top: 1rem; color: var(--text-secondary);">Cargando servicios...</p>
+              <p style="margin-top: 1rem; color: var(--text-secondary);">Cargando propuestas...</p>
             </div>
           </div>
         </div>
@@ -1335,7 +1335,7 @@
           container.innerHTML = `
             <div class="card visible">
               <div class="card-header">
-                <h3 class="card-title">Mis Servicios</h3>
+                <h3 class="card-title">Mis Propuestas Enviadas</h3>
                 <button class="card-close" onclick="hideCard()">&times;</button>
               </div>
               <div class="card-content">
@@ -1374,7 +1374,7 @@
         container.innerHTML = `
           <div class="card visible">
             <div class="card-header">
-              <h3 class="card-title">Mis Servicios</h3>
+              <h3 class="card-title">Mis Propuestas Enviadas</h3>
               <button class="card-close" onclick="hideCard()">&times;</button>
             </div>
             <div class="card-content">
@@ -1494,7 +1494,7 @@
       }
     }
 
-    // Mostrar servicios
+    // Mostrar propuestas
     function showServices() {
       console.log('🔧 FAB Services clicked');
       
@@ -1502,12 +1502,12 @@
       setFabLoading('services-fab', true);
       
       // Mostrar loading overlay
-      showTabLoadingOverlay('Cargando Mis Servicios', 'Obteniendo tus propuestas...');
+      showTabLoadingOverlay('Cargando Mis Propuestas', 'Obteniendo tus propuestas enviadas...');
       
-      // Cambiar a la pestaña de servicios
+      // Cambiar a la pestaña de propuestas
       switchTab('services');
       
-      // Ejecutar la vista de servicios
+      // Ejecutar la vista de propuestas
       showServicesView().finally(() => {
         // Desactivar loading del FAB
         setFabLoading('services-fab', false);
@@ -1583,9 +1583,9 @@
     // Crear servicio
     async function createService() {
       try {
-        // TODO: Implementar cuando se creen los endpoints de servicios
+        // TODO: Implementar cuando se creen los endpoints de propuestas
         console.log('createService: Función no implementada aún');
-        showNotification('Función de crear servicios no implementada aún', 'info');
+        showNotification('Función de crear propuestas no implementada aún', 'info');
         hideModal('add-service-modal');
             
         // Limpiar formulario
@@ -1606,7 +1606,7 @@
       console.log('registerMobileDevice: Función no implementada aún');
     }
 
-    // Alternar estado de proveedor de servicios
+    // Alternar estado de proveedor de propuestas
     function toggleServiceProvider() {
       isServiceProvider = !isServiceProvider;
       

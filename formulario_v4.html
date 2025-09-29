@@ -107,6 +107,19 @@
     /* Google Sign-in */
     .g_id_signin{margin:0 auto !important; display:block !important; text-align:center !important}
     
+    /* Selección de perfil */
+    .profile-selection{display:flex; flex-direction:column; gap:16px; margin:24px 0}
+    .profile-btn{background:var(--bg); border:2px solid var(--border); border-radius:16px; padding:20px; cursor:pointer; transition:all 0.3s ease; display:flex; align-items:center; gap:16px; text-align:left; width:100%}
+    .profile-btn:hover{border-color:var(--primary); background:rgba(26,115,232,0.05); transform:translateY(-2px); box-shadow:0 4px 12px rgba(26,115,232,0.15)}
+    .profile-btn.selected{border-color:var(--primary); background:rgba(26,115,232,0.1); box-shadow:0 4px 12px rgba(26,115,232,0.2)}
+    .profile-icon{font-size:32px; width:60px; height:60px; display:flex; align-items:center; justify-content:center; background:var(--surface); border-radius:12px; flex-shrink:0}
+    .profile-info{flex:1}
+    .profile-info h3{font-size:18px; font-weight:600; margin:0 0 8px 0; color:var(--text)}
+    .profile-info p{font-size:14px; color:var(--text-secondary); margin:0; line-height:1.4}
+    
+    /* Login con Google */
+    .google-login{text-align:center; margin:24px 0}
+    
     /* Modales */
     .modal{position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center; z-index:1000; padding:20px}
     .modal.active{display:flex}
@@ -203,19 +216,45 @@
           <p>Demanda y Oferta de servicios cercanos</p>
         </div>
         <div class="auth-content">
-          <p>Registra tu especialidad y encuentra oportunidades de prestación de servicios cerca de ti</p>
-          <div id="g_id_onload"
-               data-client_id="980822676255-vntch0t28qbesul2bp5oc1galtoi8a97.apps.googleusercontent.com"
-               data-callback="handleCredentialResponse"
-               data-auto_prompt="false">
+          <p>Selecciona tu perfil y encuentra oportunidades de prestación de servicios cerca de ti</p>
+          
+          <!-- Botones de selección de perfil -->
+          <div class="profile-selection" id="profile-selection">
+            <button class="profile-btn" onclick="selectProfile('client')">
+              <div class="profile-icon">🏢</div>
+              <div class="profile-info">
+                <h3>Cliente/Empresa</h3>
+                <p>Postula solicitudes de servicio y recibe propuestas de técnicos</p>
+              </div>
+            </button>
+            
+            <button class="profile-btn" onclick="selectProfile('technician')">
+              <div class="profile-icon">👨‍🔧</div>
+              <div class="profile-info">
+                <h3>Técnico/Especialista</h3>
+                <p>Ve oportunidades de servicio y postula tus propuestas</p>
+              </div>
+            </button>
           </div>
-          <div class="g_id_signin"
-               data-type="standard"
-               data-size="large"
-               data-theme="outline"
-               data-text="sign_in_with"
-               data-shape="rectangular"
-               data-logo_alignment="left">
+          
+          <!-- Login con Google (se muestra después de seleccionar perfil) -->
+          <div class="google-login" id="google-login" style="display: none;">
+            <div id="g_id_onload"
+                 data-client_id="980822676255-vntch0t28qbesul2bp5oc1galtoi8a97.apps.googleusercontent.com"
+                 data-callback="handleCredentialResponse"
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin"
+                 data-type="standard"
+                 data-size="large"
+                 data-theme="outline"
+                 data-text="sign_in_with"
+                 data-shape="rectangular"
+                 data-logo_alignment="left">
+            </div>
+            <button class="btn outline" onclick="goBackToProfileSelection()" style="margin-top: 16px;">
+              ← Cambiar Perfil
+            </button>
           </div>
         </div>
         <div class="auth-footer">
@@ -368,12 +407,59 @@
     let selectedRequest = null;
     let currentTab = 'map';
     let currentDamageId = null;
+    
+    // Variables para perfiles
+    let selectedProfile = null; // 'client' o 'technician'
+    let userProfile = null; // Perfil del usuario autenticado
 
     // Configuración de la API
     const API_BASE_URL = 'https://www.refactorii.com/api/tenant';
     const SOCKET_URL = 'https://www.refactorii.com';
 
     // ===== FUNCIONES GLOBALES (fuera de DOMContentLoaded) =====
+    
+    // Función para seleccionar perfil
+    function selectProfile(profile) {
+      console.log('🎭 Seleccionando perfil:', profile);
+      selectedProfile = profile;
+      
+      // Actualizar UI de selección
+      document.querySelectorAll('.profile-btn').forEach(btn => {
+        btn.classList.remove('selected');
+      });
+      event.target.closest('.profile-btn').classList.add('selected');
+      
+      // Mostrar login con Google
+      document.getElementById('profile-selection').style.display = 'none';
+      document.getElementById('google-login').style.display = 'block';
+      
+      // Actualizar texto según perfil
+      const authContent = document.querySelector('.auth-content p');
+      if (profile === 'client') {
+        authContent.textContent = 'Inicia sesión para postular solicitudes de servicio y recibir propuestas de técnicos';
+      } else {
+        authContent.textContent = 'Inicia sesión para ver oportunidades de servicio y postular tus propuestas';
+      }
+    }
+    
+    // Función para volver a la selección de perfil
+    function goBackToProfileSelection() {
+      console.log('🔄 Volviendo a selección de perfil');
+      selectedProfile = null;
+      
+      // Ocultar login con Google
+      document.getElementById('google-login').style.display = 'none';
+      document.getElementById('profile-selection').style.display = 'block';
+      
+      // Limpiar selección
+      document.querySelectorAll('.profile-btn').forEach(btn => {
+        btn.classList.remove('selected');
+      });
+      
+      // Restaurar texto original
+      const authContent = document.querySelector('.auth-content p');
+      authContent.textContent = 'Selecciona tu perfil y encuentra oportunidades de prestación de servicios cerca de ti';
+    }
     
     // Funciones helper para estados de loading
     function setButtonLoading(buttonId, isLoading) {
@@ -510,6 +596,7 @@
         localStorage.setItem('refactorii_token', response.credential);
         localStorage.setItem('token_expiry', tokenExpiry.toString());
         localStorage.setItem('user_data', JSON.stringify(userData));
+        localStorage.setItem('user_profile', selectedProfile); // Guardar perfil seleccionado
         
         console.log('✅ Usuario autenticado exitosamente:', userData.Email);
         
@@ -665,6 +752,7 @@
       const token = localStorage.getItem('refactorii_token');
       const userData = localStorage.getItem('user_data');
       const tokenExpiry = localStorage.getItem('token_expiry');
+      const savedProfile = localStorage.getItem('user_profile');
       
       // Verificar si el token ha expirado
       if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
@@ -672,6 +760,7 @@
         localStorage.removeItem('refactorii_token');
         localStorage.removeItem('token_expiry');
         localStorage.removeItem('user_data');
+        localStorage.removeItem('user_profile');
         showAuthOverlay();
         return;
       }
@@ -679,6 +768,8 @@
       if (token && userData) {
         try {
           currentUser = JSON.parse(userData);
+          userProfile = savedProfile; // Cargar perfil guardado
+          console.log('🎭 Perfil cargado:', userProfile);
           initializeApp();
         } catch (error) {
           console.error('Error parsing user data:', error);
@@ -1031,11 +1122,22 @@
     // Determinar rol del usuario
     async function determineUserRole() {
       try {
-        // Por ahora, asumimos que todos pueden ser proveedores
-        isServiceProvider = true;
+        // Usar el perfil seleccionado para determinar el rol
+        if (userProfile === 'technician') {
+          isServiceProvider = true;
+          console.log('👨‍🔧 Usuario configurado como técnico');
+        } else if (userProfile === 'client') {
+          isServiceProvider = false;
+          console.log('🏢 Usuario configurado como cliente');
+        } else {
+          // Fallback: asumir técnico por defecto
+          isServiceProvider = true;
+          console.log('⚠️ Perfil no definido, usando técnico por defecto');
+        }
         
       } catch (error) {
         console.error('Error determinando rol:', error);
+        isServiceProvider = true; // Fallback
       }
     }
 
@@ -1807,7 +1909,10 @@
       localStorage.removeItem('refactorii_token');
       localStorage.removeItem('token_expiry');
       localStorage.removeItem('user_data');
+      localStorage.removeItem('user_profile');
       currentUser = null;
+      userProfile = null;
+      selectedProfile = null;
       showAuthOverlay();
       
       if (socket) {

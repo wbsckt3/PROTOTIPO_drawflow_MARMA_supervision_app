@@ -674,9 +674,11 @@
         localStorage.setItem('user_profile', selectedProfile); // Guardar perfil seleccionado
         
         console.log('✅ Usuario autenticado exitosamente:', userData.Email);
+        console.log('🎭 Perfil seleccionado guardado:', selectedProfile);
         
         currentUser = userData;
-        console.log('🔄 Iniciando aplicación...');
+        userProfile = selectedProfile; // Asignar el perfil seleccionado
+        console.log('🔄 Iniciando aplicación con perfil:', userProfile);
         
         // Inicializar la aplicación
         setTimeout(() => {

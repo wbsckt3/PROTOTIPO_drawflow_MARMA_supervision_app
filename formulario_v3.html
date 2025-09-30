@@ -1248,42 +1248,13 @@
       container.appendChild(loadingCard);
       
       try {
-        // Usar los mismos daños que ya están en el mapa (damageMarkers) - MÁS RÁPIDO
-        console.log('📋 Usando daños del mapa:', damageMarkers.length);
+        // SIEMPRE cargar desde la API para obtener datos frescos
+        console.log('📋 Cargando oportunidades desde la API...');
         
-        if (damageMarkers.length > 0) {
-          // Convertir marcadores del mapa a formato de solicitudes - SINCRÓNICO
-          nearbyRequests = damageMarkers.map(markerData => {
-            const damage = markerData.data;
-            return {
-              id: damage.id,
-              title: damage.title,
-              description: damage.description,
-              distance: '0.2 km', // Calcular distancia real
-              price: damage.severity === 'high' ? '$120,000 - $180,000' : 
-                     damage.severity === 'medium' ? '$80,000 - $120,000' : '$60,000 - $90,000',
-              category: damage.category,
-              severity: damage.severity,
-              timestamp: damage.timestamp,
-              image: damage.image,
-              location: { latitude: damage.lat, longitude: damage.lng },
-              damageData: damage.damageData
-            };
-          });
-          
-          console.log('📋 Solicitudes generadas desde marcadores del mapa:', nearbyRequests.length);
-        } else {
-          // Si no hay marcadores en el mapa, intentar cargar desde la API con timeout corto
-          console.log('📋 No hay marcadores en el mapa, cargando desde API...');
-          
-          const damagesPromise = loadDamagesNearby();
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout')), 2000) // Timeout muy corto: 2 segundos
-          );
-          
-          const damages = await Promise.race([damagesPromise, timeoutPromise]);
-          console.log('📋 Daños cargados desde API:', damages);
-          
+        const damages = await loadDamagesNearby();
+        console.log('📋 Daños obtenidos de la API:', damages.length);
+        
+        if (damages.length > 0) {
           // Convertir daños a formato de solicitudes
           nearbyRequests = damages.map(damage => {
             return {
@@ -1303,6 +1274,8 @@
           });
           
           console.log('📋 Solicitudes generadas desde API:', nearbyRequests.length);
+        } else {
+          console.log('📋 No se encontraron damages en la API');
         }
         
         // Actualizar la card con los datos
@@ -1785,6 +1758,8 @@
     // Función para obtener daños cercanos desde la API
     async function loadDamagesNearby() {
       console.log('🔍 Cargando daños cercanos...');
+      console.log('🔍 currentUser:', currentUser);
+      console.log('🔍 getUserEmail():', getUserEmail());
       
       // Si no hay ubicación del usuario, usar ubicación por defecto (Medellín)
       let latitude = 6.2442;
@@ -1807,6 +1782,8 @@
         
         // Aumentar el radio a 20km para capturar más daños
         console.log('📡 Enviando petición fetch...');
+        console.log('📡 Headers enviados:', { 'x-user-email': getUserEmail() });
+        
         const response = await fetch(url, {
           headers: {
             'x-user-email': getUserEmail()
@@ -1815,6 +1792,7 @@
         
         console.log('📡 Respuesta de la API recibida:', response.status, response.statusText);
         console.log('📡 Response headers:', response.headers);
+        console.log('📡 Response ok:', response.ok);
         
         if (!response.ok) {
           const errorText = await response.text();

@@ -488,8 +488,8 @@
     let requestPhotoData = null; // Datos de la foto de la solicitud
 
     // Configuración de la API
-    const API_BASE_URL = 'https://www.refactorii.com/api/tenant';
-    const SOCKET_URL = 'https://www.refactorii.com';
+    const API_BASE_URL = 'http://www.refactorii.com/api/tenant';
+    const SOCKET_URL = 'http://www.refactorii.com';
 
     // ===== FUNCIONES GLOBALES (fuera de DOMContentLoaded) =====
     
@@ -1881,7 +1881,12 @@
       loadingCard.innerHTML = `
         <div class="card-header">
           <h3 class="card-title">${title}</h3>
-          <button class="card-close" onclick="hideCard()">&times;</button>
+          <div style="display: flex; gap: 8px;">
+            <button onclick="refreshOpportunities()" style="padding: 4px 8px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+              🔄 Actualizar
+            </button>
+            <button class="card-close" onclick="hideCard()">&times;</button>
+          </div>
         </div>
         <div class="card-body">
           <div style="text-align: center; padding: 2rem;">
@@ -1901,42 +1906,13 @@
           // Perfil Técnico: Mostrar oportunidades de servicio
           console.log('👨‍🔧 Cargando oportunidades para técnico...');
           
-          // Usar los mismos daños que ya están en el mapa (damageMarkers) - MÁS RÁPIDO
-          console.log('📋 Usando daños del mapa:', damageMarkers.length);
+          // SIEMPRE cargar desde la API para obtener datos frescos
+          console.log('📋 Cargando oportunidades desde la API...');
           
-          if (damageMarkers.length > 0) {
-            // Convertir marcadores del mapa a formato de solicitudes - SINCRÓNICO
-            nearbyRequests = damageMarkers.map(markerData => {
-              const damage = markerData.data;
-              return {
-                id: damage.id,
-                title: damage.title,
-                description: damage.description,
-                distance: '0.2 km', // Calcular distancia real
-                price: damage.severity === 'high' ? '$120,000 - $180,000' : 
-                       damage.severity === 'medium' ? '$80,000 - $120,000' : '$60,000 - $90,000',
-                category: damage.category,
-                severity: damage.severity,
-                timestamp: damage.timestamp,
-                image: damage.image,
-                location: { latitude: damage.lat, longitude: damage.lng },
-                damageData: damage.damageData
-              };
-            });
-            
-            console.log('📋 Solicitudes generadas desde marcadores del mapa:', nearbyRequests.length);
-          } else {
-            // Si no hay marcadores en el mapa, intentar cargar desde la API con timeout corto
-            console.log('📋 No hay marcadores en el mapa, cargando desde API...');
-            
-            const damagesPromise = loadDamagesNearby();
-            const timeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Timeout')), 2000) // Timeout muy corto: 2 segundos
-            );
-            
-            const damages = await Promise.race([damagesPromise, timeoutPromise]);
-            console.log('📋 Daños cargados desde API:', damages);
-            
+          const damages = await loadDamagesNearby();
+          console.log('📋 Daños obtenidos de la API:', damages.length);
+          
+          if (damages.length > 0) {
             // Convertir daños a formato de solicitudes
             nearbyRequests = damages.map(damage => {
               return {
@@ -1956,6 +1932,8 @@
             });
             
             console.log('📋 Solicitudes generadas desde API:', nearbyRequests.length);
+          } else {
+            console.log('📋 No se encontraron damages en la API');
           }
         }
         
@@ -2043,6 +2021,35 @@
           map.invalidateSize();
         }
       }, 100);
+    }
+
+    // Actualizar oportunidades (recargar damages)
+    async function refreshOpportunities() {
+      console.log('🔄 Actualizando oportunidades...');
+      
+      // Limpiar marcadores existentes
+      damageMarkers.forEach(marker => {
+        if (marker.marker) {
+          map.removeLayer(marker.marker);
+        }
+      });
+      damageMarkers = [];
+      
+      // Recargar damages
+      try {
+        await addSampleDamageMarkers();
+        console.log('✅ Damages recargados:', damageMarkers.length);
+        
+        // Si estamos en la vista de oportunidades, recargar la vista
+        if (currentTab === 'requests') {
+          showRequestsView();
+        }
+        
+        showNotification('Oportunidades actualizadas', 'success');
+      } catch (error) {
+        console.error('❌ Error actualizando oportunidades:', error);
+        showNotification('Error actualizando oportunidades', 'error');
+      }
     }
 
     // Mostrar vista de propuestas
@@ -2406,6 +2413,9 @@
     // Función para obtener daños cercanos desde la API
     async function loadDamagesNearby() {
       console.log('🔍 Cargando daños cercanos...');
+      console.log('🔍 currentUser:', currentUser);
+      console.log('🔍 getUserEmail():', getUserEmail());
+      console.log('🔍 userProfile:', userProfile);
       
       // Si no hay ubicación del usuario, usar ubicación por defecto (Medellín)
       let latitude = 6.2442;
@@ -2426,6 +2436,9 @@
         console.log('👤 Email del usuario:', getUserEmail());
         
         // Aumentar el radio a 20km para capturar más daños
+        console.log('📡 Enviando petición fetch...');
+        console.log('📡 Headers enviados:', { 'x-user-email': getUserEmail() });
+        
         const response = await fetch(url, {
           headers: {
             'x-user-email': getUserEmail()
@@ -2433,6 +2446,7 @@
         });
         
         console.log('📡 Respuesta de la API:', response.status, response.statusText);
+        console.log('📡 Response ok:', response.ok);
         
         if (!response.ok) {
           const errorText = await response.text();

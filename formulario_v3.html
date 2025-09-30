@@ -217,6 +217,9 @@
                data-shape="rectangular"
                data-logo_alignment="left">
           </div>
+          <button onclick="debugAuth()" style="margin-top: 16px; padding: 8px 16px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            🔍 Debug Auth
+          </button>
         </div>
         <div class="auth-footer">
           <p>Acceso para técnicos, profesionales o empresas que buscan oportunidades de servicios cercanas a su ubicación</p>
@@ -368,6 +371,10 @@
     let selectedRequest = null;
     let currentTab = 'map';
     let currentDamageId = null;
+    
+    // Variables para perfiles (compatibilidad con formulario_v4)
+    let selectedProfile = 'technician'; // Por defecto técnico para formulario_v3
+    let userProfile = 'technician'; // Perfil del usuario autenticado
 
     // Configuración de la API
     const API_BASE_URL = 'http://www.refactorii.com/api/tenant';
@@ -470,11 +477,20 @@
     async function handleCredentialResponse(response) {
       try {
         console.log('🔐 Iniciando autenticación con Google...');
-        console.log('Respuesta de Google:', response);
+        console.log('🔐 Respuesta de Google recibida:', response);
+        console.log('🔐 Tipo de respuesta:', typeof response);
+        console.log('🔐 Credential existe:', !!response.credential);
+        
+        if (!response || !response.credential) {
+          console.error('❌ No se recibió credential de Google');
+          showNotification('Error: No se recibió respuesta de Google', 'error');
+          return;
+        }
         
         // Decodificar el JWT token
+        console.log('🔐 Decodificando JWT token...');
         const payload = JSON.parse(atob(response.credential.split('.')[1]));
-        console.log('Payload decodificado:', payload);
+        console.log('🔐 Payload decodificado:', payload);
         
         // Crear objeto de usuario
         const userData = {
@@ -510,18 +526,26 @@
         localStorage.setItem('refactorii_token', response.credential);
         localStorage.setItem('token_expiry', tokenExpiry.toString());
         localStorage.setItem('user_data', JSON.stringify(userData));
+        localStorage.setItem('user_profile', selectedProfile); // Guardar perfil seleccionado
         
         console.log('✅ Usuario autenticado exitosamente:', userData.Email);
+        console.log('✅ Datos de usuario guardados en localStorage');
         
         currentUser = userData;
+        userProfile = selectedProfile; // Asignar el perfil seleccionado
         console.log('🔄 Iniciando aplicación...');
+        console.log('🔄 currentUser asignado:', currentUser);
+        console.log('🎭 Perfil asignado:', userProfile);
         
         // Inicializar la aplicación
         setTimeout(() => {
           try {
+            console.log('🔄 Llamando a initializeApp()...');
             initializeApp();
+            console.log('✅ initializeApp() completado exitosamente');
           } catch (error) {
             console.error('❌ Error en initializeApp, usando fallback:', error);
+            console.error('❌ Error stack:', error.stack);
             // Fallback: solo ocultar overlay y mostrar app básica
             hideAuthOverlay();
             showNotification('Aplicación iniciada en modo básico', 'info');
@@ -552,6 +576,55 @@
         console.log('✅ Main app mostrado');
       } else {
         console.error('❌ No se encontró main-app');
+      }
+    }
+
+    // Función de debug para autenticación
+    function debugAuth() {
+      console.log('🔍 === DEBUG AUTH ===');
+      console.log('🔍 currentUser:', currentUser);
+      console.log('🔍 localStorage token:', localStorage.getItem('refactorii_token'));
+      console.log('🔍 localStorage user_data:', localStorage.getItem('user_data'));
+      console.log('🔍 localStorage token_expiry:', localStorage.getItem('token_expiry'));
+      
+      const authOverlay = document.getElementById('auth-overlay');
+      const mainApp = document.getElementById('main-app');
+      console.log('🔍 auth-overlay existe:', !!authOverlay);
+      console.log('🔍 main-app existe:', !!mainApp);
+      
+      if (authOverlay) {
+        console.log('🔍 auth-overlay display:', authOverlay.style.display);
+      }
+      if (mainApp) {
+        console.log('🔍 main-app display:', mainApp.style.display);
+      }
+      
+      // Intentar forzar la inicialización
+      console.log('🔍 Intentando forzar inicialización...');
+      try {
+        if (currentUser) {
+          console.log('🔍 Usuario existe, llamando initializeApp...');
+          initializeApp();
+        } else {
+          console.log('🔍 No hay usuario, simulando login...');
+          // Simular datos de usuario para testing
+          currentUser = {
+            FullName: 'Usuario Test',
+            Email: 'test@ejemplo.com',
+            GivenName: 'Usuario',
+            FamilyName: 'Test',
+            ImageURL: 'https://via.placeholder.com/100'
+          };
+          localStorage.setItem('user_data', JSON.stringify(currentUser));
+          localStorage.setItem('refactorii_token', 'test-token');
+          localStorage.setItem('token_expiry', (Date.now() + 86400000).toString());
+          localStorage.setItem('user_profile', 'technician');
+          userProfile = 'technician';
+          console.log('🔍 Usuario simulado creado, llamando initializeApp...');
+          initializeApp();
+        }
+      } catch (error) {
+        console.error('❌ Error en debug auth:', error);
       }
     }
 
@@ -665,6 +738,7 @@
       const token = localStorage.getItem('refactorii_token');
       const userData = localStorage.getItem('user_data');
       const tokenExpiry = localStorage.getItem('token_expiry');
+      const savedProfile = localStorage.getItem('user_profile');
       
       // Verificar si el token ha expirado
       if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
@@ -672,6 +746,7 @@
         localStorage.removeItem('refactorii_token');
         localStorage.removeItem('token_expiry');
         localStorage.removeItem('user_data');
+        localStorage.removeItem('user_profile');
         showAuthOverlay();
         return;
       }
@@ -679,6 +754,8 @@
       if (token && userData) {
         try {
           currentUser = JSON.parse(userData);
+          userProfile = savedProfile || 'technician'; // Cargar perfil guardado o usar técnico por defecto
+          console.log('🎭 Perfil cargado:', userProfile);
           initializeApp();
         } catch (error) {
           console.error('Error parsing user data:', error);
@@ -706,29 +783,41 @@
     async function initializeApp() {
       try {
         console.log('🚀 Inicializando aplicación...');
+        console.log('🚀 currentUser en initializeApp:', currentUser);
         
         // Configurar UI primero
+        console.log('🚀 Configurando UI...');
         setupUserInterface();
+        console.log('✅ UI configurada');
         
         // Configurar event listeners
+        console.log('🚀 Configurando event listeners...');
         setupEventListeners();
+        console.log('✅ Event listeners configurados');
         
         // Obtener información de la empresa (opcional)
+        console.log('🚀 Cargando información de empresa...');
         try {
           await loadCompanyInfo();
+          console.log('✅ Información de empresa cargada');
         } catch (error) {
           console.warn('⚠️ Error cargando empresa, usando datos demo:', error.message);
           currentCompany = {
             _id: 'demo-company-id',
             name: 'Empresa Demo'
           };
+          console.log('✅ Usando empresa demo');
         }
         
         // Inicializar mapa
+        console.log('🚀 Inicializando mapa...');
         initializeMap();
+        console.log('✅ Mapa inicializado');
         
         // Obtener ubicación actual
+        console.log('🚀 Obteniendo ubicación actual...');
         getCurrentLocation();
+        console.log('✅ Ubicación solicitada');
         
         // Conectar Socket.IO (opcional)
         try {
@@ -745,7 +834,9 @@
         }
         
         // Ocultar overlay de autenticación
+        console.log('🚀 Ocultando overlay de autenticación...');
         hideAuthOverlay();
+        console.log('✅ Overlay ocultado');
         
         console.log('✅ Aplicación inicializada correctamente');
         
@@ -1875,7 +1966,10 @@
       localStorage.removeItem('refactorii_token');
       localStorage.removeItem('token_expiry');
       localStorage.removeItem('user_data');
+      localStorage.removeItem('user_profile');
       currentUser = null;
+      userProfile = null;
+      selectedProfile = null;
       showAuthOverlay();
       
       if (socket) {

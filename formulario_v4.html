@@ -1322,17 +1322,33 @@
     // Agregar marcadores de daños reales
     async function addSampleDamageMarkers() {
       try {
+        console.log('📍 Iniciando addSampleDamageMarkers()...');
+        console.log('📍 Mapa disponible:', !!map);
+        console.log('📍 damageMarkers actuales:', damageMarkers.length);
+        
         // Cargar daños reales desde la API
         const realDamages = await loadDamagesNearby();
+        console.log('📍 Daños obtenidos de la API:', realDamages.length);
         
         if (realDamages && realDamages.length > 0) {
           console.log('✅ Cargando daños reales desde la API:', realDamages.length);
-          realDamages.forEach(damage => {
-            console.log('🔍 Procesando daño real:', damage);
+          realDamages.forEach((damage, index) => {
+            console.log(`🔍 Procesando daño ${index + 1}:`, damage);
+            
+            // Manejar coordenadas que pueden estar como objetos $numberDouble
+            const lat = typeof damage.location.latitude === 'object' 
+              ? damage.location.latitude.$numberDouble || damage.location.latitude
+              : damage.location.latitude;
+            const lng = typeof damage.location.longitude === 'object' 
+              ? damage.location.longitude.$numberDouble || damage.location.longitude
+              : damage.location.longitude;
+            
+            console.log(`📍 Coordenadas del daño ${index + 1}:`, { lat, lng });
+            
             const damageData = {
               id: damage._id,
-              lat: damage.location.latitude,
-              lng: damage.location.longitude,
+              lat: parseFloat(lat),
+              lng: parseFloat(lng),
               title: `${damage.item} - ${damage.area} - Calificación R`,
               description: damage.description,
               image: damage.image,
@@ -1341,20 +1357,34 @@
               timestamp: new Date(damage.createdAt).toISOString(),
               damageData: damage
             };
+            
+            console.log(`📍 Agregando marcador ${index + 1}:`, damageData);
             addDamageMarker(damageData);
           });
+          
+          console.log('✅ Marcadores agregados. Total damageMarkers:', damageMarkers.length);
         } else {
           console.log('⚠️ No se encontraron daños reales en la base de datos');
           showNotification('No hay daños reportados en tu área', 'info');
         }
       } catch (error) {
-        console.warn('⚠️ Error cargando daños reales:', error.message);
+        console.error('❌ Error cargando daños reales:', error);
+        console.error('❌ Error stack:', error.stack);
         showNotification('Error cargando daños desde el servidor', 'error');
       }
     }
 
     // Agregar marcador de daño
     function addDamageMarker(damage) {
+      console.log('📍 Creando marcador para:', damage.title);
+      console.log('📍 Coordenadas:', { lat: damage.lat, lng: damage.lng });
+      console.log('📍 Mapa disponible:', !!map);
+      
+      if (!map) {
+        console.error('❌ No hay mapa disponible para agregar marcador');
+        return;
+      }
+      
       const marker = L.marker([damage.lat, damage.lng], {
         icon: L.divIcon({
           className: 'damage-marker',
@@ -1388,6 +1418,8 @@
         marker: marker,
         data: damage
       });
+      
+      console.log('✅ Marcador agregado exitosamente. Total damageMarkers:', damageMarkers.length);
     }
 
     // Conectar Socket.IO

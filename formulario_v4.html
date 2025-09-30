@@ -299,12 +299,12 @@
         <div class="nav-label">Mapa</div>
       </a>
       <a href="#" class="nav-item" data-tab="requests">
-        <div class="nav-icon">📋</div>
-        <div class="nav-label">Oportunidades</div>
+        <div class="nav-icon" id="requests-icon">📋</div>
+        <div class="nav-label" id="requests-label">Oportunidades</div>
       </a>
       <a href="#" class="nav-item" data-tab="services">
-        <div class="nav-icon">🔧</div>
-        <div class="nav-label">Propuestas</div>
+        <div class="nav-icon" id="services-icon">🔧</div>
+        <div class="nav-label" id="services-label">Propuestas</div>
       </a>
       <a href="#" class="nav-item" data-tab="profile">
         <div class="nav-icon">👤</div>
@@ -356,7 +356,7 @@
     </div>
   </div>
 
-  <!-- Modal para hacer puja -->
+  <!-- Modal para hacer puja (Técnicos) -->
   <div class="modal" id="bid-modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -389,6 +389,80 @@
     </div>
   </div>
 
+  <!-- Modal para postular solicitud (Empresas) -->
+  <div class="modal" id="request-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Postular Solicitud de Servicio</h3>
+        <button class="modal-close" onclick="hideModal('request-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="background: #e8f5e8; border: 1px solid #4caf50; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+          <div style="color: #2e7d32; font-size: 14px; font-weight: 600; margin-bottom: 4px;">🏢 Solicitud de Empresa</div>
+          <div style="color: #2e7d32; font-size: 12px;">Los técnicos podrán ver tu solicitud y enviar propuestas</div>
+        </div>
+        <div class="form-group">
+          <label>Tipo de Servicio</label>
+          <select id="request-type">
+            <option value="piscinas">🏊 Piscinas</option>
+            <option value="zonas_comunes">🏢 Zonas Comunes</option>
+            <option value="zonas_externas">🌳 Zonas Externas</option>
+            <option value="oficinas">💼 Oficinas</option>
+            <option value="operario">👷 Operario</option>
+            <option value="otros">🔧 Otros</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Título del Servicio</label>
+          <input type="text" id="request-title" placeholder="Ej: Reparación de sistema de filtración de piscina">
+        </div>
+        <div class="form-group">
+          <label>Descripción Detallada</label>
+          <textarea id="request-description" placeholder="Describe el problema o servicio que necesitas, ubicación específica, urgencia..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Presupuesto Estimado (COP)</label>
+          <input type="number" id="request-budget" placeholder="200000" step="10000">
+        </div>
+        <div class="form-group">
+          <label>Urgencia</label>
+          <select id="request-urgency">
+            <option value="low">🟢 Baja (1-2 semanas)</option>
+            <option value="medium">🟡 Media (3-5 días)</option>
+            <option value="high">🔴 Alta (1-2 días)</option>
+            <option value="urgent">⚡ Urgente (Mismo día)</option>
+          </select>
+        </div>
+                  <div class="form-group">
+                    <label>Ubicación Específica</label>
+                    <input type="text" id="request-location" placeholder="Ej: Torre A, Piso 5, Piscina principal">
+                  </div>
+                  <div class="form-group">
+                    <label>Foto del Problema (Opcional)</label>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                      <input type="file" id="request-photo" accept="image/*" capture="environment" style="display: none" onchange="handleRequestPhoto(this)">
+                      <button type="button" class="btn secondary" onclick="document.getElementById('request-photo').click()">
+                        📷 Tomar Foto
+                      </button>
+                      <div id="request-photo-status" style="font-size: 12px; color: #666; display: none;">
+                        📍 Obteniendo ubicación...
+                      </div>
+                    </div>
+                    <div id="request-photo-preview" style="display: none; margin-top: 8px;">
+                      <img id="request-photo-img" src="" style="max-width: 200px; max-height: 150px; border-radius: 8px; border: 1px solid #ddd;">
+                      <button type="button" class="btn secondary small" onclick="removeRequestPhoto()" style="margin-left: 8px;">
+                        ❌ Eliminar
+                      </button>
+                      <div id="request-photo-geo" style="font-size: 11px; color: #4caf50; margin-top: 4px; display: none;">
+                        📍 Ubicación: <span id="request-photo-coords"></span>
+                      </div>
+                    </div>
+                  </div>
+                  <button class="btn full" onclick="submitRequest()">Postular Solicitud</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -411,6 +485,7 @@
     // Variables para perfiles
     let selectedProfile = null; // 'client' o 'technician'
     let userProfile = null; // Perfil del usuario autenticado
+    let requestPhotoData = null; // Datos de la foto de la solicitud
 
     // Configuración de la API
     const API_BASE_URL = 'https://www.refactorii.com/api/tenant';
@@ -889,6 +964,33 @@
       } else {
         avatar.textContent = (currentUser.GivenName || 'U').charAt(0).toUpperCase();
       }
+      
+      // Configurar navegación según perfil
+      configureNavigationForProfile();
+    }
+    
+    // Configurar navegación según el perfil del usuario
+    function configureNavigationForProfile() {
+      const requestsIcon = document.getElementById('requests-icon');
+      const requestsLabel = document.getElementById('requests-label');
+      const servicesIcon = document.getElementById('services-icon');
+      const servicesLabel = document.getElementById('services-label');
+      
+      if (userProfile === 'client') {
+        // Perfil Cliente/Empresa
+        requestsIcon.textContent = '📝';
+        requestsLabel.textContent = 'Mis Solicitudes';
+        servicesIcon.textContent = '💬';
+        servicesLabel.textContent = 'Propuestas';
+        console.log('🏢 Navegación configurada para Cliente/Empresa');
+      } else {
+        // Perfil Técnico/Especialista (por defecto)
+        requestsIcon.textContent = '📋';
+        requestsLabel.textContent = 'Oportunidades';
+        servicesIcon.textContent = '🔧';
+        servicesLabel.textContent = 'Propuestas';
+        console.log('👨‍🔧 Navegación configurada para Técnico/Especialista');
+      }
     }
 
     // Inicializar mapa
@@ -1005,6 +1107,214 @@
           maximumAge: 300000
         }
       );
+    }
+
+    // Manejar captura de foto para solicitud de servicio
+    function handleRequestPhoto(input) {
+      const file = input.files[0];
+      if (!file) return;
+      
+      console.log('📸 Procesando foto de solicitud:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+      
+      // Validar tipo de archivo
+      if (!file.type.startsWith('image/')) {
+        showNotification('Por favor selecciona un archivo de imagen válido', 'error');
+        input.value = '';
+        return;
+      }
+      
+      // Validar tamaño (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        showNotification('La foto es muy grande. Máximo 5MB permitido.', 'error');
+        input.value = '';
+        return;
+      }
+      
+      // Mostrar indicador de procesamiento
+      const statusEl = document.getElementById('request-photo-status');
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.textContent = '📍 Obteniendo ubicación...';
+      }
+      
+      // Comprimir imagen antes de convertir a Base64
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = function() {
+        // Calcular dimensiones (máximo 800px de ancho)
+        const maxWidth = 800;
+        const maxHeight = 600;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Dibujar imagen comprimida
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convertir a Base64 con compresión
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7); // 70% calidad
+        
+        // Obtener geolocalización si está disponible
+        getCurrentLocationForPhoto().then(location => {
+          console.log('📍 Ubicación obtenida para foto de solicitud:', location);
+          
+          // Crear objeto de datos de la foto
+          requestPhotoData = {
+            base64: compressedBase64,
+            metadata: {
+              geolocation: {
+                latitude: location.lat,
+                longitude: location.lng,
+                accuracy: location.accuracy
+              },
+              timestamp: new Date().toISOString(),
+              originalSize: file.size,
+              compressedSize: compressedBase64.length,
+              dimensions: { width, height }
+            }
+          };
+          
+          // Mostrar preview de la foto
+          updateRequestPhotoPreview(compressedBase64, location);
+          
+          // Ocultar indicador de procesamiento
+          if (statusEl) {
+            statusEl.style.display = 'none';
+          }
+          
+          showNotification('Foto capturada exitosamente con geolocalización', 'success');
+          
+        }).catch(error => {
+          console.warn('⚠️ Error obteniendo ubicación para foto:', error);
+          
+          // Crear objeto de datos de la foto sin geolocalización
+          requestPhotoData = {
+            base64: compressedBase64,
+            metadata: {
+              timestamp: new Date().toISOString(),
+              originalSize: file.size,
+              compressedSize: compressedBase64.length,
+              dimensions: { width, height },
+              geolocationError: error.message
+            }
+          };
+          
+          // Mostrar preview de la foto sin geolocalización
+          updateRequestPhotoPreview(compressedBase64, null);
+          
+          // Ocultar indicador de procesamiento
+          if (statusEl) {
+            statusEl.style.display = 'none';
+          }
+          
+          showNotification('Foto capturada exitosamente (sin geolocalización)', 'info');
+        });
+        
+      };
+      
+      img.onerror = function() {
+        console.error('❌ Error cargando imagen');
+        showNotification('Error procesando la imagen', 'error');
+        input.value = '';
+        
+        // Ocultar indicador de procesamiento
+        if (statusEl) {
+          statusEl.style.display = 'none';
+        }
+      };
+      
+      // Cargar imagen
+      img.src = URL.createObjectURL(file);
+    }
+
+    // Obtener ubicación para foto (versión simplificada)
+    function getCurrentLocationForPhoto() {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('Geolocalización no soportada'));
+          return;
+        }
+        
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolve({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              accuracy: position.coords.accuracy
+            });
+          },
+          (error) => {
+            reject(error);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 300000
+          }
+        );
+      });
+    }
+
+    // Actualizar preview de la foto de solicitud
+    function updateRequestPhotoPreview(base64Data, location) {
+      const preview = document.getElementById('request-photo-preview');
+      const img = document.getElementById('request-photo-img');
+      const geoDiv = document.getElementById('request-photo-geo');
+      const coordsSpan = document.getElementById('request-photo-coords');
+      
+      if (preview && img) {
+        img.src = base64Data;
+        preview.style.display = 'block';
+        
+        // Mostrar geolocalización si está disponible
+        if (location && geoDiv && coordsSpan) {
+          coordsSpan.textContent = `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`;
+          geoDiv.style.display = 'block';
+        } else if (geoDiv) {
+          geoDiv.style.display = 'none';
+        }
+      }
+    }
+
+    // Eliminar foto de solicitud
+    function removeRequestPhoto() {
+      requestPhotoData = null;
+      
+      const preview = document.getElementById('request-photo-preview');
+      const input = document.getElementById('request-photo');
+      const geoDiv = document.getElementById('request-photo-geo');
+      
+      if (preview) {
+        preview.style.display = 'none';
+      }
+      
+      if (input) {
+        input.value = '';
+      }
+      
+      if (geoDiv) {
+        geoDiv.style.display = 'none';
+      }
+      
+      showNotification('Foto eliminada', 'info');
     }
 
     // Agregar marcadores de daños reales
@@ -1173,6 +1483,317 @@
           }
         ];
       }
+    
+    // Cargar solicitudes del cliente desde damages R
+    async function loadClientRequests() {
+      try {
+        console.log('🏢 Cargando solicitudes del cliente desde damages R...');
+        
+        // Cargar todos los damages y filtrar por el email del cliente
+        const allDamages = await loadDamagesNearby();
+        
+        // Filtrar damages que fueron creados por este cliente
+        const clientRequests = allDamages.filter(damage => {
+          // Verificar si el damage fue creado por este cliente
+          return damage.description && damage.description.includes(currentUser.Email);
+        });
+        
+        // Convertir damages a formato de solicitudes del cliente
+        nearbyRequests = clientRequests.map(damage => {
+          // Extraer información del cliente desde la descripción
+          const descriptionLines = damage.description.split('\n');
+          const budgetLine = descriptionLines.find(line => line.includes('Presupuesto estimado:'));
+          const urgencyLine = descriptionLines.find(line => line.includes('Urgencia:'));
+          const locationLine = descriptionLines.find(line => line.includes('Ubicación específica:'));
+          
+          const budget = budgetLine ? budgetLine.split(': ')[1] : 'No especificado';
+          const urgency = urgencyLine ? urgencyLine.split(': ')[1] : 'medium';
+          const specificLocation = locationLine ? locationLine.split(': ')[1] : 'No especificada';
+          
+          return {
+            id: damage._id,
+            title: `${damage.item} - ${damage.area}`,
+            description: damage.description.split('\n')[0], // Primera línea (descripción principal)
+            status: 'pending', // Por defecto pendiente
+            proposals: 0, // TODO: Contar propuestas reales
+            budget: budget,
+            urgency: urgency,
+            timestamp: new Date(damage.createdAt).toLocaleString('es-ES'),
+            category: damage.area,
+            specificLocation: specificLocation,
+            damageData: damage
+          };
+        });
+        
+        console.log('🏢 Solicitudes del cliente cargadas desde damages R:', nearbyRequests.length);
+        
+        // Si no hay solicitudes, mostrar mensaje
+        if (nearbyRequests.length === 0) {
+          console.log('🏢 No se encontraron solicitudes para este cliente');
+        }
+        
+      } catch (error) {
+        console.error('Error cargando solicitudes del cliente:', error);
+        nearbyRequests = [];
+      }
+    }
+    
+    // Enviar solicitud de servicio (Empresas) - Usando endpoint de damages R
+    async function submitRequest() {
+      const type = document.getElementById('request-type').value;
+      const title = document.getElementById('request-title').value;
+      const description = document.getElementById('request-description').value;
+      const budget = document.getElementById('request-budget').value;
+      const urgency = document.getElementById('request-urgency').value;
+      const location = document.getElementById('request-location').value;
+      
+      if (!title || !description || !budget) {
+        showNotification('Por favor completa todos los campos obligatorios', 'error');
+        return;
+      }
+      
+      try {
+        // Obtener ubicación actual del usuario
+        let latitude = 6.2442; // Medellín por defecto
+        let longitude = -75.5812;
+        
+        if (userLocation) {
+          latitude = userLocation.lat;
+          longitude = userLocation.lng;
+        }
+        
+        // Crear damage R (regular) usando el mismo endpoint que formulario_v2
+        const damageData = {
+          item: title,
+          area: type,
+          description: `${description}\n\nPresupuesto estimado: $${parseInt(budget).toLocaleString()} COP\nUrgencia: ${urgency}\nUbicación específica: ${location}\nSolicitado por: ${currentUser.FullName} (${currentUser.Email})`,
+          location: {
+            latitude: latitude,
+            longitude: longitude,
+            accuracy: userLocation ? userLocation.accuracy : 0
+          },
+          image: requestPhotoData ? requestPhotoData.base64 : 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=', // Imagen real o placeholder
+          severity: urgency === 'urgent' ? 'high' : urgency === 'high' ? 'high' : urgency === 'medium' ? 'medium' : 'low',
+          rating: 'R', // Calificación R (Regular) como en formulario_v2
+          clientInfo: {
+            email: currentUser.Email,
+            name: currentUser.FullName,
+            budget: parseInt(budget),
+            urgency: urgency,
+            specificLocation: location
+          },
+          photoMetadata: requestPhotoData ? requestPhotoData.metadata : null
+        };
+        
+        console.log('📝 Enviando solicitud como damage R:', damageData);
+        
+        // Usar el mismo endpoint que formulario_v2 para crear damages R
+        const response = await fetch(`${API_BASE_URL}/damages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-email': getUserEmail()
+          },
+          body: JSON.stringify(damageData)
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Error ${response.status}: ${errorText}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Solicitud enviada exitosamente:', result);
+        
+        showNotification('Solicitud de servicio enviada exitosamente', 'success');
+        hideModal('request-modal');
+        
+        // Limpiar formulario
+        document.getElementById('request-type').value = 'piscinas';
+        document.getElementById('request-title').value = '';
+        document.getElementById('request-description').value = '';
+        document.getElementById('request-budget').value = '';
+        document.getElementById('request-urgency').value = 'medium';
+        document.getElementById('request-location').value = '';
+        
+        // Limpiar foto
+        removeRequestPhoto();
+        
+        // Recargar solicitudes del cliente
+        if (userProfile === 'client') {
+          await loadClientRequests();
+        }
+        
+        // Recargar daños en el mapa para que aparezca la nueva solicitud
+        if (map) {
+          addSampleDamageMarkers().catch(error => {
+            console.error('Error recargando daños:', error);
+          });
+        }
+        
+      } catch (error) {
+        console.error('Error enviando solicitud:', error);
+        showNotification('Error enviando solicitud: ' + error.message, 'error');
+      }
+    }
+    
+    // Cargar propuestas recibidas por el cliente desde endpoint real
+    async function loadClientProposals() {
+      try {
+        console.log('🏢 Cargando propuestas recibidas desde endpoint real...');
+        
+        // Usar endpoint real para obtener propuestas del cliente
+        const response = await fetch(`${API_BASE_URL}/proposals/client`, {
+          method: 'GET',
+          headers: {
+            'x-user-email': getUserEmail()
+          }
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Error ${response.status}: ${errorText}`);
+        }
+        
+        const responseData = await response.json();
+        const proposals = responseData.data || [];
+        
+        // Si no hay propuestas, mostrar mensaje
+        if (proposals.length === 0) {
+          console.log('🏢 No se encontraron propuestas para este cliente');
+          const container = document.getElementById('card-container');
+          container.innerHTML = `
+            <div class="card visible">
+              <div class="card-header">
+                <h3 class="card-title">Propuestas Recibidas</h3>
+                <button class="card-close" onclick="hideCard()">&times;</button>
+              </div>
+              <div class="card-content">
+                <p>No has recibido propuestas aún</p>
+                <p>Las propuestas de los técnicos aparecerán aquí cuando envíen soluciones a tus solicitudes</p>
+              </div>
+            </div>
+          `;
+          return;
+        }
+        
+        // En caso de error, usar datos de ejemplo para desarrollo
+        const fallbackProposals = [
+          {
+            id: 'proposal-1',
+            requestId: 'client-request-1',
+            technicianName: 'Carlos Mendoza',
+            technicianPhone: '+57 300 123 4567',
+            price: 180000,
+            duration: 2,
+            description: 'Reparación completa del sistema de filtración con materiales de primera calidad',
+            experience: '15 años de experiencia en sistemas de piscinas',
+            status: 'pending',
+            timestamp: '2024-01-15 14:30'
+          }
+        ];
+        
+        // Convertir propuestas reales a formato de ejemplo si es necesario
+        const displayProposals = proposals.length > 0 ? proposals : fallbackProposals;
+        
+        // Mostrar propuestas en la UI
+        const container = document.getElementById('card-container');
+        container.innerHTML = `
+          <div class="card visible">
+            <div class="card-header">
+              <h3 class="card-title">Propuestas Recibidas</h3>
+              <button class="card-close" onclick="hideCard()">&times;</button>
+            </div>
+            <div class="card-content">
+              ${displayProposals.map(proposal => `
+                <div class="service-card" style="margin-bottom: 16px; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px;">
+                  <div class="service-icon" style="background: #4caf50;">💬</div>
+                  <div class="service-info">
+                    <div class="service-name">${proposal.technicianName || proposal.technician?.name || 'Técnico'}</div>
+                    <div class="service-desc">${proposal.description || proposal.proposal?.description || 'Sin descripción'}</div>
+                    <div class="service-desc" style="margin-top: 8px;">
+                      <strong>Precio:</strong> $${(proposal.price || proposal.proposal?.price || 0).toLocaleString()} COP | 
+                      <strong>Duración:</strong> ${proposal.duration || proposal.proposal?.duration || 0} días
+                    </div>
+                    <div class="service-desc" style="margin-top: 4px;">
+                      <strong>Experiencia:</strong> ${proposal.experience || proposal.proposal?.experience || 'No especificada'}
+                    </div>
+                    <div class="service-desc" style="margin-top: 4px; color: #666;">
+                      Enviado: ${proposal.timestamp || new Date(proposal.submittedAt).toLocaleString('es-ES')}
+                    </div>
+                    <div style="margin-top: 12px; display: flex; gap: 8px;">
+                      <button class="btn secondary small" onclick="contactTechnician('${proposal.technicianPhone || proposal.technician?.phone || ''}', '${proposal.technicianName || proposal.technician?.name || 'Técnico'}')">
+                        📞 Contactar WhatsApp
+                      </button>
+                      <button class="btn small" onclick="acceptProposal('${proposal.id || proposal._id}')">
+                        ✅ Aceptar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+        
+        console.log('🏢 Propuestas del cliente cargadas:', displayProposals.length);
+      } catch (error) {
+        console.error('Error cargando propuestas del cliente:', error);
+        const container = document.getElementById('card-container');
+        container.innerHTML = `
+          <div class="card visible">
+            <div class="card-header">
+              <h3 class="card-title">Propuestas Recibidas</h3>
+              <button class="card-close" onclick="hideCard()">&times;</button>
+            </div>
+            <div class="card-content">
+              <p>Error cargando propuestas</p>
+            </div>
+          </div>
+        `;
+      }
+    }
+    
+    // Contactar técnico vía WhatsApp
+    function contactTechnician(phone, name) {
+      const message = `Hola ${name}, me interesa tu propuesta de servicio. ¿Podemos conversar sobre los detalles?`;
+      const whatsappUrl = `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+      showNotification('Abriendo WhatsApp...', 'info');
+    }
+    
+    // Aceptar propuesta usando endpoint real
+    async function acceptProposal(proposalId) {
+      try {
+        console.log('✅ Aceptando propuesta:', proposalId);
+        
+        const response = await fetch(`${API_BASE_URL}/proposals/${proposalId}/accept`, {
+          method: 'PUT',
+          headers: {
+            'x-user-email': getUserEmail()
+          }
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Error ${response.status}: ${errorText}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Propuesta aceptada exitosamente:', result);
+        
+        showNotification('Propuesta aceptada. El técnico será notificado.', 'success');
+        
+        // Recargar propuestas del cliente
+        if (userProfile === 'client') {
+          await loadClientProposals();
+        }
+        
+      } catch (error) {
+        console.error('Error aceptando propuesta:', error);
+        showNotification('Error aceptando propuesta: ' + error.message, 'error');
+      }
+    }
 
     // Mostrar vista del mapa
     function showMapView() {
@@ -1238,76 +1859,90 @@
       // Mostrar loading
       const loadingCard = document.createElement('div');
       loadingCard.className = 'card visible';
+      
+      // Configurar título según perfil
+      const title = userProfile === 'client' ? 'Mis Solicitudes de Servicio' : 'Oportunidades de Servicio Cercanas';
+      const loadingText = userProfile === 'client' ? 'Cargando solicitudes...' : 'Cargando oportunidades...';
+      
       loadingCard.innerHTML = `
         <div class="card-header">
-          <h3 class="card-title">Oportunidades de Servicio Cercanas</h3>
+          <h3 class="card-title">${title}</h3>
           <button class="card-close" onclick="hideCard()">&times;</button>
         </div>
         <div class="card-body">
           <div style="text-align: center; padding: 2rem;">
             <div class="loading"></div>
-            <p style="margin-top: 1rem; color: var(--text-secondary);">Cargando oportunidades...</p>
+            <p style="margin-top: 1rem; color: var(--text-secondary);">${loadingText}</p>
           </div>
         </div>
       `;
       container.appendChild(loadingCard);
       
       try {
-        // Usar los mismos daños que ya están en el mapa (damageMarkers) - MÁS RÁPIDO
-        console.log('📋 Usando daños del mapa:', damageMarkers.length);
-        
-        if (damageMarkers.length > 0) {
-          // Convertir marcadores del mapa a formato de solicitudes - SINCRÓNICO
-          nearbyRequests = damageMarkers.map(markerData => {
-            const damage = markerData.data;
-            return {
-              id: damage.id,
-              title: damage.title,
-              description: damage.description,
-              distance: '0.2 km', // Calcular distancia real
-              price: damage.severity === 'high' ? '$120,000 - $180,000' : 
-                     damage.severity === 'medium' ? '$80,000 - $120,000' : '$60,000 - $90,000',
-              category: damage.category,
-              severity: damage.severity,
-              timestamp: damage.timestamp,
-              image: damage.image,
-              location: { latitude: damage.lat, longitude: damage.lng },
-              damageData: damage.damageData
-            };
-          });
-          
-          console.log('📋 Solicitudes generadas desde marcadores del mapa:', nearbyRequests.length);
+        if (userProfile === 'client') {
+          // Perfil Cliente: Mostrar sus propias solicitudes
+          console.log('🏢 Cargando solicitudes del cliente...');
+          await loadClientRequests();
         } else {
-          // Si no hay marcadores en el mapa, intentar cargar desde la API con timeout corto
-          console.log('📋 No hay marcadores en el mapa, cargando desde API...');
+          // Perfil Técnico: Mostrar oportunidades de servicio
+          console.log('👨‍🔧 Cargando oportunidades para técnico...');
           
-          const damagesPromise = loadDamagesNearby();
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout')), 2000) // Timeout muy corto: 2 segundos
-          );
+          // Usar los mismos daños que ya están en el mapa (damageMarkers) - MÁS RÁPIDO
+          console.log('📋 Usando daños del mapa:', damageMarkers.length);
           
-          const damages = await Promise.race([damagesPromise, timeoutPromise]);
-          console.log('📋 Daños cargados desde API:', damages);
-          
-          // Convertir daños a formato de solicitudes
-          nearbyRequests = damages.map(damage => {
-            return {
-              id: damage._id,
-              title: `${damage.item} - ${damage.area}`,
-              description: damage.description,
-              distance: '0.2 km', // Calcular distancia real
-              price: damage.severity === 'high' ? '$120,000 - $180,000' : 
-                     damage.severity === 'medium' ? '$80,000 - $120,000' : '$60,000 - $90,000',
-              category: damage.area,
-              severity: damage.severity,
-              timestamp: new Date(damage.createdAt).toLocaleString('es-ES'),
-              image: damage.image,
-              location: damage.location,
-              damageData: damage
-            };
-          });
-          
-          console.log('📋 Solicitudes generadas desde API:', nearbyRequests.length);
+          if (damageMarkers.length > 0) {
+            // Convertir marcadores del mapa a formato de solicitudes - SINCRÓNICO
+            nearbyRequests = damageMarkers.map(markerData => {
+              const damage = markerData.data;
+              return {
+                id: damage.id,
+                title: damage.title,
+                description: damage.description,
+                distance: '0.2 km', // Calcular distancia real
+                price: damage.severity === 'high' ? '$120,000 - $180,000' : 
+                       damage.severity === 'medium' ? '$80,000 - $120,000' : '$60,000 - $90,000',
+                category: damage.category,
+                severity: damage.severity,
+                timestamp: damage.timestamp,
+                image: damage.image,
+                location: { latitude: damage.lat, longitude: damage.lng },
+                damageData: damage.damageData
+              };
+            });
+            
+            console.log('📋 Solicitudes generadas desde marcadores del mapa:', nearbyRequests.length);
+          } else {
+            // Si no hay marcadores en el mapa, intentar cargar desde la API con timeout corto
+            console.log('📋 No hay marcadores en el mapa, cargando desde API...');
+            
+            const damagesPromise = loadDamagesNearby();
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Timeout')), 2000) // Timeout muy corto: 2 segundos
+            );
+            
+            const damages = await Promise.race([damagesPromise, timeoutPromise]);
+            console.log('📋 Daños cargados desde API:', damages);
+            
+            // Convertir daños a formato de solicitudes
+            nearbyRequests = damages.map(damage => {
+              return {
+                id: damage._id,
+                title: `${damage.item} - ${damage.area}`,
+                description: damage.description,
+                distance: '0.2 km', // Calcular distancia real
+                price: damage.severity === 'high' ? '$120,000 - $180,000' : 
+                       damage.severity === 'medium' ? '$80,000 - $120,000' : '$60,000 - $90,000',
+                category: damage.area,
+                severity: damage.severity,
+                timestamp: new Date(damage.createdAt).toLocaleString('es-ES'),
+                image: damage.image,
+                location: damage.location,
+                damageData: damage
+              };
+            });
+            
+            console.log('📋 Solicitudes generadas desde API:', nearbyRequests.length);
+          }
         }
         
         // Actualizar la card con los datos
@@ -1407,68 +2042,81 @@
       console.log('🔧 Container encontrado:', container);
       container.innerHTML = '';
       
+      // Configurar título según perfil
+      const title = userProfile === 'client' ? 'Propuestas Recibidas' : 'Mis Propuestas Enviadas';
+      const loadingText = userProfile === 'client' ? 'Cargando propuestas recibidas...' : 'Cargando propuestas...';
+      
       // Mostrar loading
       container.innerHTML = `
         <div class="card visible">
           <div class="card-header">
-            <h3 class="card-title">Mis Propuestas Enviadas</h3>
+            <h3 class="card-title">${title}</h3>
             <button class="card-close" onclick="hideCard()">&times;</button>
           </div>
           <div class="card-content">
             <div style="text-align: center; padding: 2rem;">
               <div class="loading"></div>
-              <p style="margin-top: 1rem; color: var(--text-secondary);">Cargando propuestas...</p>
+              <p style="margin-top: 1rem; color: var(--text-secondary);">${loadingText}</p>
             </div>
           </div>
         </div>
       `;
       
       try {
-        // Cargar propuestas del técnico desde la API con timeout más corto
-        const proposalsPromise = loadTechnicianProposals();
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout')), 3000) // Reducido a 3 segundos
-        );
-        
-        const proposals = await Promise.race([proposalsPromise, timeoutPromise]);
-        console.log('🔧 Propuestas cargadas:', proposals);
-        
-        if (proposals.length === 0) {
-          container.innerHTML = `
-            <div class="card visible">
-              <div class="card-header">
-                <h3 class="card-title">Mis Propuestas Enviadas</h3>
-                <button class="card-close" onclick="hideCard()">&times;</button>
-              </div>
-              <div class="card-content">
-                <p>No tienes propuestas enviadas</p>
-                <p>Ve al mapa para encontrar oportunidades de servicio</p>
-              </div>
-            </div>
-          `;
+        if (userProfile === 'client') {
+          // Perfil Cliente: Mostrar propuestas recibidas
+          console.log('🏢 Cargando propuestas recibidas...');
+          await loadClientProposals();
         } else {
-          // Mostrar propuestas
-          proposals.forEach(proposal => {
-            const proposalCard = document.createElement('div');
-            proposalCard.className = 'card visible';
-            proposalCard.innerHTML = `
-              <div class="card-header">
-                <h3 class="card-title">Propuesta de Servicio</h3>
-                <button class="card-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
-              </div>
-              <div class="card-content">
-                <div class="service-card">
-                  <div class="service-icon">🔧</div>
-                  <div class="service-info">
-                    <div class="service-name">${proposal.description}</div>
-                    <div class="service-desc">Precio: $${proposal.price} | Duración: ${proposal.duration} días</div>
-                    <div class="service-desc">Estado: ${proposal.status}</div>
-                  </div>
+          // Perfil Técnico: Mostrar propuestas enviadas
+          console.log('👨‍🔧 Cargando propuestas enviadas...');
+          
+          // Cargar propuestas del técnico desde la API con timeout más corto
+          const proposalsPromise = loadTechnicianProposals();
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 3000) // Reducido a 3 segundos
+          );
+          
+          const proposals = await Promise.race([proposalsPromise, timeoutPromise]);
+          console.log('🔧 Propuestas cargadas:', proposals);
+          
+          if (proposals.length === 0) {
+            container.innerHTML = `
+              <div class="card visible">
+                <div class="card-header">
+                  <h3 class="card-title">Mis Propuestas Enviadas</h3>
+                  <button class="card-close" onclick="hideCard()">&times;</button>
+                </div>
+                <div class="card-content">
+                  <p>No tienes propuestas enviadas</p>
+                  <p>Ve al mapa para encontrar oportunidades de servicio</p>
                 </div>
               </div>
             `;
-            container.appendChild(proposalCard);
-          });
+          } else {
+            // Mostrar propuestas
+            proposals.forEach(proposal => {
+              const proposalCard = document.createElement('div');
+              proposalCard.className = 'card visible';
+              proposalCard.innerHTML = `
+                <div class="card-header">
+                  <h3 class="card-title">Propuesta de Servicio</h3>
+                  <button class="card-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                </div>
+                <div class="card-content">
+                  <div class="service-card">
+                    <div class="service-icon">🔧</div>
+                    <div class="service-info">
+                      <div class="service-name">${proposal.description}</div>
+                      <div class="service-desc">Precio: $${proposal.price} | Duración: ${proposal.duration} días</div>
+                      <div class="service-desc">Estado: ${proposal.status}</div>
+                    </div>
+                  </div>
+                </div>
+              `;
+              container.appendChild(proposalCard);
+            });
+          }
         }
         
       } catch (error) {
@@ -1596,24 +2244,33 @@
       }
     }
 
-    // Mostrar propuestas
+    // Mostrar propuestas o solicitudes según perfil
     function showServices() {
       console.log('🔧 FAB Services clicked');
       
-      // Activar loading en el FAB
-      setFabLoading('services-fab', true);
-      
-      // Mostrar loading overlay
-      showTabLoadingOverlay('Cargando Mis Propuestas', 'Obteniendo tus propuestas enviadas...');
-      
-      // Cambiar a la pestaña de propuestas
-      switchTab('services');
-      
-      // Ejecutar la vista de propuestas
-      showServicesView().finally(() => {
-        // Desactivar loading del FAB
-        setFabLoading('services-fab', false);
-      });
+      if (userProfile === 'client') {
+        // Perfil Cliente: Mostrar modal para postular solicitud
+        console.log('🏢 Cliente: Mostrando modal de solicitud');
+        document.getElementById('request-modal').classList.add('active');
+      } else {
+        // Perfil Técnico: Mostrar propuestas enviadas
+        console.log('👨‍🔧 Técnico: Mostrando propuestas');
+        
+        // Activar loading en el FAB
+        setFabLoading('services-fab', true);
+        
+        // Mostrar loading overlay
+        showTabLoadingOverlay('Cargando Mis Propuestas', 'Obteniendo tus propuestas enviadas...');
+        
+        // Cambiar a la pestaña de propuestas
+        switchTab('services');
+        
+        // Ejecutar la vista de propuestas
+        showServicesView().finally(() => {
+          // Desactivar loading del FAB
+          setFabLoading('services-fab', false);
+        });
+      }
     }
 
     // Mostrar modal de puja

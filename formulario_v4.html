@@ -1569,25 +1569,19 @@
           item: title,
           area: type,
           description: `${description}\n\nPresupuesto estimado: $${parseInt(budget).toLocaleString()} COP\nUrgencia: ${urgency}\nUbicación específica: ${location}\nSolicitado por: ${currentUser.FullName} (${currentUser.Email})`,
-          location: {
-            latitude: latitude,
-            longitude: longitude,
-            accuracy: userLocation ? userLocation.accuracy : 0
-          },
+          latitude: latitude,
+          longitude: longitude,
+          accuracy: userLocation ? userLocation.accuracy : 0,
           image: requestPhotoData ? requestPhotoData.base64 : 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=', // Imagen real o placeholder
           severity: urgency === 'urgent' ? 'high' : urgency === 'high' ? 'high' : urgency === 'medium' ? 'medium' : 'low',
           rating: 'R', // Calificación R (Regular) como en formulario_v2
-          clientInfo: {
-            email: currentUser.Email,
-            name: currentUser.FullName,
-            budget: parseInt(budget),
-            urgency: urgency,
-            specificLocation: location
-          },
-          photoMetadata: requestPhotoData ? requestPhotoData.metadata : null
+          comment: '' // Campo requerido por el controlador
         };
         
         console.log('📝 Enviando solicitud como damage R:', damageData);
+        console.log('🔗 URL del endpoint:', `${API_BASE_URL}/damages`);
+        console.log('👤 Email del usuario:', getUserEmail());
+        console.log('📧 Usuario actual:', currentUser);
         
         // Usar el mismo endpoint que formulario_v2 para crear damages R
         const response = await fetch(`${API_BASE_URL}/damages`, {
@@ -1634,8 +1628,26 @@
         }
         
       } catch (error) {
-        console.error('Error enviando solicitud:', error);
-        showNotification('Error enviando solicitud: ' + error.message, 'error');
+        console.error('❌ Error enviando solicitud:', error);
+        console.error('❌ Tipo de error:', error.name);
+        console.error('❌ Mensaje:', error.message);
+        console.error('❌ Stack:', error.stack);
+        
+        let errorMessage = 'Error enviando solicitud';
+        
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+          errorMessage = 'Error de conexión: No se pudo conectar al servidor. Verifica tu conexión a internet.';
+        } else if (error.message.includes('CORS')) {
+          errorMessage = 'Error CORS: El servidor no permite requests desde este dominio.';
+        } else if (error.message.includes('404')) {
+          errorMessage = 'Error 404: Endpoint no encontrado. Verifica la configuración del servidor.';
+        } else if (error.message.includes('500')) {
+          errorMessage = 'Error 500: Error interno del servidor.';
+        } else {
+          errorMessage = `Error enviando solicitud: ${error.message}`;
+        }
+        
+        showNotification(errorMessage, 'error');
       }
     }
     

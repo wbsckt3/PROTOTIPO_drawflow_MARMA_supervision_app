@@ -1083,6 +1083,7 @@
       }
       
       // Recargar daños cuando se muestre el mapa
+      console.log('📍 Recargando damages para mostrar en el mapa...');
       addSampleDamageMarkers().catch(error => {
         console.error('Error recargando daños:', error);
       });
@@ -1139,7 +1140,12 @@
       loadingCard.innerHTML = `
         <div class="card-header">
           <h3 class="card-title">Oportunidades de Servicio Cercanas</h3>
-          <button class="card-close" onclick="hideCard()">&times;</button>
+          <div style="display: flex; gap: 8px;">
+            <button onclick="refreshOpportunities()" style="padding: 4px 8px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+              🔄 Actualizar
+            </button>
+            <button class="card-close" onclick="hideCard()">&times;</button>
+          </div>
         </div>
         <div class="card-body">
           <div style="text-align: center; padding: 2rem;">
@@ -1151,22 +1157,21 @@
       container.appendChild(loadingCard);
       
       try {
-        // HACER NUEVA CONSULTA A LA API para obtener damages actualizados
-        console.log('📋 Haciendo nueva consulta a la API para obtener damages actualizados...');
-        const realDamages = await loadNearbyDamages();
-        console.log('📋 Damages obtenidos de la API:', realDamages.length);
+        // Usar los mismos daños que ya están en el mapa (damageMarkers) - MÁS RÁPIDO
+        console.log('📋 Usando daños del mapa:', damageMarkers.length);
         
-        if (realDamages.length > 0) {
-          // Convertir damages reales a formato de solicitudes
-          nearbyRequests = realDamages.map(damage => {
+        if (damageMarkers.length > 0) {
+          // Convertir marcadores del mapa a formato de solicitudes - SINCRÓNICO
+          nearbyRequests = damageMarkers.map(markerData => {
+            const damage = markerData.data;
             return {
-              id: damage._id,
-              title: damage.item,
+              id: damage.id,
+              title: damage.title,
               description: damage.description,
               distance: '0.2 km', // Calcular distancia real
               price: damage.severity === 'high' ? '$120,000 - $180,000' : 
                      damage.severity === 'medium' ? '$80,000 - $120,000' : '$60,000 - $90,000',
-              category: damage.area,
+              category: damage.category,
               severity: damage.severity,
               timestamp: damage.timestamp,
               image: damage.image,
@@ -1175,9 +1180,38 @@
             };
           });
           
-          console.log('📋 Solicitudes generadas desde API:', nearbyRequests.length);
+          console.log('📋 Solicitudes generadas desde marcadores del mapa:', nearbyRequests.length);
         } else {
-          console.log('📋 No se encontraron damages en la API');
+          // Si no hay marcadores en el mapa, intentar cargar desde la API con timeout corto
+          console.log('📋 No hay marcadores en el mapa, cargando desde API...');
+          
+          const damagesPromise = loadDamagesNearby();
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 2000) // Timeout muy corto: 2 segundos
+          );
+          
+          const damages = await Promise.race([damagesPromise, timeoutPromise]);
+          console.log('📋 Daños cargados desde API:', damages);
+          
+          // Convertir daños a formato de solicitudes
+          nearbyRequests = damages.map(damage => {
+            return {
+              id: damage._id,
+              title: `${damage.item} - ${damage.area}`,
+              description: damage.description,
+              distance: '0.2 km', // Calcular distancia real
+              price: damage.severity === 'high' ? '$120,000 - $180,000' : 
+                     damage.severity === 'medium' ? '$80,000 - $120,000' : '$60,000 - $90,000',
+              category: damage.area,
+              severity: damage.severity,
+              timestamp: new Date(damage.createdAt).toLocaleString('es-ES'),
+              image: damage.image,
+              location: damage.location,
+              damageData: damage
+            };
+          });
+          
+          console.log('📋 Solicitudes generadas desde API:', nearbyRequests.length);
         }
         
         // Actualizar la card con los datos
@@ -1238,6 +1272,32 @@
             </div>
           </div>
         `;
+      } catch (error) {
+        console.error('❌ Error cargando solicitudes:', error);
+        console.error('❌ Error name:', error.name);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error stack:', error.stack);
+        
+        // Mostrar error en la card
+        loadingCard.innerHTML = `
+          <div class="card-header">
+            <h3 class="card-title">Oportunidades de Servicio Cercanas</h3>
+            <button class="card-close" onclick="hideCard()">&times;</button>
+          </div>
+          <div class="card-body">
+            <div style="background: #ffebee; border: 1px solid #f44336; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+              <div style="color: #c62828; font-size: 14px; font-weight: 600; margin-bottom: 4px;">❌ Error de conexión</div>
+              <div style="color: #c62828; font-size: 12px;">No se pudieron cargar las oportunidades de servicio</div>
+              <div style="color: #c62828; font-size: 10px; margin-top: 4px;">Error: ${error.message}</div>
+            </div>
+            <div style="text-align: center; padding: 2rem;">
+              <p style="color: var(--text-secondary);">Intenta nuevamente en unos momentos</p>
+              <button onclick="showRequestsView()" style="margin-top: 1rem; padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                🔄 Reintentar
+              </button>
+            </div>
+          </div>
+        `;
       } finally {
         // Siempre desactivar loading
         setNavItemLoading('requests', false);
@@ -1264,6 +1324,35 @@
           map.invalidateSize();
         }
       }, 100);
+    }
+
+    // Actualizar oportunidades (recargar damages)
+    async function refreshOpportunities() {
+      console.log('🔄 Actualizando oportunidades...');
+      
+      // Limpiar marcadores existentes
+      damageMarkers.forEach(marker => {
+        if (marker.marker) {
+          map.removeLayer(marker.marker);
+        }
+      });
+      damageMarkers = [];
+      
+      // Recargar damages
+      try {
+        await addSampleDamageMarkers();
+        console.log('✅ Damages recargados:', damageMarkers.length);
+        
+        // Si estamos en la vista de oportunidades, recargar la vista
+        if (currentTab === 'requests') {
+          showRequestsView();
+        }
+        
+        showNotification('Oportunidades actualizadas', 'success');
+      } catch (error) {
+        console.error('❌ Error actualizando oportunidades:', error);
+        showNotification('Error actualizando oportunidades', 'error');
+      }
     }
 
     // Mostrar vista de propuestas
@@ -1623,15 +1712,18 @@
         const url = `${API_BASE_URL}/damages/nearby?latitude=${latitude}&longitude=${longitude}&radius=20000`;
         console.log('🔗 URL de la API:', url);
         console.log('👤 Email del usuario:', getUserEmail());
+        console.log('📍 Coordenadas:', { latitude, longitude });
         
         // Aumentar el radio a 20km para capturar más daños
+        console.log('📡 Enviando petición fetch...');
         const response = await fetch(url, {
           headers: {
             'x-user-email': getUserEmail()
           }
         });
         
-        console.log('📡 Respuesta de la API:', response.status, response.statusText);
+        console.log('📡 Respuesta de la API recibida:', response.status, response.statusText);
+        console.log('📡 Response headers:', response.headers);
         
         if (!response.ok) {
           const errorText = await response.text();
@@ -1651,7 +1743,11 @@
         
         return damages;
       } catch (error) {
-        console.warn('⚠️ Servidor no disponible, retornando array vacío:', error.message);
+        console.error('❌ Error en loadNearbyDamages:', error);
+        console.error('❌ Error name:', error.name);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error stack:', error.stack);
+        console.warn('⚠️ Servidor no disponible, retornando array vacío');
         return [];
       }
     }

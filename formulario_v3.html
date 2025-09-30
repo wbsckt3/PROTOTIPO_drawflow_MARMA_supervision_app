@@ -370,8 +370,8 @@
     let currentDamageId = null;
 
     // Configuración de la API
-    const API_BASE_URL = 'https://www.refactorii.com/api/tenant';
-    const SOCKET_URL = 'https://www.refactorii.com';
+    const API_BASE_URL = 'http://www.refactorii.com/api/tenant';
+    const SOCKET_URL = 'http://www.refactorii.com';
 
     // ===== FUNCIONES GLOBALES (fuera de DOMContentLoaded) =====
     
@@ -1151,21 +1151,22 @@
       container.appendChild(loadingCard);
       
       try {
-        // Usar los mismos daños que ya están en el mapa (damageMarkers) - MÁS RÁPIDO
-        console.log('📋 Usando daños del mapa:', damageMarkers.length);
+        // HACER NUEVA CONSULTA A LA API para obtener damages actualizados
+        console.log('📋 Haciendo nueva consulta a la API para obtener damages actualizados...');
+        const realDamages = await loadNearbyDamages();
+        console.log('📋 Damages obtenidos de la API:', realDamages.length);
         
-        if (damageMarkers.length > 0) {
-          // Convertir marcadores del mapa a formato de solicitudes - SINCRÓNICO
-          nearbyRequests = damageMarkers.map(markerData => {
-            const damage = markerData.data;
+        if (realDamages.length > 0) {
+          // Convertir damages reales a formato de solicitudes
+          nearbyRequests = realDamages.map(damage => {
             return {
-              id: damage.id,
-              title: damage.title,
+              id: damage._id,
+              title: damage.item,
               description: damage.description,
               distance: '0.2 km', // Calcular distancia real
               price: damage.severity === 'high' ? '$120,000 - $180,000' : 
                      damage.severity === 'medium' ? '$80,000 - $120,000' : '$60,000 - $90,000',
-              category: damage.category,
+              category: damage.area,
               severity: damage.severity,
               timestamp: damage.timestamp,
               image: damage.image,
@@ -1174,38 +1175,9 @@
             };
           });
           
-          console.log('📋 Solicitudes generadas desde marcadores del mapa:', nearbyRequests.length);
-        } else {
-          // Si no hay marcadores en el mapa, intentar cargar desde la API con timeout corto
-          console.log('📋 No hay marcadores en el mapa, cargando desde API...');
-          
-          const damagesPromise = loadDamagesNearby();
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout')), 2000) // Timeout muy corto: 2 segundos
-          );
-          
-          const damages = await Promise.race([damagesPromise, timeoutPromise]);
-          console.log('📋 Daños cargados desde API:', damages);
-          
-          // Convertir daños a formato de solicitudes
-          nearbyRequests = damages.map(damage => {
-            return {
-              id: damage._id,
-              title: `${damage.item} - ${damage.area}`,
-              description: damage.description,
-              distance: '0.2 km', // Calcular distancia real
-              price: damage.severity === 'high' ? '$120,000 - $180,000' : 
-                     damage.severity === 'medium' ? '$80,000 - $120,000' : '$60,000 - $90,000',
-              category: damage.area,
-              severity: damage.severity,
-              timestamp: new Date(damage.createdAt).toLocaleString('es-ES'),
-              image: damage.image,
-              location: damage.location,
-              damageData: damage
-            };
-          });
-          
           console.log('📋 Solicitudes generadas desde API:', nearbyRequests.length);
+        } else {
+          console.log('📋 No se encontraron damages en la API');
         }
         
         // Actualizar la card con los datos

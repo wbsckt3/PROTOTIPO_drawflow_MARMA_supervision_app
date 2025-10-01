@@ -96,6 +96,7 @@ function validarToken() {
         console.warn("⚠️ Token expirado: limpiando credenciales mínimas");
         localStorage.removeItem("refactorii_token");
         localStorage.removeItem("token_expiry");
+        localStorage.removeItem("user_data");
         return false;
     }
     

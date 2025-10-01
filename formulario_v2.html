@@ -1693,10 +1693,14 @@
     // Función para cargar y mostrar las bitácoras del supervisor
     async function loadBitacorasDashboard() {
       try {
+        console.log('📋 Iniciando loadBitacorasDashboard...');
         isLoading = true;
         updateLoadingState();
         
+        console.log('📋 Llamando a loadBitacorasSupervisor...');
         const bitacoras = await loadBitacorasSupervisor();
+        console.log('📋 Bitácoras obtenidas:', bitacoras);
+        console.log('📋 Cantidad de bitácoras:', bitacoras.length);
         bitacorasList = bitacoras;
         
         const container = document.getElementById('bitacoras-list');

@@ -1921,6 +1921,9 @@
             <button onclick="testAPI()" style="padding: 4px 8px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
               🧪 Test API
             </button>
+            <button onclick="testWithMockData()" style="padding: 4px 8px; background: #9c27b0; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+              🎭 Mock Data
+            </button>
             <button class="card-close" onclick="hideCard()">&times;</button>
           </div>
         </div>
@@ -2093,53 +2096,162 @@
       console.log('🧪 Iniciando test de API...');
       console.log('🧪 API_BASE_URL:', API_BASE_URL);
       console.log('🧪 getUserEmail():', getUserEmail());
+      console.log('🧪 User Agent:', navigator.userAgent);
+      console.log('🧪 Location:', window.location.href);
       
+      // Test 0: Verificar conectividad básica
+      console.log('🧪 Test 0: Verificando conectividad básica...');
       try {
-        // Test 1: Endpoint de prueba
-        console.log('🧪 Test 1: Endpoint de prueba...');
+        const basicTest = await fetch('https://httpbin.org/get', {
+          method: 'GET',
+          mode: 'cors'
+        });
+        console.log('🧪 Test 0 - Conectividad básica OK:', basicTest.ok);
+      } catch (basicError) {
+        console.error('🧪 Test 0 - Error de conectividad básica:', basicError);
+        showNotification('Error de conectividad básica - Revisa tu conexión a internet', 'error');
+        return;
+      }
+      
+      // Test 1: Verificar si el servidor responde
+      console.log('🧪 Test 1: Verificando servidor...');
+      try {
+        const serverTest = await fetch(`${API_BASE_URL.replace('/api/tenant', '')}`, {
+          method: 'GET',
+          mode: 'cors'
+        });
+        console.log('🧪 Test 1 - Servidor responde:', serverTest.ok, serverTest.status);
+      } catch (serverError) {
+        console.error('🧪 Test 1 - Servidor no responde:', serverError);
+        showNotification('Servidor no responde - Verifica que esté funcionando', 'error');
+        return;
+      }
+      
+      // Test 2: Endpoint de prueba
+      console.log('🧪 Test 2: Endpoint de prueba...');
+      try {
         const testResponse = await fetch(`${API_BASE_URL}/test`, {
+          method: 'GET',
+          mode: 'cors',
           headers: {
-            'x-user-email': getUserEmail()
+            'x-user-email': getUserEmail(),
+            'Content-Type': 'application/json'
           }
         });
-        console.log('🧪 Test 1 - Status:', testResponse.status);
-        console.log('🧪 Test 1 - OK:', testResponse.ok);
+        console.log('🧪 Test 2 - Status:', testResponse.status);
+        console.log('🧪 Test 2 - OK:', testResponse.ok);
         
         if (testResponse.ok) {
           const testData = await testResponse.json();
-          console.log('🧪 Test 1 - Data:', testData);
+          console.log('🧪 Test 2 - Data:', testData);
         } else {
           const errorText = await testResponse.text();
-          console.log('🧪 Test 1 - Error:', errorText);
+          console.log('🧪 Test 2 - Error:', errorText);
         }
-        
-        // Test 2: Endpoint de damages
-        console.log('🧪 Test 2: Endpoint de damages...');
+      } catch (testError) {
+        console.error('🧪 Test 2 - Error en endpoint test:', testError);
+        showNotification(`Error en endpoint test: ${testError.message}`, 'error');
+        return;
+      }
+      
+      // Test 3: Endpoint de damages
+      console.log('🧪 Test 3: Endpoint de damages...');
+      try {
         const damagesResponse = await fetch(`${API_BASE_URL}/damages/nearby?latitude=6.2442&longitude=-75.5812&radius=20000`, {
+          method: 'GET',
+          mode: 'cors',
           headers: {
-            'x-user-email': getUserEmail()
+            'x-user-email': getUserEmail(),
+            'Content-Type': 'application/json'
           }
         });
-        console.log('🧪 Test 2 - Status:', damagesResponse.status);
-        console.log('🧪 Test 2 - OK:', damagesResponse.ok);
+        console.log('🧪 Test 3 - Status:', damagesResponse.status);
+        console.log('🧪 Test 3 - OK:', damagesResponse.ok);
         
         if (damagesResponse.ok) {
           const damagesData = await damagesResponse.json();
-          console.log('🧪 Test 2 - Data:', damagesData);
-          console.log('🧪 Test 2 - Damages count:', damagesData.data?.length || 0);
+          console.log('🧪 Test 3 - Data:', damagesData);
+          console.log('🧪 Test 3 - Damages count:', damagesData.data?.length || 0);
         } else {
           const errorText = await damagesResponse.text();
-          console.log('🧪 Test 2 - Error:', errorText);
+          console.log('🧪 Test 3 - Error:', errorText);
         }
-        
-        showNotification('Test de API completado - Revisa la consola', 'info');
-        
-      } catch (error) {
-        console.error('❌ Error en test de API:', error);
-        console.error('❌ Error name:', error.name);
-        console.error('❌ Error message:', error.message);
-        showNotification(`Error en test de API: ${error.message}`, 'error');
+      } catch (damagesError) {
+        console.error('🧪 Test 3 - Error en endpoint damages:', damagesError);
+        showNotification(`Error en endpoint damages: ${damagesError.message}`, 'error');
+        return;
       }
+      
+      showNotification('Test de API completado - Revisa la consola', 'success');
+    }
+
+    // Función para probar con datos simulados
+    function testWithMockData() {
+      console.log('🎭 Probando con datos simulados...');
+      
+      // Crear datos simulados
+      const mockDamages = [
+        {
+          _id: 'mock-damage-1',
+          item: 'Reparación de Piscina',
+          area: 'piscinas',
+          description: 'Fuga en sistema de filtración - Datos simulados para prueba',
+          location: {
+            latitude: 6.2442,
+            longitude: -75.5812
+          },
+          severity: 'high',
+          image: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxDxCdABmX/9k=',
+          createdAt: new Date().toISOString(),
+          rating: 'R'
+        },
+        {
+          _id: 'mock-damage-2',
+          item: 'Mantenimiento de Zonas Comunes',
+          area: 'zonas_comunes',
+          description: 'Limpieza y mantenimiento de áreas verdes - Datos simulados',
+          location: {
+            latitude: 6.2450,
+            longitude: -75.5800
+          },
+          severity: 'medium',
+          image: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxDxCdABmX/9k=',
+          createdAt: new Date().toISOString(),
+          rating: 'R'
+        }
+      ];
+      
+      console.log('🎭 Datos simulados creados:', mockDamages.length);
+      
+      // Limpiar marcadores existentes
+      damageMarkers.forEach(marker => {
+        if (marker.marker) {
+          map.removeLayer(marker.marker);
+        }
+      });
+      damageMarkers = [];
+      
+      // Agregar marcadores simulados
+      mockDamages.forEach((damage, index) => {
+        const damageData = {
+          id: damage._id,
+          lat: damage.location.latitude,
+          lng: damage.location.longitude,
+          title: `${damage.item} - ${damage.area} - Calificación R (SIMULADO)`,
+          description: damage.description,
+          image: damage.image,
+          severity: damage.severity,
+          category: damage.area,
+          timestamp: new Date(damage.createdAt).toISOString(),
+          damageData: damage
+        };
+        
+        console.log(`🎭 Agregando marcador simulado ${index + 1}:`, damageData);
+        addDamageMarker(damageData);
+      });
+      
+      console.log('🎭 Marcadores simulados agregados. Total damageMarkers:', damageMarkers.length);
+      showNotification('Datos simulados cargados - Marcadores de prueba agregados', 'info');
     }
 
     // Mostrar vista de propuestas

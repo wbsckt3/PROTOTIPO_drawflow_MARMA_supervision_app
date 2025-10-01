@@ -1619,7 +1619,7 @@
 
     // Función para cargar bitácoras del supervisor desde la API
     async function loadBitacorasSupervisor() {
-      console.log('🚀 INICIANDO loadBitacorasSupervisor...');
+      console.log('🚀🚀🚀 INICIANDO loadBitacorasSupervisor DE FORMULARIO_V2.HTML 🚀🚀🚀');
       
       try {
         console.log('📋 Cargando bitácoras del supervisor...');
@@ -1706,12 +1706,14 @@
 
     // Función para cargar y mostrar las bitácoras del supervisor
     async function loadBitacorasDashboard() {
+      console.log('🚀 ===== INICIANDO loadBitacorasDashboard =====');
       try {
         console.log('📋 Iniciando loadBitacorasDashboard...');
         isLoading = true;
         updateLoadingState();
         
         console.log('📋 Llamando a loadBitacorasSupervisor...');
+        console.log('📋 Función loadBitacorasSupervisor disponible:', typeof loadBitacorasSupervisor);
         const bitacoras = await loadBitacorasSupervisor();
         console.log('📋 Bitácoras obtenidas:', bitacoras);
         console.log('📋 Tipo de bitácoras:', typeof bitacoras);

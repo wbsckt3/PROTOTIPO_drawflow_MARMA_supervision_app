@@ -1335,9 +1335,20 @@
           return;
         }
         
-        // Cargar daños reales desde la API
+        // Verificar que el usuario esté autenticado antes de cargar daños
+        if (!currentUser || !getUserEmail()) {
+          console.log('⚠️ Usuario no autenticado, esperando...');
+          setTimeout(() => addSampleDamageMarkers(), 2000);
+          return;
+        }
+        
+        // Cargar daños reales desde la API usando las mismas coordenadas que showRequestsView
+        console.log('📍 Cargando daños con coordenadas por defecto (Medellín)...');
+        console.log('📍 Usuario autenticado:', getUserEmail());
+        console.log('📍 Llamando a loadDamagesNearby()...');
         const realDamages = await loadDamagesNearby();
         console.log('📍 Daños obtenidos de la API:', realDamages.length);
+        console.log('📍 Datos completos de la API:', realDamages);
         
         if (realDamages && realDamages.length > 0) {
           console.log('✅ Cargando daños reales desde la API:', realDamages.length);
@@ -1383,7 +1394,7 @@
           console.log('✅ Marcadores agregados. Total damageMarkers:', damageMarkers.length);
         } else {
           console.log('⚠️ No se encontraron daños reales en la base de datos');
-          showNotification('No hay daños reportados en tu área', 'info');
+          // NO mostrar notificación aquí porque puede ser que simplemente no haya daños en esa área
         }
       } catch (error) {
         console.error('❌ Error cargando daños reales:', error);

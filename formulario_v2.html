@@ -1668,13 +1668,16 @@
         }
         
         const data = await response.json();
-        console.log('📋 Datos recibidos:', data);
+        console.log('📋 Datos recibidos de la API:', data);
+        console.log('📋 Estructura de la respuesta:', JSON.stringify(data, null, 2));
         
         if (data.success && data.data) {
           console.log('📋 Bitácoras cargadas:', data.data.length);
+          console.log('📋 Bitácoras encontradas:', data.data);
           return data.data;
         } else {
           console.log('📋 No hay bitácoras disponibles');
+          console.log('📋 Respuesta completa:', data);
           return [];
         }
       } catch (error) {

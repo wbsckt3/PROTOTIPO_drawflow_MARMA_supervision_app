@@ -1620,6 +1620,7 @@
     // Función para cargar bitácoras del supervisor desde la API
     async function loadBitacorasSupervisor() {
       console.log('🚀🚀🚀 INICIANDO loadBitacorasSupervisor DE FORMULARIO_V2.HTML 🚀🚀🚀');
+      console.log('🚀🚀🚀 ESTA FUNCIÓN DEBE EJECUTARSE AHORA 🚀🚀🚀');
       
       try {
         console.log('📋 Cargando bitácoras del supervisor...');
@@ -1635,6 +1636,14 @@
         
         const url = `${window.API_BASE_URL}/bitacoras-supervision`;
         console.log('📋 URL completa:', url);
+        console.log('📋 Usuario email para petición:', userEmail);
+        
+        console.log('📋 Enviando petición fetch...');
+        console.log('📋 Headers:', {
+          'x-user-email': userEmail,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        });
         
         const response = await fetch(url, {
           method: 'GET',
@@ -1645,6 +1654,8 @@
           },
           mode: 'cors'
         });
+        
+        console.log('📋 Petición enviada, esperando respuesta...');
         
         console.log('📋 Response status:', response.status);
         console.log('📋 Response ok:', response.ok);

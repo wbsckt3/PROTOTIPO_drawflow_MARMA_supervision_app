@@ -2249,16 +2249,25 @@
     hideFormOnLoad();
     
     // Inicializar la aplicación cuando todo esté cargado
+    console.log('🚀 Script de formulario_v2.html cargado');
     document.addEventListener('DOMContentLoaded', function() {
+      console.log('🚀 DOMContentLoaded ejecutado');
       // Asegurar que el formulario esté oculto
       hideFormOnLoad();
       
       // Esperar un poco para asegurar que auth.js se haya cargado
+      console.log('🔄 Esperando carga de auth.js...');
       setTimeout(function() {
+        console.log('🔍 Verificando si validarToken está definido...');
+        console.log('🔍 validarToken disponible:', typeof validarToken);
+        console.log('🔍 validarToken función:', validarToken);
+        
         if (typeof validarToken !== 'undefined') {
+          console.log('✅ auth.js cargado correctamente, llamando inicializarApp()');
           inicializarApp();
         } else {
-          console.error('auth.js no se cargó correctamente');
+          console.error('❌ auth.js no se cargó correctamente');
+          console.error('❌ validarToken no está definido');
         }
       }, 100);
     });

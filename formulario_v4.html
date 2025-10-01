@@ -286,7 +286,6 @@
     <!-- Floating Action Buttons -->
     <button class="fab" id="location-fab" onclick="getCurrentLocation()"><span class="fab-icon">📍</span></button>
     <button class="fab secondary" id="services-fab" onclick="showServices()"><span class="fab-icon">🔧</span></button>
-    <button class="fab" id="test-fab" onclick="testAPI()" style="background: #ff9800; bottom: 120px;"><span class="fab-icon">🧪</span></button>
 
     <!-- Cards deslizables -->
     <div class="card-container" id="card-container">
@@ -489,8 +488,8 @@
     let requestPhotoData = null; // Datos de la foto de la solicitud
 
     // Configuración de la API
-    const API_BASE_URL = 'http://localhost:3000/api/tenant';
-    const SOCKET_URL = 'http://localhost:3000';
+    const API_BASE_URL = 'https://www.refactorii.com/api/tenant';
+    const SOCKET_URL = 'https://www.refactorii.com';
 
     // ===== FUNCIONES GLOBALES (fuera de DOMContentLoaded) =====
     
@@ -1017,10 +1016,12 @@
           map.invalidateSize();
         }, 100);
         
-        // Agregar marcadores de ejemplo (daños)
-        addSampleDamageMarkers().catch(error => {
-          console.error('Error cargando daños:', error);
-        });
+        // Agregar marcadores de ejemplo (daños) después de que el mapa esté listo
+        setTimeout(() => {
+          addSampleDamageMarkers().catch(error => {
+            console.error('Error cargando daños:', error);
+          });
+        }, 2000);
         
         // Redimensionar mapa cuando cambie el tamaño de la ventana
         window.addEventListener('resize', () => {
@@ -1327,12 +1328,28 @@
         console.log('📍 Mapa disponible:', !!map);
         console.log('📍 damageMarkers actuales:', damageMarkers.length);
         
+        // Esperar a que el mapa esté completamente inicializado
+        if (!map) {
+          console.log('⚠️ Mapa no disponible, esperando...');
+          setTimeout(() => addSampleDamageMarkers(), 1000);
+          return;
+        }
+        
         // Cargar daños reales desde la API
         const realDamages = await loadDamagesNearby();
         console.log('📍 Daños obtenidos de la API:', realDamages.length);
         
         if (realDamages && realDamages.length > 0) {
           console.log('✅ Cargando daños reales desde la API:', realDamages.length);
+          
+          // Limpiar marcadores existentes
+          damageMarkers.forEach(marker => {
+            if (marker.marker) {
+              map.removeLayer(marker.marker);
+            }
+          });
+          damageMarkers = [];
+          
           realDamages.forEach((damage, index) => {
             console.log(`🔍 Procesando daño ${index + 1}:`, damage);
             
@@ -1421,6 +1438,8 @@
       });
       
       console.log('✅ Marcador agregado exitosamente. Total damageMarkers:', damageMarkers.length);
+      console.log('✅ Marcador visible en mapa:', marker.isPopupOpen());
+      console.log('✅ Marcador lat/lng:', marker.getLatLng());
     }
 
     // Conectar Socket.IO
@@ -1918,15 +1937,6 @@
             <button onclick="refreshOpportunities()" style="padding: 4px 8px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
               🔄 Actualizar
             </button>
-            <button onclick="testAPI()" style="padding: 4px 8px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-              🧪 Test API
-            </button>
-            <button onclick="testWithMockData()" style="padding: 4px 8px; background: #9c27b0; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-              🎭 Mock Data
-            </button>
-            <button onclick="testMultipleURLs()" style="padding: 4px 8px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-              🌐 Test URLs
-            </button>
             <button class="card-close" onclick="hideCard()">&times;</button>
           </div>
         </div>
@@ -2094,160 +2104,6 @@
       }
     }
 
-    // Función para probar la API
-    async function testAPI() {
-      console.log('🧪 Iniciando test de API...');
-      console.log('🧪 API_BASE_URL:', API_BASE_URL);
-      console.log('🧪 getUserEmail():', getUserEmail());
-      console.log('🧪 User Agent:', navigator.userAgent);
-      console.log('🧪 Location:', window.location.href);
-      
-      // Test simple: Solo probar el endpoint de damages
-      console.log('🧪 Test simple: Endpoint de damages...');
-      try {
-        const url = `${API_BASE_URL}/damages/nearby?latitude=6.2442&longitude=-75.5812&radius=20000`;
-        console.log('🧪 URL completa:', url);
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'x-user-email': getUserEmail()
-          }
-        });
-        
-        console.log('🧪 Response status:', response.status);
-        console.log('🧪 Response ok:', response.ok);
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('🧪 Response data:', data);
-          console.log('🧪 Damages count:', data.data?.length || 0);
-          showNotification(`API funciona - ${data.data?.length || 0} daños encontrados`, 'success');
-        } else {
-          const errorText = await response.text();
-          console.log('🧪 Error response:', errorText);
-          showNotification(`API error ${response.status}: ${errorText}`, 'error');
-        }
-      } catch (error) {
-        console.error('🧪 Fetch error:', error);
-        console.error('🧪 Error name:', error.name);
-        console.error('🧪 Error message:', error.message);
-        console.error('🧪 Error stack:', error.stack);
-        showNotification(`Fetch error: ${error.message}`, 'error');
-      }
-    }
-
-    // Función para probar múltiples URLs
-    async function testMultipleURLs() {
-      console.log('🌐 Probando múltiples URLs...');
-      
-      const urls = [
-        'http://localhost:3000/api/tenant',
-        'http://www.refactorii.com/api/tenant',
-        'https://www.refactorii.com/api/tenant'
-      ];
-      
-      for (let i = 0; i < urls.length; i++) {
-        const url = urls[i];
-        console.log(`🌐 Probando URL ${i + 1}: ${url}`);
-        
-        try {
-          const response = await fetch(`${url}/test`, {
-            method: 'GET',
-            headers: {
-              'x-user-email': getUserEmail()
-            }
-          });
-          
-          console.log(`🌐 URL ${i + 1} - Status:`, response.status);
-          console.log(`🌐 URL ${i + 1} - OK:`, response.ok);
-          
-          if (response.ok) {
-            const data = await response.json();
-            console.log(`🌐 URL ${i + 1} - Data:`, data);
-            showNotification(`URL ${i + 1} funciona: ${url}`, 'success');
-            return url;
-          } else {
-            const errorText = await response.text();
-            console.log(`🌐 URL ${i + 1} - Error:`, errorText);
-          }
-        } catch (error) {
-          console.error(`🌐 URL ${i + 1} - Fetch error:`, error.message);
-        }
-      }
-      
-      showNotification('Ninguna URL funciona - Verifica que el servidor esté funcionando', 'error');
-      return null;
-    }
-
-    // Función para probar con datos simulados
-    function testWithMockData() {
-      console.log('🎭 Probando con datos simulados...');
-      
-      // Crear datos simulados
-      const mockDamages = [
-        {
-          _id: 'mock-damage-1',
-          item: 'Reparación de Piscina',
-          area: 'piscinas',
-          description: 'Fuga en sistema de filtración - Datos simulados para prueba',
-          location: {
-            latitude: 6.2442,
-            longitude: -75.5812
-          },
-          severity: 'high',
-          image: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxDxCdABmX/9k=',
-          createdAt: new Date().toISOString(),
-          rating: 'R'
-        },
-        {
-          _id: 'mock-damage-2',
-          item: 'Mantenimiento de Zonas Comunes',
-          area: 'zonas_comunes',
-          description: 'Limpieza y mantenimiento de áreas verdes - Datos simulados',
-          location: {
-            latitude: 6.2450,
-            longitude: -75.5800
-          },
-          severity: 'medium',
-          image: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxDxCdABmX/9k=',
-          createdAt: new Date().toISOString(),
-          rating: 'R'
-        }
-      ];
-      
-      console.log('🎭 Datos simulados creados:', mockDamages.length);
-      
-      // Limpiar marcadores existentes
-      damageMarkers.forEach(marker => {
-        if (marker.marker) {
-          map.removeLayer(marker.marker);
-        }
-      });
-      damageMarkers = [];
-      
-      // Agregar marcadores simulados
-      mockDamages.forEach((damage, index) => {
-        const damageData = {
-          id: damage._id,
-          lat: damage.location.latitude,
-          lng: damage.location.longitude,
-          title: `${damage.item} - ${damage.area} - Calificación R (SIMULADO)`,
-          description: damage.description,
-          image: damage.image,
-          severity: damage.severity,
-          category: damage.area,
-          timestamp: new Date(damage.createdAt).toISOString(),
-          damageData: damage
-        };
-        
-        console.log(`🎭 Agregando marcador simulado ${index + 1}:`, damageData);
-        addDamageMarker(damageData);
-      });
-      
-      console.log('🎭 Marcadores simulados agregados. Total damageMarkers:', damageMarkers.length);
-      showNotification('Datos simulados cargados - Marcadores de prueba agregados', 'info');
-    }
 
     // Mostrar vista de propuestas
     async function showServicesView() {

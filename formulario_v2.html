@@ -1621,9 +1621,15 @@
     async function loadBitacorasSupervisor() {
       try {
         console.log('📋 Cargando bitácoras del supervisor...');
-        console.log('📋 Usuario:', getUserEmail());
+        const userEmail = getUserEmail();
+        console.log('📋 Usuario:', userEmail);
+        console.log('📋 Usuario completo:', getCurrentUser());
         
-        const response = await fetch(`${window.API_BASE_URL}/bitacoras-supervision/supervisor/${getUserEmail()}`, {
+        if (!userEmail) {
+          throw new Error('No hay usuario autenticado');
+        }
+        
+        const response = await fetch(`${window.API_BASE_URL}/bitacoras-supervision`, {
           method: 'GET',
           headers: {
             'x-user-email': getUserEmail(),

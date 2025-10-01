@@ -1338,6 +1338,8 @@
         // Verificar que el usuario esté autenticado antes de cargar daños
         if (!currentUser || !getUserEmail()) {
           console.log('⚠️ Usuario no autenticado, esperando...');
+          console.log('⚠️ currentUser:', currentUser);
+          console.log('⚠️ getUserEmail():', getUserEmail());
           setTimeout(() => addSampleDamageMarkers(), 2000);
           return;
         }
@@ -2498,6 +2500,7 @@
         const url = `${API_BASE_URL}/damages/nearby?latitude=${latitude}&longitude=${longitude}&radius=20000`;
         console.log('🔗 URL de la API:', url);
         console.log('👤 Email del usuario:', getUserEmail());
+        console.log('👤 currentUser completo:', currentUser);
         
         // Aumentar el radio a 20km para capturar más daños
         console.log('📡 Enviando petición fetch...');
@@ -2508,6 +2511,9 @@
             'x-user-email': getUserEmail()
           }
         });
+        
+        console.log('📡 Response status:', response.status);
+        console.log('📡 Response ok:', response.ok);
         
         console.log('📡 Respuesta de la API:', response.status, response.statusText);
         console.log('📡 Response ok:', response.ok);

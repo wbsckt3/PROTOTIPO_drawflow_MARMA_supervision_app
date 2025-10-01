@@ -2,7 +2,7 @@
 // GOOGLE SIGN-IN AUTHENTICATION
 // ========================================
 
-const API_BASE_URL = 'http://www.refactorii.com/api/tenant';
+const API_BASE_URL = 'https://www.refactorii.com/api/tenant';
 
 // Función para manejar la respuesta de Google Sign-In
 async function handleCredentialResponse(response) {

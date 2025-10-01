@@ -2066,7 +2066,15 @@
         }
         
         showUserInfo();
-        await loadBitacorasDashboard();
+        
+        try {
+          console.log('🚀 Llamando a loadBitacorasDashboard desde inicialización...');
+          await loadBitacorasDashboard();
+          console.log('✅ loadBitacorasDashboard completado');
+        } catch (error) {
+          console.error('❌ Error en loadBitacorasDashboard durante inicialización:', error);
+          console.error('❌ Error details:', error.message);
+        }
         
         // Simular click en "Volver al Dashboard" para asegurar que el formulario esté oculto
         setTimeout(() => {

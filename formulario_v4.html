@@ -286,6 +286,7 @@
     <!-- Floating Action Buttons -->
     <button class="fab" id="location-fab" onclick="getCurrentLocation()"><span class="fab-icon">📍</span></button>
     <button class="fab secondary" id="services-fab" onclick="showServices()"><span class="fab-icon">🔧</span></button>
+    <button class="fab" id="test-fab" onclick="testAPI()" style="background: #ff9800; bottom: 120px;"><span class="fab-icon">🧪</span></button>
 
     <!-- Cards deslizables -->
     <div class="card-container" id="card-container">
@@ -488,8 +489,8 @@
     let requestPhotoData = null; // Datos de la foto de la solicitud
 
     // Configuración de la API
-    const API_BASE_URL = 'https://www.refactorii.com/api/tenant';
-    const SOCKET_URL = 'https://www.refactorii.com';
+    const API_BASE_URL = 'http://www.refactorii.com/api/tenant';
+    const SOCKET_URL = 'http://www.refactorii.com';
 
     // ===== FUNCIONES GLOBALES (fuera de DOMContentLoaded) =====
     
@@ -1917,6 +1918,9 @@
             <button onclick="refreshOpportunities()" style="padding: 4px 8px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
               🔄 Actualizar
             </button>
+            <button onclick="testAPI()" style="padding: 4px 8px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+              🧪 Test API
+            </button>
             <button class="card-close" onclick="hideCard()">&times;</button>
           </div>
         </div>
@@ -2081,6 +2085,60 @@
       } catch (error) {
         console.error('❌ Error actualizando oportunidades:', error);
         showNotification('Error actualizando oportunidades', 'error');
+      }
+    }
+
+    // Función para probar la API
+    async function testAPI() {
+      console.log('🧪 Iniciando test de API...');
+      console.log('🧪 API_BASE_URL:', API_BASE_URL);
+      console.log('🧪 getUserEmail():', getUserEmail());
+      
+      try {
+        // Test 1: Endpoint de prueba
+        console.log('🧪 Test 1: Endpoint de prueba...');
+        const testResponse = await fetch(`${API_BASE_URL}/test`, {
+          headers: {
+            'x-user-email': getUserEmail()
+          }
+        });
+        console.log('🧪 Test 1 - Status:', testResponse.status);
+        console.log('🧪 Test 1 - OK:', testResponse.ok);
+        
+        if (testResponse.ok) {
+          const testData = await testResponse.json();
+          console.log('🧪 Test 1 - Data:', testData);
+        } else {
+          const errorText = await testResponse.text();
+          console.log('🧪 Test 1 - Error:', errorText);
+        }
+        
+        // Test 2: Endpoint de damages
+        console.log('🧪 Test 2: Endpoint de damages...');
+        const damagesResponse = await fetch(`${API_BASE_URL}/damages/nearby?latitude=6.2442&longitude=-75.5812&radius=20000`, {
+          headers: {
+            'x-user-email': getUserEmail()
+          }
+        });
+        console.log('🧪 Test 2 - Status:', damagesResponse.status);
+        console.log('🧪 Test 2 - OK:', damagesResponse.ok);
+        
+        if (damagesResponse.ok) {
+          const damagesData = await damagesResponse.json();
+          console.log('🧪 Test 2 - Data:', damagesData);
+          console.log('🧪 Test 2 - Damages count:', damagesData.data?.length || 0);
+        } else {
+          const errorText = await damagesResponse.text();
+          console.log('🧪 Test 2 - Error:', errorText);
+        }
+        
+        showNotification('Test de API completado - Revisa la consola', 'info');
+        
+      } catch (error) {
+        console.error('❌ Error en test de API:', error);
+        console.error('❌ Error name:', error.name);
+        console.error('❌ Error message:', error.message);
+        showNotification(`Error en test de API: ${error.message}`, 'error');
       }
     }
 

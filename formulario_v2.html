@@ -1617,6 +1617,59 @@
     // Variables globales para el dashboard
     let bitacorasList = [];
 
+    // Función para cargar bitácoras del supervisor desde la API
+    async function loadBitacorasSupervisor() {
+      try {
+        console.log('📋 Cargando bitácoras del supervisor...');
+        console.log('📋 Usuario:', getUserEmail());
+        
+        const response = await fetch(`${window.API_BASE_URL}/bitacoras-supervision/supervisor/${getUserEmail()}`, {
+          method: 'GET',
+          headers: {
+            'x-user-email': getUserEmail(),
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('📋 Response status:', response.status);
+        console.log('📋 Response ok:', response.ok);
+        
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('📋 Datos recibidos:', data);
+        
+        if (data.success && data.data) {
+          console.log('📋 Bitácoras cargadas:', data.data.length);
+          return data.data;
+        } else {
+          console.log('📋 No hay bitácoras disponibles');
+          return [];
+        }
+      } catch (error) {
+        console.error('❌ Error cargando bitácoras del supervisor:', error);
+        console.error('❌ Error details:', error.message);
+        
+        // En caso de error, mostrar mensaje al usuario
+        const container = document.getElementById('bitacoras-list');
+        if (container) {
+          container.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: var(--danger);">
+              <p>❌ Error cargando bitácoras</p>
+              <p style="font-size: 0.9rem; color: var(--text-dim);">${error.message}</p>
+              <button onclick="loadBitacorasDashboard()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: var(--accent); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                🔄 Reintentar
+              </button>
+            </div>
+          `;
+        }
+        
+        return [];
+      }
+    }
+
     // Función para mostrar información del usuario
     function showUserInfo() {
       const user = getCurrentUser();

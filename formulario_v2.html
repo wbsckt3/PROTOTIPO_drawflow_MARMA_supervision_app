@@ -1655,9 +1655,7 @@
         const response = await fetch(url, {
           method: 'GET',
           headers: {
-            'x-user-email': userEmail,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'x-user-email': userEmail
           },
           mode: 'cors',
           signal: controller.signal

@@ -57,10 +57,15 @@ async function handleCredentialResponse(response) {
         // Ocultar overlay y recargar la página para mostrar el contenido
         const overlay = document.getElementById('auth-overlay');
         if (overlay) {
+            console.log('✅ Ocultando overlay de autenticación...');
             overlay.style.display = 'none';
             document.body.classList.remove('auth-lock');
+            console.log('✅ Overlay oculto correctamente');
+        } else {
+            console.error('❌ No se encontró el overlay de autenticación');
         }
         
+        console.log('🔄 Recargando página para inicializar con usuario autenticado...');
         // Recargar la página para inicializar con el usuario autenticado
         window.location.reload();
         
@@ -96,6 +101,7 @@ function validarToken() {
     
     // 3. Token válido
     console.log('✅ Token válido');
+    console.log('✅ Usuario autenticado correctamente');
     return true;
 }
 

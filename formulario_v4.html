@@ -489,8 +489,8 @@
     let requestPhotoData = null; // Datos de la foto de la solicitud
 
     // Configuración de la API
-    const API_BASE_URL = 'http://www.refactorii.com/api/tenant';
-    const SOCKET_URL = 'http://www.refactorii.com';
+    const API_BASE_URL = 'http://localhost:3000/api/tenant';
+    const SOCKET_URL = 'http://localhost:3000';
 
     // ===== FUNCIONES GLOBALES (fuera de DOMContentLoaded) =====
     
@@ -1924,6 +1924,9 @@
             <button onclick="testWithMockData()" style="padding: 4px 8px; background: #9c27b0; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
               🎭 Mock Data
             </button>
+            <button onclick="testMultipleURLs()" style="padding: 4px 8px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+              🌐 Test URLs
+            </button>
             <button class="card-close" onclick="hideCard()">&times;</button>
           </div>
         </div>
@@ -2099,90 +2102,82 @@
       console.log('🧪 User Agent:', navigator.userAgent);
       console.log('🧪 Location:', window.location.href);
       
-      // Test 0: Verificar conectividad básica
-      console.log('🧪 Test 0: Verificando conectividad básica...');
+      // Test simple: Solo probar el endpoint de damages
+      console.log('🧪 Test simple: Endpoint de damages...');
       try {
-        const basicTest = await fetch('https://httpbin.org/get', {
+        const url = `${API_BASE_URL}/damages/nearby?latitude=6.2442&longitude=-75.5812&radius=20000`;
+        console.log('🧪 URL completa:', url);
+        
+        const response = await fetch(url, {
           method: 'GET',
-          mode: 'cors'
-        });
-        console.log('🧪 Test 0 - Conectividad básica OK:', basicTest.ok);
-      } catch (basicError) {
-        console.error('🧪 Test 0 - Error de conectividad básica:', basicError);
-        showNotification('Error de conectividad básica - Revisa tu conexión a internet', 'error');
-        return;
-      }
-      
-      // Test 1: Verificar si el servidor responde
-      console.log('🧪 Test 1: Verificando servidor...');
-      try {
-        const serverTest = await fetch(`${API_BASE_URL.replace('/api/tenant', '')}`, {
-          method: 'GET',
-          mode: 'cors'
-        });
-        console.log('🧪 Test 1 - Servidor responde:', serverTest.ok, serverTest.status);
-      } catch (serverError) {
-        console.error('🧪 Test 1 - Servidor no responde:', serverError);
-        showNotification('Servidor no responde - Verifica que esté funcionando', 'error');
-        return;
-      }
-      
-      // Test 2: Endpoint de prueba
-      console.log('🧪 Test 2: Endpoint de prueba...');
-      try {
-        const testResponse = await fetch(`${API_BASE_URL}/test`, {
-          method: 'GET',
-          mode: 'cors',
           headers: {
-            'x-user-email': getUserEmail(),
-            'Content-Type': 'application/json'
+            'x-user-email': getUserEmail()
           }
         });
-        console.log('🧪 Test 2 - Status:', testResponse.status);
-        console.log('🧪 Test 2 - OK:', testResponse.ok);
         
-        if (testResponse.ok) {
-          const testData = await testResponse.json();
-          console.log('🧪 Test 2 - Data:', testData);
+        console.log('🧪 Response status:', response.status);
+        console.log('🧪 Response ok:', response.ok);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('🧪 Response data:', data);
+          console.log('🧪 Damages count:', data.data?.length || 0);
+          showNotification(`API funciona - ${data.data?.length || 0} daños encontrados`, 'success');
         } else {
-          const errorText = await testResponse.text();
-          console.log('🧪 Test 2 - Error:', errorText);
+          const errorText = await response.text();
+          console.log('🧪 Error response:', errorText);
+          showNotification(`API error ${response.status}: ${errorText}`, 'error');
         }
-      } catch (testError) {
-        console.error('🧪 Test 2 - Error en endpoint test:', testError);
-        showNotification(`Error en endpoint test: ${testError.message}`, 'error');
-        return;
+      } catch (error) {
+        console.error('🧪 Fetch error:', error);
+        console.error('🧪 Error name:', error.name);
+        console.error('🧪 Error message:', error.message);
+        console.error('🧪 Error stack:', error.stack);
+        showNotification(`Fetch error: ${error.message}`, 'error');
       }
+    }
+
+    // Función para probar múltiples URLs
+    async function testMultipleURLs() {
+      console.log('🌐 Probando múltiples URLs...');
       
-      // Test 3: Endpoint de damages
-      console.log('🧪 Test 3: Endpoint de damages...');
-      try {
-        const damagesResponse = await fetch(`${API_BASE_URL}/damages/nearby?latitude=6.2442&longitude=-75.5812&radius=20000`, {
-          method: 'GET',
-          mode: 'cors',
-          headers: {
-            'x-user-email': getUserEmail(),
-            'Content-Type': 'application/json'
+      const urls = [
+        'http://localhost:3000/api/tenant',
+        'http://www.refactorii.com/api/tenant',
+        'https://www.refactorii.com/api/tenant'
+      ];
+      
+      for (let i = 0; i < urls.length; i++) {
+        const url = urls[i];
+        console.log(`🌐 Probando URL ${i + 1}: ${url}`);
+        
+        try {
+          const response = await fetch(`${url}/test`, {
+            method: 'GET',
+            headers: {
+              'x-user-email': getUserEmail()
+            }
+          });
+          
+          console.log(`🌐 URL ${i + 1} - Status:`, response.status);
+          console.log(`🌐 URL ${i + 1} - OK:`, response.ok);
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`🌐 URL ${i + 1} - Data:`, data);
+            showNotification(`URL ${i + 1} funciona: ${url}`, 'success');
+            return url;
+          } else {
+            const errorText = await response.text();
+            console.log(`🌐 URL ${i + 1} - Error:`, errorText);
           }
-        });
-        console.log('🧪 Test 3 - Status:', damagesResponse.status);
-        console.log('🧪 Test 3 - OK:', damagesResponse.ok);
-        
-        if (damagesResponse.ok) {
-          const damagesData = await damagesResponse.json();
-          console.log('🧪 Test 3 - Data:', damagesData);
-          console.log('🧪 Test 3 - Damages count:', damagesData.data?.length || 0);
-        } else {
-          const errorText = await damagesResponse.text();
-          console.log('🧪 Test 3 - Error:', errorText);
+        } catch (error) {
+          console.error(`🌐 URL ${i + 1} - Fetch error:`, error.message);
         }
-      } catch (damagesError) {
-        console.error('🧪 Test 3 - Error en endpoint damages:', damagesError);
-        showNotification(`Error en endpoint damages: ${damagesError.message}`, 'error');
-        return;
       }
       
-      showNotification('Test de API completado - Revisa la consola', 'success');
+      showNotification('Ninguna URL funciona - Verifica que el servidor esté funcionando', 'error');
+      return null;
     }
 
     // Función para probar con datos simulados

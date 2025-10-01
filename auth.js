@@ -2,7 +2,7 @@
 // GOOGLE SIGN-IN AUTHENTICATION
 // ========================================
 
-const API_BASE_URL = 'https://www.refactorii.com/api/tenant';
+const API_BASE_URL = 'http://www.refactorii.com/api/tenant';
 
 // Función para manejar la respuesta de Google Sign-In
 async function handleCredentialResponse(response) {
@@ -128,51 +128,8 @@ function getUserEmail() {
     return user ? user.Email : null;
 }
 
-// Función para cargar las bitácoras del supervisor
-async function loadBitacorasSupervisor() {
-    const userEmail = getUserEmail();
-    if (!userEmail) {
-        console.error('No hay usuario autenticado');
-        return [];
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/bitacoras-supervision`, {
-            headers: {
-                'x-user-email': userEmail
-            }
-        });
-        
-        if (!response.ok) {
-            console.warn(`⚠️ Error del servidor (${response.status}), mostrando datos de demo`);
-            // Retornar datos de demo cuando el servidor no esté disponible
-            return [{
-                _id: 'demo-bitacora-1',
-                cliente: 'Condominio Las Palmas (Demo)',
-                fecha: new Date().toISOString(),
-                supervisor: 'Supervisor Demo',
-                observaciones: 'Esta es una bitácora de demostración',
-                estado: 'programada',
-                unidadResidencialId: 'demo-unidad-1'
-            }];
-        }
-        
-        const responseData = await response.json();
-        return responseData.data || [];
-    } catch (error) {
-        console.warn('⚠️ Servidor no disponible, mostrando datos de demo:', error.message);
-        // Retornar datos de demo cuando hay error de conexión
-        return [{
-            _id: 'demo-bitacora-1',
-            cliente: 'Condominio Las Palmas (Demo)',
-            fecha: new Date().toISOString(),
-            supervisor: 'Supervisor Demo',
-            observaciones: 'Esta es una bitácora de demostración',
-            estado: 'programada',
-            unidadResidencialId: 'demo-unidad-1'
-        }];
-    }
-}
+// Función para cargar las bitácoras del supervisor - REMOVIDA
+// Esta función se movió a formulario_v2.html para evitar conflictos
 
 // Exportar funciones y constantes para uso global
 window.API_BASE_URL = API_BASE_URL;
@@ -181,4 +138,3 @@ window.validarToken = validarToken;
 window.getCurrentUser = getCurrentUser;
 window.logout = logout;
 window.getUserEmail = getUserEmail;
-window.loadBitacorasSupervisor = loadBitacorasSupervisor;

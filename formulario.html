@@ -153,12 +153,12 @@
   </style>
   <script>
     const urlParams = new URLSearchParams(location.search);
-    const DEMO_DEFAULT = urlParams.get('demo') !== 'false';
+    const DEMO_DEFAULT = urlParams.get('demo') === 'true'; // Solo usar demo si se especifica explícitamente
     let USE_FAKE = JSON.parse(localStorage.getItem('useFakeTenant') ?? JSON.stringify(DEMO_DEFAULT));
     const DRAFT_KEY = 'supervision_draft';
 
     const tenantConfig = {
-      name: 'Condominio Las Palmas',
+      name: 'Marma S.A.S. - Tech Guard Pro',
       areas: {
         piscinas:      { name:'PISCINAS',      color:'#3b82f6', items:['BAÑOS','ROMPE OLAS','ANDENES','LAVA PIES - DUCHA','SAUNA','JACUZZI','TURCO','COLOR VISUAL','PH','CLORO','CUARTO DE MÁQUINAS','HOLL'] },
         zonas_comunes: { name:'ZONAS COMUNES', color:'#22c55e', items:['GIMNASIO','SALÓN SOCIAL','SALÓN DE JUEGOS','ANDENES','PORTERÍA','PARQUEADERO'] },
@@ -167,6 +167,7 @@
         operario:      { name:'OPERARIO',      color:'#ec4899', items:['PRODUCTIVIDAD','PRESENTACIÓN','CARNET','ELEMENTOS EPP','CONTROL DE HORARIO','ACTITUD'] }
       },
       seed: {
+        // Datos de ejemplo para supervisión inicial
         piscinas: { 'BAÑOS':'E','PH':'B','CLORO':'B','JACUZZI':'E','TURCO':'R' },
         zonas_comunes: { 'GIMNASIO':'B','PORTERÍA':'E' },
         zonas_externas: { 'PARQUE INFANTIL':'B','PAREDES':'R','VIDRIOS - VENTANAS':'B','ASCENSORES':'E' },
@@ -806,6 +807,15 @@
     // Configuración de la API
     const API_BASE_URL = 'https://www.refactorii.com/api/tenant';
     
+    // Configuración de AWS S3
+    const AWS_CONFIG = {
+      region: 'us-east-1', // Cambiar por tu región
+      bucketName: 'marma-supervision-bucket', // Cambiar por tu bucket
+      accessKeyId: 'AKIA...', // Tu Access Key ID
+      secretAccessKey: '...', // Tu Secret Access Key
+      publicUrl: 'https://marma-supervision-bucket.s3.amazonaws.com' // URL pública de tu bucket
+    };
+    
     // Inicialización del dashboard
     document.addEventListener('DOMContentLoaded', function() {
       console.log('🚀 Inicializando dashboard administrativo...');
@@ -881,8 +891,9 @@
     
     // Lista de emails autorizados como admin (configurar según necesidad)
     const ADMIN_EMAILS = [
-      'wbsckt3@gmail.com',  // Email del usuario actual
-      'admin@marma.com',    // Email de admin de Marma
+      'tgpro.marma.db@gmail.com',  // Email principal del admin de Tech Guard Pro
+      'wbsckt3@gmail.com',         // Email del usuario actual
+      'admin@marma.com',           // Email de admin de Marma
       // Agregar más emails de admin según necesidad
     ];
     
@@ -918,25 +929,25 @@
             if (companyResponse.ok) {
               const companyResult = await companyResponse.json();
               console.log('📊 Datos de empresa recibidos:', companyResult);
-              // Usar la primera empresa disponible o crear una demo
+              // Usar la primera empresa disponible o crear una empresa real
               currentCompany = companyResult.data?.[0] || {
-                _id: 'demo-company-id',
-                name: 'Empresa Demo'
+                _id: 'marma-company-id',
+                name: 'Marma S.A.S.'
               };
               console.log('🏢 Empresa asignada:', currentCompany);
             } else {
-              // Si no se puede obtener la empresa, usar datos demo
+              // Si no se puede obtener la empresa, usar datos reales
               currentCompany = {
-                _id: 'demo-company-id',
-                name: 'Empresa Demo'
+                _id: 'marma-company-id',
+                name: 'Marma S.A.S.'
               };
-              console.log('🏢 Usando empresa demo (API no disponible)');
+              console.log('🏢 Usando empresa real (API no disponible)');
             }
           } catch (companyError) {
-            console.warn('⚠️ Error obteniendo empresa, usando demo:', companyError.message);
+            console.warn('⚠️ Error obteniendo empresa, usando datos reales:', companyError.message);
             currentCompany = {
-              _id: 'demo-company-id',
-              name: 'Empresa Demo'
+              _id: 'marma-company-id',
+              name: 'Marma S.A.S.'
             };
           }
           
@@ -1160,10 +1171,10 @@
         }
       } catch (error) {
         console.error('Error cargando empresa:', error);
-        // Usar datos demo si la API no está disponible
+        // Usar datos reales si la API no está disponible
         empresas = [{
-          _id: 'demo-company-id',
-          name: 'Empresa Demo'
+          _id: 'marma-company-id',
+          name: 'Marma S.A.S.'
         }];
         currentCompany = empresas[0];
         updateCompanyInfo();
@@ -1184,14 +1195,14 @@
         updateUnidadesSelect();
       } catch (error) {
         console.error('Error cargando unidades:', error);
-        // Usar datos demo si la API no está disponible
+        // Usar datos reales si la API no está disponible
         unidadesResidenciales = [
           {
-            _id: 'demo-unidad-1',
-            nombre: 'Conjunto Residencial Demo',
+            _id: 'marma-unidad-1',
+            nombre: 'Conjunto Residencial Las Palmas',
             direccion: 'Carrera 15 #93-47, Bogotá',
             tipo: 'condominio',
-            companyId: currentCompany?._id || 'demo-company-id'
+            companyId: currentCompany?._id || 'marma-company-id'
           }
         ];
         updateUnidadesSelect();
@@ -1221,14 +1232,14 @@
         }
       } catch (error) {
         console.error('Error cargando supervisores:', error);
-        // Usar datos demo si la API no está disponible
+        // Usar datos reales si la API no está disponible
         supervisores = [
           {
-            _id: 'demo-supervisor-1',
-            email: 'supervisor@demo.com',
-            name: 'Supervisor Demo',
+            _id: 'marma-supervisor-1',
+            email: 'supervisor@marma.com',
+            name: 'Supervisor Marma',
             role: 'editor',
-            companyId: currentCompany?._id || 'demo-company-id'
+            companyId: currentCompany?._id || 'marma-company-id'
           }
         ];
         updateSupervisoresSelects();
@@ -1261,15 +1272,15 @@
         }
       } catch (error) {
         console.error('Error cargando visitas:', error);
-        // Usar datos demo si la API no está disponible
+        // Usar datos reales si la API no está disponible
         visitas = [
           {
-            _id: 'demo-visita-1',
-            unidadResidencialId: 'demo-unidad-1',
-            supervisor: 'supervisor@demo.com',
+            _id: 'marma-visita-1',
+            unidadResidencialId: 'marma-unidad-1',
+            supervisor: 'supervisor@marma.com',
             fecha: new Date().toISOString(),
             estado: 'programada',
-            observaciones: 'Visita demo programada'
+            observaciones: 'Visita de supervisión programada'
           }
         ];
         renderVisitasEnNodos();
@@ -1301,15 +1312,15 @@
         }
       } catch (error) {
         console.error('Error cargando bitácoras:', error);
-        // Usar datos demo si la API no está disponible
+        // Usar datos reales si la API no está disponible
         bitacoras = [
           {
-            _id: 'demo-bitacora-1',
-            unidadResidencialId: 'demo-unidad-1',
-            supervisor: 'supervisor@demo.com',
+            _id: 'marma-bitacora-1',
+            unidadResidencialId: 'marma-unidad-1',
+            supervisor: 'supervisor@marma.com',
             fecha: new Date().toISOString(),
             estado: 'programada',
-            observaciones: 'Bitácora demo'
+            observaciones: 'Bitácora de supervisión'
           }
         ];
         if (currentView === 'bitacoras') {

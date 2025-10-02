@@ -448,6 +448,19 @@
       const container = document.getElementById('accordion');
       if (!container) return;
       
+      // Inicializar estado de geolocalización
+      if (geolocationSupported) {
+        if (geolocationPermissionGranted && currentLocation) {
+          showGeolocationSuccess('Ubicación disponible ✅');
+        } else if (geolocationPermissionDenied) {
+          showGeolocationError('Permisos denegados');
+        } else {
+          showGeolocationLoading('No configurada');
+        }
+      } else {
+        showGeolocationError('No soportada');
+      }
+      
       // Determinar si la bitácora está completada o con novedad (solo lectura)
       const isReadOnly = currentBitacoraData && (currentBitacoraData.estado === 'completada' || currentBitacoraData.estado === 'con_novedad');
       
@@ -1025,20 +1038,54 @@
     // Variables para geolocalización
     let currentLocation = null;
     let geolocationPermissionGranted = false;
+    let geolocationPermissionDenied = false;
+    let geolocationSupported = false;
+
+    // Verificar soporte de geolocalización al cargar la página
+    function checkGeolocationSupport() {
+      if (!navigator.geolocation) {
+        console.warn('⚠️ Geolocalización no soportada por este navegador');
+        geolocationSupported = false;
+        return false;
+      }
+      
+      // Verificar si estamos en HTTPS
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+        console.warn('⚠️ Geolocalización requiere HTTPS (excepto localhost)');
+        geolocationSupported = false;
+        return false;
+      }
+      
+      geolocationSupported = true;
+      console.log('✅ Geolocalización soportada');
+      return true;
+    }
 
     // Función para solicitar permisos de geolocalización
     function requestGeolocationPermission(areaKey, item) {
-      if (geolocationPermissionGranted) {
-        console.log('📍 Permisos de geolocalización ya otorgados');
-        return;
-      }
-
-      if (!navigator.geolocation) {
-        console.warn('⚠️ Geolocalización no soportada por este navegador');
-        return;
-      }
-
       console.log('📍 Solicitando permisos de geolocalización...');
+      
+      // Verificar soporte
+      if (!checkGeolocationSupport()) {
+        showGeolocationError('Geolocalización no soportada en este navegador');
+        return;
+      }
+
+      // Si ya se denegó el permiso, no volver a solicitar
+      if (geolocationPermissionDenied) {
+        showGeolocationError('Permisos de geolocalización denegados anteriormente');
+        return;
+      }
+
+      // Si ya se otorgó el permiso, usar ubicación existente
+      if (geolocationPermissionGranted && currentLocation) {
+        console.log('📍 Usando ubicación existente:', currentLocation);
+        showGeolocationSuccess('Ubicación disponible ✅');
+        return;
+      }
+
+      // Mostrar indicador de carga
+      showGeolocationLoading('Obteniendo ubicación...');
       
       navigator.geolocation.getCurrentPosition(
         function(position) {
@@ -1049,63 +1096,98 @@
             timestamp: new Date().toISOString()
           };
           geolocationPermissionGranted = true;
+          geolocationPermissionDenied = false;
           console.log('✅ Ubicación obtenida:', currentLocation);
           
-          // Mostrar notificación al usuario
-          const statusEl = document.getElementById(`status-${areaKey}`);
-          if (statusEl) {
-            statusEl.textContent = '📍 Ubicación obtenida - Listo para foto';
-          }
+          showGeolocationSuccess('Ubicación obtenida ✅');
         },
         function(error) {
           console.warn('❌ Error obteniendo ubicación:', error.message);
           geolocationPermissionGranted = false;
           
-          let errorMessage = 'Error obteniendo ubicación: ';
+          let errorMessage = '';
           switch(error.code) {
             case error.PERMISSION_DENIED:
-              errorMessage += 'Permisos denegados. La foto se guardará sin geolocalización.';
+              errorMessage = 'Permisos de geolocalización denegados';
+              geolocationPermissionDenied = true;
               break;
             case error.POSITION_UNAVAILABLE:
-              errorMessage += 'Ubicación no disponible. La foto se guardará sin geolocalización.';
+              errorMessage = 'Ubicación no disponible';
               break;
             case error.TIMEOUT:
-              errorMessage += 'Tiempo de espera agotado. La foto se guardará sin geolocalización.';
+              errorMessage = 'Tiempo de espera agotado';
               break;
             default:
-              errorMessage += 'Error desconocido. La foto se guardará sin geolocalización.';
-              break;
+              errorMessage = error.message;
           }
           
-          console.warn(errorMessage);
-          
-          // Mostrar notificación al usuario
-          const statusEl = document.getElementById(`status-${areaKey}`);
-          if (statusEl) {
-            statusEl.textContent = '⚠️ Sin ubicación - Foto sin geolocalización';
-          }
+          showGeolocationError(errorMessage);
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
+          timeout: 15000, // 15 segundos
           maximumAge: 300000 // 5 minutos
         }
       );
     }
 
+    // Mostrar indicador de carga de geolocalización
+    function showGeolocationLoading(message) {
+      const statusEl = document.getElementById('geolocation-status');
+      if (statusEl) {
+        statusEl.textContent = message;
+        statusEl.style.color = '#3b82f6';
+      }
+      console.log('📍 ' + message);
+    }
+
+    // Mostrar éxito de geolocalización
+    function showGeolocationSuccess(message) {
+      const statusEl = document.getElementById('geolocation-status');
+      if (statusEl) {
+        statusEl.textContent = message;
+        statusEl.style.color = '#22c55e';
+      }
+      console.log('✅ ' + message);
+    }
+
+    // Mostrar error de geolocalización
+    function showGeolocationError(message) {
+      const statusEl = document.getElementById('geolocation-status');
+      if (statusEl) {
+        statusEl.textContent = '⚠️ ' + message;
+        statusEl.style.color = '#ef4444';
+      }
+      console.warn('❌ ' + message);
+    }
+
     // Función para obtener la ubicación actual
     function getCurrentLocation() {
       return new Promise((resolve, reject) => {
-        if (currentLocation) {
-          resolve(currentLocation);
-          return;
+        // Si ya tenemos ubicación y no es muy antigua, usarla
+        if (currentLocation && geolocationPermissionGranted) {
+          const age = Date.now() - new Date(currentLocation.timestamp).getTime();
+          if (age < 300000) { // 5 minutos
+            console.log('📍 Usando ubicación en caché:', currentLocation);
+            resolve(currentLocation);
+            return;
+          }
         }
 
-        if (!navigator.geolocation) {
+        // Verificar soporte
+        if (!checkGeolocationSupport()) {
           reject(new Error('Geolocalización no soportada'));
           return;
         }
 
+        // Si se denegó el permiso anteriormente, rechazar inmediatamente
+        if (geolocationPermissionDenied) {
+          reject(new Error('Permisos de geolocalización denegados'));
+          return;
+        }
+
+        console.log('📍 Obteniendo nueva ubicación...');
+        
         navigator.geolocation.getCurrentPosition(
           function(position) {
             currentLocation = {
@@ -1114,15 +1196,25 @@
               accuracy: position.coords.accuracy,
               timestamp: new Date().toISOString()
             };
+            geolocationPermissionGranted = true;
+            geolocationPermissionDenied = false;
+            console.log('✅ Nueva ubicación obtenida:', currentLocation);
             resolve(currentLocation);
           },
           function(error) {
+            console.warn('❌ Error obteniendo ubicación:', error.message);
+            
+            // Marcar como denegado si es un error de permisos
+            if (error.code === error.PERMISSION_DENIED) {
+              geolocationPermissionDenied = true;
+            }
+            
             reject(error);
           },
           {
             enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 60000 // 1 minuto
+            timeout: 10000, // 10 segundos
+            maximumAge: 300000 // 5 minutos
           }
         );
       });
@@ -1260,6 +1352,9 @@
             geoStatus.style.color = '#22c55e';
           }
           
+          // Actualizar estado global de geolocalización
+          showGeolocationSuccess('Ubicación obtenida ✅');
+          
           updatePhotoPreview(areaKey, item, compressedBase64);
           updateAreaStatus(areaKey, 'Escribiendo...');
           persistDraft();
@@ -1297,6 +1392,9 @@
             geoStatus.textContent = 'Sin ubicación ⚠️';
             geoStatus.style.color = '#f59e0b';
           }
+          
+          // Actualizar estado global de geolocalización
+          showGeolocationError('Sin ubicación - Foto guardada sin geolocalización');
           
           updatePhotoPreview(areaKey, item, compressedBase64);
           updateAreaStatus(areaKey, 'Escribiendo...');
@@ -2330,6 +2428,20 @@
 
       <div style="margin-bottom:1rem">
         <button class="btn" onclick="backToDashboard()" style="margin-bottom:1rem">← Volver al Dashboard</button>
+        
+        <!-- Indicador de estado de geolocalización -->
+        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;padding:0.75rem;background:rgba(31,41,55,0.5);border-radius:8px;border:1px solid #374151">
+          <div style="display:flex;align-items:center;gap:0.5rem">
+            <span style="font-size:1.2rem">📍</span>
+            <span style="font-weight:600;color:var(--text)">Geolocalización:</span>
+          </div>
+          <div id="geolocation-status" style="color:var(--text-dim);font-size:0.9rem">
+            No configurada
+          </div>
+          <button class="btn" onclick="requestGeolocationPermission('', '')" style="padding:0.4rem 0.8rem;font-size:0.8rem;background:#3b82f6">
+            🔄 Solicitar Permisos
+          </button>
+        </div>
       </div>
 
       <div class="accordion" id="accordion"></div>
@@ -2361,6 +2473,9 @@
       
       // Asegurar que el formulario esté oculto
       hideFormOnLoad();
+      
+      // Inicializar verificación de geolocalización
+      checkGeolocationSupport();
       
       // Esperar un poco para asegurar que auth.js se haya cargado
       console.log('🔄 Esperando carga de auth.js...');

@@ -1724,39 +1724,46 @@
     // Función para hacer peticiones con proxy CORS
     async function fetchWithCORSProxy(url, options = {}) {
       const proxies = [
-        'https://cors-anywhere.herokuapp.com/',
         'https://api.allorigins.win/raw?url=',
-        'https://corsproxy.io/?'
+        'https://corsproxy.io/?',
+        'https://thingproxy.freeboard.io/fetch/',
+        'https://cors-anywhere.herokuapp.com/'
       ];
       
       for (let i = 0; i < proxies.length; i++) {
         try {
           const proxy = proxies[i];
           let proxiedUrl;
+          let requestOptions = { ...options };
           
           if (proxy.includes('allorigins.win')) {
-            // allorigins.win no permite headers personalizados, usar solo para GET sin headers
-            if (options.method === 'GET' && (!options.headers || Object.keys(options.headers).length === 0)) {
-              proxiedUrl = proxy + encodeURIComponent(url);
-            } else {
-              continue; // Saltar este proxy si hay headers
-            }
+            // allorigins.win no permite headers personalizados
+            proxiedUrl = proxy + encodeURIComponent(url);
+            requestOptions = {
+              method: 'GET',
+              mode: 'cors',
+              signal: options.signal || AbortSignal.timeout(10000)
+            };
+            console.log('⚠️ allorigins.win no soporta headers personalizados, enviando sin headers');
           } else {
             proxiedUrl = proxy + url;
+            requestOptions = {
+              ...options,
+              mode: 'cors',
+              signal: options.signal || AbortSignal.timeout(10000)
+            };
           }
           
           console.log(`🌐 Intentando proxy ${i + 1}/${proxies.length}:`, proxiedUrl);
-          console.log('🌐 Headers enviados:', options.headers);
+          console.log('🌐 Headers enviados:', requestOptions.headers);
           
-          const response = await fetch(proxiedUrl, {
-            ...options,
-            mode: 'cors',
-            signal: options.signal || AbortSignal.timeout(10000)
-          });
+          const response = await fetch(proxiedUrl, requestOptions);
           
           if (response.ok) {
             console.log(`✅ Proxy ${i + 1} funcionó correctamente`);
             return response;
+          } else {
+            console.log(`⚠️ Proxy ${i + 1} respondió con status:`, response.status);
           }
         } catch (error) {
           console.log(`❌ Proxy ${i + 1} falló:`, error.message);
@@ -1767,6 +1774,55 @@
       }
       
       throw new Error('Todos los proxies CORS fallaron');
+    }
+
+    // Función específica para GitHub Pages
+    async function loadBitacorasForGitHubPages() {
+      console.log('🐙 Cargando bitácoras específicamente para GitHub Pages...');
+      
+      const userEmail = getUserEmail();
+      if (!userEmail) {
+        throw new Error('No hay usuario autenticado');
+      }
+      
+      // Usar un proxy CORS que funcione desde GitHub Pages
+      const proxyUrl = 'https://api.allorigins.win/raw?url=';
+      const targetUrl = `${window.API_BASE_URL}/bitacoras-supervision`;
+      const fullUrl = proxyUrl + encodeURIComponent(targetUrl);
+      
+      console.log('🌐 URL del proxy:', fullUrl);
+      console.log('📧 Email del usuario:', userEmail);
+      
+      try {
+        const response = await fetch(fullUrl, {
+          method: 'GET',
+          mode: 'cors',
+          signal: AbortSignal.timeout(15000)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error del proxy: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('📋 Datos recibidos del proxy:', data);
+        
+        // Filtrar por email del usuario (ya que el proxy no puede enviar headers)
+        if (Array.isArray(data)) {
+          const filteredData = data.filter(bitacora => 
+            bitacora.supervisorEmail === userEmail || 
+            bitacora.email === userEmail ||
+            bitacora.userEmail === userEmail
+          );
+          console.log('📋 Bitácoras filtradas por email:', filteredData.length);
+          return filteredData;
+        }
+        
+        return data;
+      } catch (error) {
+        console.error('❌ Error con proxy para GitHub Pages:', error);
+        throw error;
+      }
     }
 
     // Función alternativa para cargar bitácoras usando JSONP (sin CORS)
@@ -1827,6 +1883,19 @@
       } catch (error) {
         console.error('❌ JSONP falló:', error);
         showBitacorasError(`JSONP falló: ${error.message}`);
+      }
+    }
+
+    // Función para probar el método específico de GitHub Pages
+    async function testGitHubPagesMethod() {
+      console.log('🧪 Probando método específico de GitHub Pages...');
+      try {
+        const data = await loadBitacorasForGitHubPages();
+        console.log('✅ GitHub Pages method exitoso:', data);
+        showBitacorasSuccess(`GitHub Pages method funcionó correctamente. Datos recibidos: ${Array.isArray(data) ? data.length : 'N/A'}`);
+      } catch (error) {
+        console.error('❌ GitHub Pages method falló:', error);
+        showBitacorasError(`GitHub Pages method falló: ${error.message}`);
       }
     }
 
@@ -1919,26 +1988,50 @@
         console.log('📋 Iniciando petición fetch con proxy CORS...');
         let response;
         try {
-          response = await fetchWithCORSProxy(url, {
-            method: 'GET',
-            headers: {
-              'x-user-email': userEmail
-            },
-            signal: controller.signal
-          });
-          console.log('📋 Petición fetch completada');
-        } catch (proxyError) {
-          console.log('❌ Proxy CORS falló, intentando JSONP...', proxyError.message);
-          const jsonpData = await loadBitacorasWithJSONP();
-          console.log('✅ JSONP exitoso, procesando datos...');
+          // Detectar si estamos en GitHub Pages
+          const isGitHubPages = window.location.hostname.includes('github.io');
+          console.log('🐙 Es GitHub Pages:', isGitHubPages);
           
-          if (jsonpData && Array.isArray(jsonpData)) {
-            console.log('📋 Número de bitácoras recibidas via JSONP:', jsonpData.length);
-            bitacorasList = jsonpData;
-            showBitacorasSuccess(`Se cargaron ${jsonpData.length} bitácoras correctamente (via JSONP)`);
-            return jsonpData;
+          if (isGitHubPages) {
+            console.log('🐙 Usando método específico para GitHub Pages...');
+            const githubData = await loadBitacorasForGitHubPages();
+            console.log('✅ GitHub Pages method exitoso, procesando datos...');
+            
+            if (githubData && Array.isArray(githubData)) {
+              console.log('📋 Número de bitácoras recibidas via GitHub Pages:', githubData.length);
+              bitacorasList = githubData;
+              showBitacorasSuccess(`Se cargaron ${githubData.length} bitácoras correctamente (via GitHub Pages)`);
+              return githubData;
+            } else {
+              throw new Error('Datos GitHub Pages no válidos');
+            }
           } else {
-            throw new Error('Datos JSONP no válidos');
+            response = await fetchWithCORSProxy(url, {
+              method: 'GET',
+              headers: {
+                'x-user-email': userEmail
+              },
+              signal: controller.signal
+            });
+            console.log('📋 Petición fetch completada');
+          }
+        } catch (proxyError) {
+          console.log('❌ Método principal falló, intentando JSONP...', proxyError.message);
+          try {
+            const jsonpData = await loadBitacorasWithJSONP();
+            console.log('✅ JSONP exitoso, procesando datos...');
+            
+            if (jsonpData && Array.isArray(jsonpData)) {
+              console.log('📋 Número de bitácoras recibidas via JSONP:', jsonpData.length);
+              bitacorasList = jsonpData;
+              showBitacorasSuccess(`Se cargaron ${jsonpData.length} bitácoras correctamente (via JSONP)`);
+              return jsonpData;
+            } else {
+              throw new Error('Datos JSONP no válidos');
+            }
+          } catch (jsonpError) {
+            console.error('❌ JSONP también falló:', jsonpError.message);
+            throw new Error(`Todos los métodos fallaron. Principal: ${proxyError.message}, JSONP: ${jsonpError.message}`);
           }
         }
         
@@ -2647,6 +2740,9 @@
           </div>
           <button class="btn" onclick="testJSONPMethod()" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#f59e0b">
             🔄 JSONP
+          </button>
+          <button class="btn" onclick="testGitHubPagesMethod()" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#8b5cf6">
+            🐙 GitHub
           </button>
         </div>
         <div id="bitacoras-list">

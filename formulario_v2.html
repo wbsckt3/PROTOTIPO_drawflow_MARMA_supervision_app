@@ -302,6 +302,12 @@
     // API_BASE_URL se obtiene de auth.js
     const DRAFT_KEY = 'supervision_draft_v2';
     
+    // Configurar API_BASE_URL si no está definida
+    if (!window.API_BASE_URL) {
+      window.API_BASE_URL = 'https://www.refactorii.com/api/tenant';
+      console.log('⚠️ API_BASE_URL no estaba definida, configurando fallback:', window.API_BASE_URL);
+    }
+    
     // Variables globales
     let bitacoraData = null;
     let unidadResidencialData = null;
@@ -1716,9 +1722,33 @@
     let bitacorasList = [];
 
 
+    // Función para verificar conectividad
+    async function verificarConectividad() {
+      try {
+        console.log('🔍 Verificando conectividad...');
+        const testUrl = 'https://www.refactorii.com/api/tenant/health';
+        const response = await fetch(testUrl, { 
+          method: 'GET',
+          mode: 'cors',
+          signal: AbortSignal.timeout(5000)
+        });
+        console.log('✅ Servidor accesible:', response.status);
+        return true;
+      } catch (error) {
+        console.error('❌ Servidor no accesible:', error.message);
+        return false;
+      }
+    }
+
     // Función para cargar bitácoras del supervisor desde la API
     async function loadBitacorasSupervisor() {
       console.log('📋 Cargando bitácoras del supervisor...');
+      
+      // Verificar conectividad primero
+      const servidorAccesible = await verificarConectividad();
+      if (!servidorAccesible) {
+        throw new Error('El servidor no está accesible. Verifica tu conexión a internet.');
+      }
       
       try {
         const userEmail = getUserEmail();
@@ -1753,6 +1783,7 @@
           'Accept': 'application/json'
         });
         
+        console.log('📋 Iniciando petición fetch...');
         const response = await fetch(url, {
           method: 'GET',
           headers: {
@@ -1763,6 +1794,7 @@
           mode: 'cors',
           signal: controller.signal
         });
+        console.log('📋 Petición fetch completada');
         
         clearTimeout(timeoutId);
         
@@ -1816,7 +1848,9 @@
         // Manejo específico para errores de red
         if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
           console.error('❌ Error de conexión: No se pudo conectar con el servidor');
-          throw new Error('Error de conexión: No se pudo conectar con el servidor');
+          console.error('❌ URL intentada:', url);
+          console.error('❌ Error completo:', error);
+          throw new Error(`Error de conexión: No se pudo conectar con ${url}. Verifica tu conexión a internet y que el servidor esté disponible.`);
         }
         
         // Para cualquier otro error
@@ -2175,6 +2209,99 @@
       console.log('🔍 === FIN DEL DIAGNÓSTICO ===');
     }
 
+    // Función de diagnóstico de conectividad
+    async function diagnosticoConectividad() {
+      console.log('🔍 === DIAGNÓSTICO DE CONECTIVIDAD ===');
+      
+      const container = document.getElementById('bitacoras-list');
+      if (!container) return;
+      
+      container.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text)">🔍 Ejecutando diagnóstico...</div>';
+      
+      try {
+        // 1. Verificar configuración
+        console.log('1. Verificando configuración...');
+        const config = {
+          'API_BASE_URL': window.API_BASE_URL,
+          'User Email': getUserEmail(),
+          'User Agent': navigator.userAgent,
+          'Online': navigator.onLine
+        };
+        console.log('📋 Configuración:', config);
+        
+        // 2. Verificar conectividad básica
+        console.log('2. Verificando conectividad básica...');
+        const servidorAccesible = await verificarConectividad();
+        
+        // 3. Verificar endpoint específico
+        console.log('3. Verificando endpoint de bitácoras...');
+        const userEmail = getUserEmail();
+        const url = `${window.API_BASE_URL}/bitacoras-supervision`;
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'x-user-email': userEmail,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          mode: 'cors'
+        });
+        
+        console.log('📋 Respuesta del servidor:', {
+          status: response.status,
+          ok: response.ok,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('📋 Datos recibidos:', data);
+          
+          container.innerHTML = `
+            <div style="background: #22c55e; color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center;">
+              ✅ <strong>Diagnóstico Exitoso</strong><br>
+              <small>Servidor accesible y endpoint funcionando</small>
+            </div>
+            <div style="background: rgba(31,41,55,0.5); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.8rem;">
+              <strong>Detalles:</strong><br>
+              • URL: ${url}<br>
+              • Status: ${response.status}<br>
+              • Bitácoras encontradas: ${data.data ? data.data.length : 'N/A'}<br>
+              • Usuario: ${userEmail}
+            </div>
+          `;
+        } else {
+          const errorText = await response.text();
+          container.innerHTML = `
+            <div style="background: #ef4444; color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center;">
+              ❌ <strong>Error del Servidor</strong><br>
+              <small>Status: ${response.status}</small>
+            </div>
+            <div style="background: rgba(31,41,55,0.5); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.8rem;">
+              <strong>Error:</strong><br>
+              ${errorText}
+            </div>
+          `;
+        }
+        
+      } catch (error) {
+        console.error('❌ Error en diagnóstico:', error);
+        container.innerHTML = `
+          <div style="background: #ef4444; color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center;">
+            ❌ <strong>Error de Conectividad</strong><br>
+            <small>${error.message}</small>
+          </div>
+          <div style="background: rgba(31,41,55,0.5); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.8rem;">
+            <strong>Detalles del error:</strong><br>
+            ${error.stack || error.message}
+          </div>
+        `;
+      }
+      
+      console.log('🔍 === FIN DEL DIAGNÓSTICO ===');
+    }
+
     // Función de inicialización
     async function inicializarApp() {
       if (appInitialized) {
@@ -2322,6 +2449,14 @@
         <p style="margin:0 0 1rem 0; color:var(--text-dim); font-size:0.9rem">
           Cliente: <strong>Marma</strong> | Supervisión de unidades residenciales
         </p>
+        <div style="margin-bottom:1rem; display:flex; gap:0.5rem; align-items:center">
+          <button class="btn" onclick="diagnosticoConectividad()" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#3b82f6">
+            🔍 Diagnóstico
+          </button>
+          <button class="btn" onclick="loadBitacorasDashboard()" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#22c55e">
+            🔄 Recargar
+          </button>
+        </div>
         <div id="bitacoras-list">
           <!-- Las bitácoras se cargarán dinámicamente -->
         </div>

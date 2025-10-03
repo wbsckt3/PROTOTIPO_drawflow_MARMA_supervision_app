@@ -1778,18 +1778,14 @@
         const timeoutId = setTimeout(() => controller.abort(), 10000); // Reducir a 10 segundos
         
         console.log('📋 Headers de la petición:', {
-          'x-user-email': userEmail,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'x-user-email': userEmail
         });
         
         console.log('📋 Iniciando petición fetch...');
         const response = await fetch(url, {
           method: 'GET',
           headers: {
-            'x-user-email': userEmail,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'x-user-email': userEmail
           },
           mode: 'cors',
           signal: controller.signal

@@ -1721,237 +1721,37 @@
     // Variables globales para el dashboard
     let bitacorasList = [];
 
-    // Función para hacer peticiones con proxy CORS
-    async function fetchWithCORSProxy(url, options = {}) {
-      const proxies = [
-        'https://api.allorigins.win/raw?url=',
-        'https://corsproxy.io/?',
-        'https://thingproxy.freeboard.io/fetch/',
-        'https://cors-anywhere.herokuapp.com/'
-      ];
-      
-      for (let i = 0; i < proxies.length; i++) {
-        try {
-          const proxy = proxies[i];
-          let proxiedUrl;
-          let requestOptions = { ...options };
-          
-          if (proxy.includes('allorigins.win')) {
-            // allorigins.win no permite headers personalizados
-            proxiedUrl = proxy + encodeURIComponent(url);
-            requestOptions = {
-              method: 'GET',
-              mode: 'cors',
-              signal: options.signal || AbortSignal.timeout(10000)
-            };
-            console.log('⚠️ allorigins.win no soporta headers personalizados, enviando sin headers');
-          } else {
-            proxiedUrl = proxy + url;
-            requestOptions = {
-              ...options,
-              mode: 'cors',
-              signal: options.signal || AbortSignal.timeout(10000),
-              headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                ...options.headers
-              }
-            };
-          }
-          
-          console.log(`🌐 Intentando proxy ${i + 1}/${proxies.length}:`, proxiedUrl);
-          console.log('🌐 Headers enviados:', requestOptions.headers);
-          
-          const response = await fetch(proxiedUrl, requestOptions);
-          
-          if (response.ok) {
-            console.log(`✅ Proxy ${i + 1} funcionó correctamente`);
-            return response;
-          } else {
-            console.log(`⚠️ Proxy ${i + 1} respondió con status:`, response.status);
-          }
-        } catch (error) {
-          console.log(`❌ Proxy ${i + 1} falló:`, error.message);
-          if (i === proxies.length - 1) {
-            throw error; // Si es el último proxy, lanzar el error
-          }
-        }
-      }
-      
-      throw new Error('Todos los proxies CORS fallaron');
-    }
-
-    // Función específica para GitHub Pages
-    async function loadBitacorasForGitHubPages() {
-      console.log('🐙 Cargando bitácoras específicamente para GitHub Pages...');
-      
-      const userEmail = getUserEmail();
-      if (!userEmail) {
-        throw new Error('No hay usuario autenticado');
-      }
-      
-      // Usar un proxy CORS que funcione desde GitHub Pages
-      const proxyUrl = 'https://api.allorigins.win/raw?url=';
-      const targetUrl = `${window.API_BASE_URL}/bitacoras-supervision`;
-      const fullUrl = proxyUrl + encodeURIComponent(targetUrl);
-      
-      console.log('🌐 URL del proxy:', fullUrl);
-      console.log('📧 Email del usuario:', userEmail);
-      
-      try {
-        const response = await fetch(fullUrl, {
-          method: 'GET',
-          mode: 'cors',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          signal: AbortSignal.timeout(15000)
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Error del proxy: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('📋 Datos recibidos del proxy:', data);
-        
-        // Filtrar por email del usuario (ya que el proxy no puede enviar headers)
-        if (Array.isArray(data)) {
-          const filteredData = data.filter(bitacora => 
-            bitacora.supervisorEmail === userEmail || 
-            bitacora.email === userEmail ||
-            bitacora.userEmail === userEmail
-          );
-          console.log('📋 Bitácoras filtradas por email:', filteredData.length);
-          return filteredData;
-        }
-        
-        return data;
-      } catch (error) {
-        console.error('❌ Error con proxy para GitHub Pages:', error);
-        throw error;
-      }
-    }
-
-    // Función alternativa para cargar bitácoras usando JSONP (sin CORS)
-    async function loadBitacorasWithJSONP() {
-      console.log('🔄 Intentando método JSONP para evitar CORS...');
-      
-      const userEmail = getUserEmail();
-      if (!userEmail) {
-        throw new Error('No hay usuario autenticado');
-      }
-      
-      return new Promise((resolve, reject) => {
-        // Crear un callback único
-        const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
-        
-        // Crear el script tag
-        const script = document.createElement('script');
-        script.src = `https://www.refactorii.com/api/tenant/bitacoras-supervision?callback=${callbackName}&x-user-email=${encodeURIComponent(userEmail)}`;
-        
-        // Definir la función callback global
-        window[callbackName] = function(data) {
-          // Limpiar
-          document.head.removeChild(script);
-          delete window[callbackName];
-          
-          console.log('📋 Datos recibidos via JSONP:', data);
-          resolve(data);
-        };
-        
-        // Manejar errores
-        script.onerror = function() {
-          document.head.removeChild(script);
-          delete window[callbackName];
-          reject(new Error('Error al cargar datos via JSONP'));
-        };
-        
-        // Timeout
-        setTimeout(() => {
-          if (document.head.contains(script)) {
-            document.head.removeChild(script);
-            delete window[callbackName];
-            reject(new Error('Timeout en petición JSONP'));
-          }
-        }, 10000);
-        
-        // Agregar el script al DOM
-        document.head.appendChild(script);
-      });
-    }
-
-    // Función para probar el método JSONP
-    async function testJSONPMethod() {
-      console.log('🧪 Probando método JSONP...');
-      try {
-        const data = await loadBitacorasWithJSONP();
-        console.log('✅ JSONP exitoso:', data);
-        showBitacorasSuccess(`JSONP funcionó correctamente. Datos recibidos: ${Array.isArray(data) ? data.length : 'N/A'}`);
-      } catch (error) {
-        console.error('❌ JSONP falló:', error);
-        showBitacorasError(`JSONP falló: ${error.message}`);
-      }
-    }
-
-    // Función para probar el método específico de GitHub Pages
-    async function testGitHubPagesMethod() {
-      console.log('🧪 Probando método específico de GitHub Pages...');
-      try {
-        const data = await loadBitacorasForGitHubPages();
-        console.log('✅ GitHub Pages method exitoso:', data);
-        showBitacorasSuccess(`GitHub Pages method funcionó correctamente. Datos recibidos: ${Array.isArray(data) ? data.length : 'N/A'}`);
-      } catch (error) {
-        console.error('❌ GitHub Pages method falló:', error);
-        showBitacorasError(`GitHub Pages method falló: ${error.message}`);
-      }
-    }
-
     // Función para verificar conectividad
     async function verificarConectividad() {
       try {
         console.log('🔍 Verificando conectividad...');
         
-        // Primero verificar si estamos online
         if (!navigator.onLine) {
           console.error('❌ No hay conexión a internet');
           return false;
         }
         
-        // Intentar conectar al servidor principal (sin CORS para verificar conectividad básica)
         const testUrl = 'https://www.refactorii.com/api/tenant/health';
         console.log('🔍 Probando URL:', testUrl);
         
         const response = await fetch(testUrl, { 
-          method: 'GET',
-          mode: 'no-cors', // Cambiar a no-cors para evitar CORS
-          headers: {
-            'Accept': 'application/json'
-          },
-          signal: AbortSignal.timeout(5000)
+          method: 'GET'
         });
         
-        console.log('✅ Servidor accesible (sin CORS):', response.type);
-        return true; // Si no hay error, el servidor está accesible
+        console.log('✅ Servidor accesible:', response.status);
+        return response.ok;
       } catch (error) {
         console.error('❌ Servidor no accesible:', error.message);
         console.error('❌ Tipo de error:', error.name);
         
-        // Si falla, intentar con el endpoint principal usando no-cors
         try {
-          console.log('🔍 Intentando con endpoint principal (no-cors)...');
+          console.log('🔍 Intentando con endpoint principal...');
           const mainUrl = 'https://www.refactorii.com/api/tenant/bitacoras-supervision';
           const response = await fetch(mainUrl, { 
-            method: 'GET',
-            mode: 'no-cors',
-            headers: {
-              'Accept': 'application/json'
-            },
-            signal: AbortSignal.timeout(3000)
+            method: 'GET'
           });
-          console.log('✅ Endpoint principal accesible (sin CORS):', response.type);
-          return true;
+          console.log('✅ Endpoint principal accesible:', response.status);
+          return response.ok;
         } catch (fallbackError) {
           console.error('❌ Endpoint principal tampoco accesible:', fallbackError.message);
           return false;
@@ -1963,7 +1763,6 @@
     async function loadBitacorasSupervisor() {
       console.log('📋 Cargando bitácoras del supervisor...');
       
-      // Verificar conectividad primero
       const servidorAccesible = await verificarConectividad();
       if (!servidorAccesible) {
         throw new Error('El servidor no está accesible. Verifica tu conexión a internet.');
@@ -1989,105 +1788,44 @@
         console.log('📋 API_BASE_URL:', window.API_BASE_URL);
         console.log('📋 User email:', userEmail);
         
-        // Detectar si es móvil
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        console.log('📱 Es móvil:', isMobile);
-        
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // Reducir a 10 segundos
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         
         console.log('📋 Headers de la petición:', {
           'x-user-email': userEmail,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Accept': 'application/json'
         });
         
-        console.log('📋 Iniciando petición fetch con proxy CORS...');
-        let response;
-        try {
-          // Detectar si estamos en GitHub Pages
-          const isGitHubPages = window.location.hostname.includes('github.io');
-          console.log('🐙 Es GitHub Pages:', isGitHubPages);
-          
-          if (isGitHubPages) {
-            console.log('🐙 Usando método específico para GitHub Pages...');
-            const githubData = await loadBitacorasForGitHubPages();
-            console.log('✅ GitHub Pages method exitoso, procesando datos...');
-            
-            if (githubData && Array.isArray(githubData)) {
-              console.log('📋 Número de bitácoras recibidas via GitHub Pages:', githubData.length);
-              bitacorasList = githubData;
-              showBitacorasSuccess(`Se cargaron ${githubData.length} bitácoras correctamente (via GitHub Pages)`);
-              return githubData;
-            } else {
-              throw new Error('Datos GitHub Pages no válidos');
-            }
-          } else {
-            response = await fetchWithCORSProxy(url, {
-              method: 'GET',
-              headers: {
-                'x-user-email': userEmail,
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-              },
-              signal: controller.signal
-            });
-            console.log('📋 Petición fetch completada');
-          }
-        } catch (proxyError) {
-          console.log('❌ Método principal falló, intentando JSONP...', proxyError.message);
-          try {
-            const jsonpData = await loadBitacorasWithJSONP();
-            console.log('✅ JSONP exitoso, procesando datos...');
-            
-            if (jsonpData && Array.isArray(jsonpData)) {
-              console.log('📋 Número de bitácoras recibidas via JSONP:', jsonpData.length);
-              bitacorasList = jsonpData;
-              showBitacorasSuccess(`Se cargaron ${jsonpData.length} bitácoras correctamente (via JSONP)`);
-              return jsonpData;
-            } else {
-              throw new Error('Datos JSONP no válidos');
-            }
-          } catch (jsonpError) {
-            console.error('❌ JSONP también falló:', jsonpError.message);
-            throw new Error(`Todos los métodos fallaron. Principal: ${proxyError.message}, JSONP: ${jsonpError.message}`);
-          }
-        }
+        console.log('📋 Iniciando petición fetch directa...');
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'x-user-email': userEmail,
+            'Accept': 'application/json'
+          },
+          signal: controller.signal
+        });
+        console.log('📋 Petición fetch completada');
         
         clearTimeout(timeoutId);
         
         console.log('📋 Response status:', response.status);
         console.log('📋 Response ok:', response.ok);
-        console.log('📋 Response headers:', Object.fromEntries(response.headers.entries()));
         
         if (!response.ok) {
           const errorText = await response.text();
           console.error('❌ Error response:', errorText);
-          console.error('❌ Error status:', response.status);
-          console.error('❌ Error statusText:', response.statusText);
-          
-          // Error del servidor
-          console.error('❌ Error del servidor:', errorText);
-          
           throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
         
         const data = await response.json();
         console.log('📋 Datos recibidos de la API:', data);
-        console.log('📋 Tipo de data:', typeof data);
-        console.log('📋 Keys de data:', Object.keys(data));
         
         if (data.success && data.data) {
-          console.log('📋 Bitácoras cargadas (formato success):', data.data.length);
-          console.log('📋 Primeras 3 bitácoras:', data.data.slice(0, 3));
           return data.data;
         } else if (data.data && Array.isArray(data.data)) {
-          console.log('📋 Bitácoras cargadas (formato alternativo):', data.data.length);
-          console.log('📋 Primeras 3 bitácoras:', data.data.slice(0, 3));
           return data.data;
         } else if (Array.isArray(data)) {
-          console.log('📋 Bitácoras cargadas (array directo):', data.length);
-          console.log('📋 Primeras 3 bitácoras:', data.slice(0, 3));
           return data;
         } else {
           console.log('📋 No hay bitácoras disponibles');
@@ -2096,23 +1834,12 @@
         }
       } catch (error) {
         console.error('❌ Error cargando bitácoras del supervisor:', error);
-        
-        // Manejo específico para timeout
         if (error.name === 'AbortError') {
-          console.error('⏰ Timeout: La petición tardó más de 10 segundos');
           throw new Error('Timeout: La petición tardó más de 10 segundos');
         }
-        
-        // Manejo específico para errores de red
         if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-          console.error('❌ Error de conexión: No se pudo conectar con el servidor');
-          console.error('❌ URL intentada:', url);
-          console.error('❌ Error completo:', error);
-          throw new Error(`Error de conexión: No se pudo conectar con ${url}. Verifica tu conexión a internet y que el servidor esté disponible.`);
+          throw new Error(`Error de conexión: No se pudo conectar con ${window.API_BASE_URL}.`);
         }
-        
-        // Para cualquier otro error
-        console.error('❌ Error general:', error.message);
         throw error;
       }
     }
@@ -2477,7 +2204,6 @@
       container.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text)">🔍 Ejecutando diagnóstico...</div>';
       
       try {
-        // 1. Verificar configuración
         console.log('1. Verificando configuración...');
         const config = {
           'API_BASE_URL': window.API_BASE_URL,
@@ -2487,11 +2213,9 @@
         };
         console.log('📋 Configuración:', config);
         
-        // 2. Verificar conectividad básica
         console.log('2. Verificando conectividad básica...');
         const servidorAccesible = await verificarConectividad();
         
-        // 3. Verificar endpoint específico
         console.log('3. Verificando endpoint de bitácoras...');
         const userEmail = getUserEmail();
         const url = `${window.API_BASE_URL}/bitacoras-supervision`;
@@ -2499,24 +2223,22 @@
         console.log('📋 Intentando conectar a:', url);
         console.log('📋 Con email:', userEmail);
         
-        const response = await fetchWithCORSProxy(url, {
+        const response = await fetch(url, {
           method: 'GET',
           headers: {
-            'x-user-email': userEmail
+            'x-user-email': userEmail,
+            'Accept': 'application/json'
           },
-          signal: AbortSignal.timeout(10000) // 10 segundos timeout
+          signal: AbortSignal.timeout(10000)
         });
         
         console.log('📋 Respuesta del servidor:', {
           status: response.status,
-          ok: response.ok,
-          headers: Object.fromEntries(response.headers.entries())
+          ok: response.ok
         });
         
         if (response.ok) {
           const data = await response.json();
-          console.log('📋 Datos recibidos:', data);
-          
           container.innerHTML = `
             <div style="background: #22c55e; color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center;">
               ✅ <strong>Diagnóstico Exitoso</strong><br>
@@ -2526,7 +2248,7 @@
               <strong>Detalles:</strong><br>
               • URL: ${url}<br>
               • Status: ${response.status}<br>
-              • Bitácoras encontradas: ${data.data ? data.data.length : 'N/A'}<br>
+              • Bitácoras encontradas: ${data.data ? data.data.length : (Array.isArray(data) ? data.length : 'N/A')}<br>
               • Usuario: ${userEmail}
             </div>
           `;
@@ -2546,7 +2268,6 @@
         
       } catch (error) {
         console.error('❌ Error en diagnóstico:', error);
-        
         let errorType = 'Error Desconocido';
         let errorMessage = error.message;
         let suggestions = [];
@@ -2572,10 +2293,9 @@
           errorType = 'Error de CORS';
           errorMessage = 'El servidor no permite peticiones desde este dominio';
           suggestions = [
-            'El servidor no está configurado para aceptar peticiones desde wbsckt3.github.io',
-            'Se está usando un proxy CORS para solucionar este problema',
-            'Contacta al administrador del servidor para configurar CORS',
-            'Verifica que estés usando el dominio correcto'
+            'Asegúrate de que el backend permita tu dominio',
+            'Evita proxies y prueba directo desde tu VPS',
+            'Verifica los headers permitidos en CORS'
           ];
         }
         
@@ -2585,8 +2305,8 @@
             <small>${errorMessage}</small>
           </div>
           <div style="background: rgba(31,41,55,0.5); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.8rem; margin-bottom: 1rem;">
-            <strong>URL intentada:</strong> ${url}<br>
-            <strong>Email:</strong> ${userEmail}<br>
+            <strong>URL intentada:</strong> ${window.API_BASE_URL}/bitacoras-supervision<br>
+            <strong>Email:</strong> ${getUserEmail()}<br>
             <strong>Tipo de error:</strong> ${error.name}<br>
             <strong>Mensaje:</strong> ${error.message}
           </div>
@@ -2753,15 +2473,6 @@
           </button>
           <button class="btn" onclick="loadBitacorasDashboard()" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#22c55e">
             🔄 Recargar
-          </button>
-          <div style="background:rgba(59,130,246,0.1); color:#3b82f6; padding:0.3rem 0.6rem; border-radius:4px; font-size:0.7rem; border:1px solid rgba(59,130,246,0.3)">
-            🌐 Proxy CORS
-          </div>
-          <button class="btn" onclick="testJSONPMethod()" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#f59e0b">
-            🔄 JSONP
-          </button>
-          <button class="btn" onclick="testGitHubPagesMethod()" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#8b5cf6">
-            🐙 GitHub
           </button>
         </div>
         <div id="bitacoras-list">

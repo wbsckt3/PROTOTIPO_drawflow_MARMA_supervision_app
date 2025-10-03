@@ -1721,22 +1721,65 @@
     // Variables globales para el dashboard
     let bitacorasList = [];
 
+    // Función para hacer peticiones con proxy CORS
+    async function fetchWithCORSProxy(url, options = {}) {
+      // Usar un proxy CORS público
+      const corsProxy = 'https://api.allorigins.win/raw?url=';
+      const proxiedUrl = corsProxy + encodeURIComponent(url);
+      
+      console.log('🌐 Usando proxy CORS:', proxiedUrl);
+      
+      const response = await fetch(proxiedUrl, {
+        ...options,
+        mode: 'cors'
+      });
+      
+      return response;
+    }
+
 
     // Función para verificar conectividad
     async function verificarConectividad() {
       try {
         console.log('🔍 Verificando conectividad...');
+        
+        // Primero verificar si estamos online
+        if (!navigator.onLine) {
+          console.error('❌ No hay conexión a internet');
+          return false;
+        }
+        
+        // Intentar conectar al servidor principal (sin CORS para verificar conectividad básica)
         const testUrl = 'https://www.refactorii.com/api/tenant/health';
+        console.log('🔍 Probando URL:', testUrl);
+        
         const response = await fetch(testUrl, { 
           method: 'GET',
-          mode: 'cors',
+          mode: 'no-cors', // Cambiar a no-cors para evitar CORS
           signal: AbortSignal.timeout(5000)
         });
-        console.log('✅ Servidor accesible:', response.status);
-        return true;
+        
+        console.log('✅ Servidor accesible (sin CORS):', response.type);
+        return true; // Si no hay error, el servidor está accesible
       } catch (error) {
         console.error('❌ Servidor no accesible:', error.message);
-        return false;
+        console.error('❌ Tipo de error:', error.name);
+        
+        // Si falla, intentar con el endpoint principal usando no-cors
+        try {
+          console.log('🔍 Intentando con endpoint principal (no-cors)...');
+          const mainUrl = 'https://www.refactorii.com/api/tenant/bitacoras-supervision';
+          const response = await fetch(mainUrl, { 
+            method: 'GET',
+            mode: 'no-cors',
+            signal: AbortSignal.timeout(3000)
+          });
+          console.log('✅ Endpoint principal accesible (sin CORS):', response.type);
+          return true;
+        } catch (fallbackError) {
+          console.error('❌ Endpoint principal tampoco accesible:', fallbackError.message);
+          return false;
+        }
       }
     }
 
@@ -1781,13 +1824,12 @@
           'x-user-email': userEmail
         });
         
-        console.log('📋 Iniciando petición fetch...');
-        const response = await fetch(url, {
+        console.log('📋 Iniciando petición fetch con proxy CORS...');
+        const response = await fetchWithCORSProxy(url, {
           method: 'GET',
           headers: {
             'x-user-email': userEmail
           },
-          mode: 'cors',
           signal: controller.signal
         });
         console.log('📋 Petición fetch completada');
@@ -2234,12 +2276,15 @@
         const userEmail = getUserEmail();
         const url = `${window.API_BASE_URL}/bitacoras-supervision`;
         
-        const response = await fetch(url, {
+        console.log('📋 Intentando conectar a:', url);
+        console.log('📋 Con email:', userEmail);
+        
+        const response = await fetchWithCORSProxy(url, {
           method: 'GET',
           headers: {
-            'x-user-email': userEmail,
+            'x-user-email': userEmail
           },
-          mode: 'cors'
+          signal: AbortSignal.timeout(10000) // 10 segundos timeout
         });
         
         console.log('📋 Respuesta del servidor:', {
@@ -2281,14 +2326,53 @@
         
       } catch (error) {
         console.error('❌ Error en diagnóstico:', error);
+        
+        let errorType = 'Error Desconocido';
+        let errorMessage = error.message;
+        let suggestions = [];
+        
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+          errorType = 'Error de Conectividad';
+          errorMessage = 'No se pudo conectar con el servidor';
+          suggestions = [
+            'Verifica tu conexión a internet',
+            'El servidor puede estar caído',
+            'Verifica que la URL sea correcta',
+            'Revisa la consola para más detalles'
+          ];
+        } else if (error.name === 'AbortError') {
+          errorType = 'Timeout';
+          errorMessage = 'La petición tardó demasiado tiempo';
+          suggestions = [
+            'El servidor está respondiendo muy lento',
+            'Verifica tu conexión a internet',
+            'Intenta nuevamente en unos minutos'
+          ];
+        } else if (error.message.includes('CORS') || error.message.includes('Access-Control-Allow-Origin')) {
+          errorType = 'Error de CORS';
+          errorMessage = 'El servidor no permite peticiones desde este dominio';
+          suggestions = [
+            'El servidor no está configurado para aceptar peticiones desde wbsckt3.github.io',
+            'Se está usando un proxy CORS para solucionar este problema',
+            'Contacta al administrador del servidor para configurar CORS',
+            'Verifica que estés usando el dominio correcto'
+          ];
+        }
+        
         container.innerHTML = `
           <div style="background: #ef4444; color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center;">
-            ❌ <strong>Error de Conectividad</strong><br>
-            <small>${error.message}</small>
+            ❌ <strong>${errorType}</strong><br>
+            <small>${errorMessage}</small>
           </div>
-          <div style="background: rgba(31,41,55,0.5); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.8rem;">
-            <strong>Detalles del error:</strong><br>
-            ${error.stack || error.message}
+          <div style="background: rgba(31,41,55,0.5); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.8rem; margin-bottom: 1rem;">
+            <strong>URL intentada:</strong> ${url}<br>
+            <strong>Email:</strong> ${userEmail}<br>
+            <strong>Tipo de error:</strong> ${error.name}<br>
+            <strong>Mensaje:</strong> ${error.message}
+          </div>
+          <div style="background: rgba(59,130,246,0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #3b82f6;">
+            <strong>💡 Sugerencias:</strong><br>
+            ${suggestions.map(s => `• ${s}`).join('<br>')}
           </div>
         `;
       }
@@ -2443,13 +2527,16 @@
         <p style="margin:0 0 1rem 0; color:var(--text-dim); font-size:0.9rem">
           Cliente: <strong>Marma</strong> | Supervisión de unidades residenciales
         </p>
-        <div style="margin-bottom:1rem; display:flex; gap:0.5rem; align-items:center">
+        <div style="margin-bottom:1rem; display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap">
           <button class="btn" onclick="diagnosticoConectividad()" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#3b82f6">
             🔍 Diagnóstico
           </button>
           <button class="btn" onclick="loadBitacorasDashboard()" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#22c55e">
             🔄 Recargar
           </button>
+          <div style="background:rgba(59,130,246,0.1); color:#3b82f6; padding:0.3rem 0.6rem; border-radius:4px; font-size:0.7rem; border:1px solid rgba(59,130,246,0.3)">
+            🌐 Proxy CORS
+          </div>
         </div>
         <div id="bitacoras-list">
           <!-- Las bitácoras se cargarán dinámicamente -->

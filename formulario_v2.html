@@ -1913,6 +1913,12 @@
           }
         }
         
+        // Mostrar contador de visitas
+        const visitsCountEl = document.getElementById('visits-count');
+        if (visitsCountEl) {
+          visitsCountEl.textContent = String(bitacoras.length);
+        }
+        
         if (bitacoras.length === 0) {
           container.innerHTML = '<p style="text-align:center;color:var(--text-dim);padding:2rem">No tienes bitácoras asignadas</p>';
           return;
@@ -2465,7 +2471,7 @@
       <div class="card" style="margin-bottom:1rem">
         <h2 style="margin:0 0 1rem 0; color:var(--text)">Mis Visitas Agendadas</h2>
         <p style="margin:0 0 1rem 0; color:var(--text-dim); font-size:0.9rem">
-          Cliente: <strong>Marma</strong> | Supervisión de unidades residenciales
+          Cliente: <strong>Marma</strong> | Supervisión de unidades residenciales | Visitas: <strong id="visits-count">-</strong>
         </p>
         <div style="margin-bottom:1rem; display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap">
           <button class="btn" onclick="diagnosticoConectividad()" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#3b82f6">
@@ -2544,6 +2550,32 @@
       // Asegurar que el formulario esté oculto
       hideFormOnLoad();
       
+      // Modo debug: permitir autenticación por parámetro de URL (?debugEmail=correo)
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const debugEmail = params.get('debugEmail') || params.get('email');
+        if (debugEmail) {
+          const tokenExpiry = Date.now() + (24 * 60 * 60 * 1000);
+          localStorage.setItem('refactorii_token', 'debug');
+          localStorage.setItem('token_expiry', tokenExpiry.toString());
+          localStorage.setItem('user_data', JSON.stringify({
+            FullName: debugEmail,
+            GivenName: '',
+            FamilyName: '',
+            ImageURL: '',
+            Email: debugEmail
+          }));
+          console.log('🔓 Modo debug: autenticación simulada para', debugEmail);
+          const overlay = document.getElementById('auth-overlay');
+          if (overlay) {
+            overlay.style.display = 'none';
+            document.body.classList.remove('auth-lock');
+          }
+        }
+      } catch (e) {
+        console.warn('⚠️ Error en modo debug auth:', e);
+      }
+
       // Inicializar verificación de geolocalización
       checkGeolocationSupport();
       

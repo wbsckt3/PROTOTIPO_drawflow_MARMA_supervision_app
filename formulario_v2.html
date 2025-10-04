@@ -326,93 +326,6 @@
     // Obtener parámetros de la URL (para compatibilidad con acceso directo)
     const urlParams = new URLSearchParams(location.search);
     const bitacoraId = urlParams.get('bitacoraId');
-    // Parámetros de depuración y red
-    const apiBaseParam = urlParams.get('apiBase');
-    const useProxy = urlParams.get('useProxy') === '1';
-    const timeoutMs = Number(urlParams.get('timeoutMs') || 10000);
-    // Modo sin headers personalizados (algunos proxies bloquean headers)
-    const headerless = (urlParams.get('headerless') === '1') || (useProxy && urlParams.get('headerless') !== '0');
-
-    // Resolver base de API efectiva con posibilidad de override por querystring
-    function getEffectiveApiBase(){
-      const base = (apiBaseParam && apiBaseParam.trim()) ? apiBaseParam.trim() : window.API_BASE_URL;
-      return base?.endsWith('/') ? base.slice(0, -1) : base;
-    }
-
-    // Construir URL absoluta a partir de un path relativo de API
-    function getApiUrl(path){
-      const p = (path || '').startsWith('/') ? path : `/${path||''}`;
-      return `${getEffectiveApiBase()}${p}`;
-    }
-
-    function wrapWithProxyIfNeeded(absoluteUrl){
-      if (!useProxy) return absoluteUrl;
-      // Proxy genérico para pruebas. Nota: algunos proxies no reenvían headers personalizados.
-      const target = absoluteUrl.startsWith('http') ? absoluteUrl : location.origin + absoluteUrl;
-      return `https://cors.isomorphic-git.org/${target}`;
-    }
-
-    function isKasperskyHtmlSnippet(text){
-      if (!text) return false;
-      const t = text.slice(0, 2000).toLowerCase();
-      return t.includes('kaspersky endpoint security') || t.includes('kaspersky');
-    }
-
-    async function fetchWithTimeout(url, options){
-      const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), timeoutMs);
-      try {
-        const response = await fetch(url, { ...(options||{}), signal: controller.signal });
-        return response;
-      } finally {
-        clearTimeout(id);
-      }
-    }
-
-    async function fetchJson(pathOrAbsolute, opts){
-      const isAbsolute = /^https?:\/\//i.test(pathOrAbsolute);
-      let url = isAbsolute ? pathOrAbsolute : getApiUrl(pathOrAbsolute);
-
-      const headers = Object.assign({ 'Accept': 'application/json' }, (opts && opts.headers) || {});
-
-      // Si estamos en modo headerless, mover x-user-email a querystring
-      if (headerless && headers['x-user-email']) {
-        const u = new URL(url, location.origin);
-        u.searchParams.set('x_user_email', headers['x-user-email']);
-        url = u.toString();
-        delete headers['x-user-email'];
-      }
-
-      const finalUrl = wrapWithProxyIfNeeded(url);
-      const method = (opts && opts.method) || 'GET';
-      const resp = await fetchWithTimeout(finalUrl, { method, headers });
-
-      // Detectar interceptación por Kaspersky (devuelve HTML)
-      const contentType = resp.headers.get('content-type') || '';
-      if (contentType.includes('text/html')) {
-        const html = await resp.text();
-        if (isKasperskyHtmlSnippet(html)) {
-          const err = new Error('Interceptado por Kaspersky/antivirus: se recibió HTML en lugar de JSON');
-          err.name = 'KASPERSKY_INTERCEPT';
-          err.details = html.slice(0, 2000);
-          throw err;
-        }
-        // Si es HTML y no es Kaspersky, devolver error genérico
-        const err = new Error(`Respuesta no JSON (content-type: ${contentType})`);
-        err.name = 'NON_JSON_RESPONSE';
-        err.details = await Promise.resolve(html.slice(0, 2000));
-        throw err;
-      }
-
-      if (!resp.ok) {
-        const text = await resp.text().catch(()=> '');
-        const err = new Error(`Error ${resp.status}: ${resp.statusText}`);
-        err.details = text;
-        throw err;
-      }
-
-      return await resp.json();
-    }
 
     function makeId(areaKey, item){
       return `${areaKey}__${item.replace(/[^a-zA-Z0-9]+/g,'_')}`;
@@ -1154,6 +1067,75 @@
       return true;
     }
 
+    // Función para mostrar modal de geolocalización
+    function showGeolocationModal(areaKey, item) {
+      // Crear modal si no existe
+      let modal = document.getElementById('geolocation-modal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'geolocation-modal';
+        modal.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,0.8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 10000;
+        `;
+        
+        modal.innerHTML = `
+          <div style="background: var(--bg); padding: 2rem; border-radius: 12px; max-width: 400px; text-align: center; border: 1px solid var(--border);">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📍</div>
+            <h3 style="margin: 0 0 1rem 0; color: var(--text);">Geolocalización Requerida</h3>
+            <p style="margin: 0 0 1.5rem 0; color: var(--text-dim); line-height: 1.5;">
+              Para calificar como "R" necesitas permitir el acceso a tu ubicación para tomar fotos con geolocalización.
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+              <button id="geo-allow-btn" style="padding: 0.75rem 1.5rem; background: #22c55e; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                ✅ Permitir Ubicación
+              </button>
+              <button id="geo-deny-btn" style="padding: 0.75rem 1.5rem; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                ❌ No Permitir
+              </button>
+            </div>
+            <div id="geo-status" style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-dim);"></div>
+          </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Event listeners
+        document.getElementById('geo-allow-btn').onclick = () => {
+          requestGeolocationPermission(areaKey, item);
+        };
+        
+        document.getElementById('geo-deny-btn').onclick = () => {
+          closeGeolocationModal();
+          // Cambiar calificación a "B" si no permite geolocalización
+          const select = document.querySelector(`select[data-area="${areaKey}"][data-item="${item}"]`);
+          if (select) {
+            select.value = 'B';
+            updateRating(areaKey, item, 'B');
+          }
+        };
+      }
+      
+      // Mostrar modal
+      modal.style.display = 'flex';
+    }
+
+    // Función para cerrar modal de geolocalización
+    function closeGeolocationModal() {
+      const modal = document.getElementById('geolocation-modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    }
+
     // Función para solicitar permisos de geolocalización
     function requestGeolocationPermission(areaKey, item) {
       console.log('📍 Solicitando permisos de geolocalización...');
@@ -1177,8 +1159,12 @@
         return;
       }
 
-      // Mostrar indicador de carga
-      showGeolocationLoading('Obteniendo ubicación...');
+      // Mostrar indicador de carga en el modal
+      const statusEl = document.getElementById('geo-status');
+      if (statusEl) {
+        statusEl.textContent = 'Obteniendo ubicación...';
+        statusEl.style.color = '#3b82f6';
+      }
       
       navigator.geolocation.getCurrentPosition(
         function(position) {
@@ -1192,7 +1178,15 @@
           geolocationPermissionDenied = false;
           console.log('✅ Ubicación obtenida:', currentLocation);
           
-          showGeolocationSuccess('Ubicación obtenida ✅');
+          if (statusEl) {
+            statusEl.textContent = '✅ Ubicación obtenida correctamente';
+            statusEl.style.color = '#22c55e';
+          }
+          
+          // Cerrar modal después de un breve delay
+          setTimeout(() => {
+            closeGeolocationModal();
+          }, 1500);
         },
         function(error) {
           console.warn('❌ Error obteniendo ubicación:', error.message);
@@ -1214,7 +1208,15 @@
               errorMessage = error.message;
           }
           
-          showGeolocationError(errorMessage);
+          if (statusEl) {
+            statusEl.textContent = `❌ ${errorMessage}`;
+            statusEl.style.color = '#ef4444';
+          }
+          
+          // Cerrar modal después de mostrar error
+          setTimeout(() => {
+            closeGeolocationModal();
+          }, 2000);
         },
         {
           enableHighAccuracy: true,
@@ -1320,9 +1322,9 @@
       const block = document.getElementById(cId);
       if (block) block.style.display = value==='R' ? 'block' : 'none';
       
-      // Si se selecciona "R", solicitar permisos de geolocalización
+      // Si se selecciona "R", mostrar modal para solicitar geolocalización
       if (value === 'R') {
-        requestGeolocationPermission(areaKey, item);
+        showGeolocationModal(areaKey, item);
       }
       
       updateAreaCount(areaKey);
@@ -1811,33 +1813,16 @@
     // Función para verificar conectividad
     async function verificarConectividad() {
       try {
-        console.log('🔍 Verificando conectividad...');
-        
-        if (!navigator.onLine) {
-          console.error('❌ No hay conexión a internet');
-          return false;
+        // Solo verificar si el navegador reporta estar online para no bloquear por CORS
+        const online = navigator.onLine;
+        if (!online) {
+          console.error('❌ No hay conexión a internet (navigator.onLine=false)');
         }
-        
-        const testUrl = getApiUrl('health');
-        console.log('🔍 Probando URL:', testUrl, '(proxy:', useProxy, ', headerless:', headerless, ', timeoutMs:', timeoutMs, ')');
-        const responseData = await fetchJson(testUrl, { method: 'GET' });
-        
-        console.log('✅ Servidor accesible (health OK)');
-        return true;
+        return online;
       } catch (error) {
-        console.error('❌ Servidor no accesible:', error.message);
-        console.error('❌ Tipo de error:', error.name);
-        
-        try {
-          console.log('🔍 Intentando con endpoint principal...');
-          const mainUrl = getApiUrl('bitacoras-supervision');
-          await fetchJson(mainUrl, { method: 'GET' });
-          console.log('✅ Endpoint principal accesible');
-          return true;
-        } catch (fallbackError) {
-          console.error('❌ Endpoint principal tampoco accesible:', fallbackError.message);
-          return false;
-        }
+        console.error('❌ Error verificando conectividad:', error);
+        // En caso de duda, no bloquear
+        return true;
       }
     }
 
@@ -1847,31 +1832,61 @@
       
       const servidorAccesible = await verificarConectividad();
       if (!servidorAccesible) {
-        throw new Error('El servidor no está accesible. Verifica tu conexión a internet.');
+        // No bloquear: continuar para obtener error específico del endpoint
+        console.warn('⚠️ Conectividad no confirmada, continuando de todas formas para probar el endpoint...');
       }
       
       try {
         const userEmail = getUserEmail();
         console.log('📋 Usuario:', userEmail);
-        console.log('📋 API_BASE_URL:', getEffectiveApiBase());
+        console.log('📋 API_BASE_URL:', window.API_BASE_URL);
         
         if (!userEmail) {
           console.error('❌ No hay usuario autenticado');
           throw new Error('No hay usuario autenticado');
         }
         
-        if (!getEffectiveApiBase()) {
+        if (!window.API_BASE_URL) {
           console.error('❌ API_BASE_URL no está definida');
           throw new Error('URL de API no configurada');
         }
         
-        const url = getApiUrl('bitacoras-supervision');
+        const url = `${window.API_BASE_URL}/bitacoras-supervision`;
         console.log('📋 URL completa:', url);
-        console.log('📋 API_BASE_URL:', getEffectiveApiBase());
+        console.log('📋 API_BASE_URL:', window.API_BASE_URL);
         console.log('📋 User email:', userEmail);
         
-        console.log('📋 Iniciando petición con helper... (proxy:', useProxy, ', headerless:', headerless, ')');
-        const data = await fetchJson(url, { method: 'GET', headers: { 'x-user-email': userEmail } });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        console.log('📋 Headers de la petición:', {
+          'x-user-email': userEmail,
+          'Accept': 'application/json'
+        });
+        
+        console.log('📋 Iniciando petición fetch directa...');
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'x-user-email': userEmail,
+            'Accept': 'application/json'
+          },
+          signal: controller.signal
+        });
+        console.log('📋 Petición fetch completada');
+        
+        clearTimeout(timeoutId);
+        
+        console.log('📋 Response status:', response.status);
+        console.log('📋 Response ok:', response.ok);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ Error response:', errorText);
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
         console.log('📋 Datos recibidos de la API:', data);
         
         if (data.success && data.data) {
@@ -1890,11 +1905,8 @@
         if (error.name === 'AbortError') {
           throw new Error('Timeout: La petición tardó más de 10 segundos');
         }
-        if (error.name === 'KASPERSKY_INTERCEPT') {
-          throw new Error('Interceptado por Kaspersky/antivirus. Prueba desactivar "Analizar conexiones cifradas" o agrega una excepción para el dominio.');
-        }
         if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-          throw new Error(`Error de conexión: No se pudo conectar con ${getEffectiveApiBase()}.`);
+          throw new Error(`Error de conexión o CORS. Verifica que el backend permita el origen actual y el header x-user-email.`);
         }
         throw error;
       }
@@ -1967,12 +1979,6 @@
           if (companyElement) {
             companyElement.textContent = companyName;
           }
-        }
-        
-        // Mostrar contador de visitas
-        const visitsCountEl = document.getElementById('visits-count');
-        if (visitsCountEl) {
-          visitsCountEl.textContent = String(bitacoras.length);
         }
         
         if (bitacoras.length === 0) {
@@ -2107,10 +2113,17 @@
         updateLoadingState();
         
         // Cargar datos de la bitácora desde el servidor
-        const responseData = await fetchJson(`bitacoras-supervision/${bitacoraId}`, {
-          method: 'GET',
-          headers: { 'x-user-email': getUserEmail() }
+        const response = await fetch(`${window.API_BASE_URL}/bitacoras-supervision/${bitacoraId}`, {
+          headers: {
+            'x-user-email': getUserEmail()
+          }
         });
+        
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        
+        const responseData = await response.json();
         bitacoraData = responseData.data || responseData;
         
         // Si la respuesta incluye datos de la unidad residencial, usarlos
@@ -2118,10 +2131,17 @@
           unidadResidencialData = bitacoraData.unidadResidencial;
         } else {
           // Cargar datos de la unidad residencial por separado
-          const unidadResponseData = await fetchJson(`unidades-residenciales/${bitacoraData.unidadResidencialId}`, {
-            method: 'GET',
-            headers: { 'x-user-email': getUserEmail() }
+          const unidadResponse = await fetch(`${window.API_BASE_URL}/unidades-residenciales/${bitacoraData.unidadResidencialId}`, {
+            headers: {
+              'x-user-email': getUserEmail()
+            }
           });
+          
+          if (!unidadResponse.ok) {
+            throw new Error(`Error ${unidadResponse.status}: ${unidadResponse.statusText}`);
+          }
+          
+          const unidadResponseData = await unidadResponse.json();
           unidadResidencialData = unidadResponseData.data || unidadResponseData;
         }
         
@@ -2254,13 +2274,10 @@
       try {
         console.log('1. Verificando configuración...');
         const config = {
-          'API_BASE_URL': getEffectiveApiBase(),
+          'API_BASE_URL': window.API_BASE_URL,
           'User Email': getUserEmail(),
           'User Agent': navigator.userAgent,
-          'Online': navigator.onLine,
-          'Proxy': useProxy,
-          'Headerless': headerless,
-          'TimeoutMs': timeoutMs
+          'Online': navigator.onLine
         };
         console.log('📋 Configuración:', config);
         
@@ -2269,12 +2286,27 @@
         
         console.log('3. Verificando endpoint de bitácoras...');
         const userEmail = getUserEmail();
-        const url = getApiUrl('bitacoras-supervision');
+        const url = `${window.API_BASE_URL}/bitacoras-supervision`;
         
         console.log('📋 Intentando conectar a:', url);
         console.log('📋 Con email:', userEmail);
         
-        const data = await fetchJson(url, { method: 'GET', headers: { 'x-user-email': userEmail } });
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'x-user-email': userEmail,
+            'Accept': 'application/json'
+          },
+          signal: AbortSignal.timeout(10000)
+        });
+        
+        console.log('📋 Respuesta del servidor:', {
+          status: response.status,
+          ok: response.ok
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
           container.innerHTML = `
             <div style="background: #22c55e; color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center;">
               ✅ <strong>Diagnóstico Exitoso</strong><br>
@@ -2283,10 +2315,25 @@
             <div style="background: rgba(31,41,55,0.5); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.8rem;">
               <strong>Detalles:</strong><br>
               • URL: ${url}<br>
+              • Status: ${response.status}<br>
               • Bitácoras encontradas: ${data.data ? data.data.length : (Array.isArray(data) ? data.length : 'N/A')}<br>
               • Usuario: ${userEmail}
             </div>
           `;
+        } else {
+          const errorText = await response.text();
+          container.innerHTML = `
+            <div style="background: #ef4444; color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center;">
+              ❌ <strong>Error del Servidor</strong><br>
+              <small>Status: ${response.status}</small>
+            </div>
+            <div style="background: rgba(31,41,55,0.5); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.8rem;">
+              <strong>Error:</strong><br>
+              ${errorText}
+            </div>
+          `;
+        }
+        
       } catch (error) {
         console.error('❌ Error en diagnóstico:', error);
         let errorType = 'Error Desconocido';
@@ -2301,15 +2348,6 @@
             'El servidor puede estar caído',
             'Verifica que la URL sea correcta',
             'Revisa la consola para más detalles'
-          ];
-        } else if (error.name === 'KASPERSKY_INTERCEPT') {
-          errorType = 'Interceptado por Kaspersky/antivirus';
-          errorMessage = 'Se recibió una página HTML del antivirus en lugar de JSON';
-          suggestions = [
-            'Desactiva temporalmente "Analizar conexiones cifradas" en el antivirus',
-            'Agrega una excepción para el dominio de la API en Kaspersky',
-            'Prueba desde una red o equipo sin ese antivirus',
-            'Usa parámetros ?useProxy=1&headerless=1&timeoutMs=15000 para intentar vía proxy (solo pruebas)'
           ];
         } else if (error.name === 'AbortError') {
           errorType = 'Timeout';
@@ -2335,7 +2373,7 @@
             <small>${errorMessage}</small>
           </div>
           <div style="background: rgba(31,41,55,0.5); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.8rem; margin-bottom: 1rem;">
-            <strong>URL intentada:</strong> ${getApiUrl('bitacoras-supervision')}<br>
+            <strong>URL intentada:</strong> ${window.API_BASE_URL}/bitacoras-supervision<br>
             <strong>Email:</strong> ${getUserEmail()}<br>
             <strong>Tipo de error:</strong> ${error.name}<br>
             <strong>Mensaje:</strong> ${error.message}
@@ -2495,16 +2533,8 @@
       <div class="card" style="margin-bottom:1rem">
         <h2 style="margin:0 0 1rem 0; color:var(--text)">Mis Visitas Agendadas</h2>
         <p style="margin:0 0 1rem 0; color:var(--text-dim); font-size:0.9rem">
-          Cliente: <strong>Marma</strong> | Supervisión de unidades residenciales | Visitas: <strong id="visits-count">-</strong>
+          Cliente: <strong>Marma</strong> | Supervisión de unidades residenciales
         </p>
-        <div style="margin-bottom:1rem; display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap">
-          <button class="btn" onclick="diagnosticoConectividad()" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#3b82f6">
-            🔍 Diagnóstico
-          </button>
-          <button class="btn" onclick="loadBitacorasDashboard()" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#22c55e">
-            🔄 Recargar
-          </button>
-        </div>
         <div id="bitacoras-list">
           <!-- Las bitácoras se cargarán dinámicamente -->
         </div>
@@ -2529,19 +2559,6 @@
       <div style="margin-bottom:1rem">
         <button class="btn" onclick="backToDashboard()" style="margin-bottom:1rem">← Volver al Dashboard</button>
         
-        <!-- Indicador de estado de geolocalización -->
-        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;padding:0.75rem;background:rgba(31,41,55,0.5);border-radius:8px;border:1px solid #374151">
-          <div style="display:flex;align-items:center;gap:0.5rem">
-            <span style="font-size:1.2rem">📍</span>
-            <span style="font-weight:600;color:var(--text)">Geolocalización:</span>
-          </div>
-          <div id="geolocation-status" style="color:var(--text-dim);font-size:0.9rem">
-            No configurada
-          </div>
-          <button class="btn" onclick="requestGeolocationPermission('', '')" style="padding:0.4rem 0.8rem;font-size:0.8rem;background:#3b82f6">
-            🔄 Solicitar Permisos
-          </button>
-        </div>
       </div>
 
       <div class="accordion" id="accordion"></div>
@@ -2574,32 +2591,6 @@
       // Asegurar que el formulario esté oculto
       hideFormOnLoad();
       
-      // Modo debug: permitir autenticación por parámetro de URL (?debugEmail=correo)
-      try {
-        const params = new URLSearchParams(window.location.search);
-        const debugEmail = params.get('debugEmail') || params.get('email');
-        if (debugEmail) {
-          const tokenExpiry = Date.now() + (24 * 60 * 60 * 1000);
-          localStorage.setItem('refactorii_token', 'debug');
-          localStorage.setItem('token_expiry', tokenExpiry.toString());
-          localStorage.setItem('user_data', JSON.stringify({
-            FullName: debugEmail,
-            GivenName: '',
-            FamilyName: '',
-            ImageURL: '',
-            Email: debugEmail
-          }));
-          console.log('🔓 Modo debug: autenticación simulada para', debugEmail);
-          const overlay = document.getElementById('auth-overlay');
-          if (overlay) {
-            overlay.style.display = 'none';
-            document.body.classList.remove('auth-lock');
-          }
-        }
-      } catch (e) {
-        console.warn('⚠️ Error en modo debug auth:', e);
-      }
-
       // Inicializar verificación de geolocalización
       checkGeolocationSupport();
       

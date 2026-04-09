@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="./favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>TECH GUARD - Supervisión Digital</title>
+    
+    <!-- Phosphor Icons - CARGAR PRIMERO, SIN async/defer para asegurar carga -->
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+    <script>
+      // Verificar que Phosphor Icons se cargó correctamente
+      window.addEventListener('DOMContentLoaded', function() {
+        if (typeof document !== 'undefined') {
+          // Crear un icono de prueba para verificar que funciona
+          const testIcon = document.createElement('i');
+          testIcon.className = 'ph ph-check';
+          testIcon.style.display = 'none';
+          document.body.appendChild(testIcon);
+          console.log('✅ Phosphor Icons cargado y verificado');
+        }
+      });
+    </script>
+    
+    <!-- Google Sign-In -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Leaflet JS -->
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Alternative Leaflet loading -->
+    <script>
+      // Make Leaflet available globally
+      window.addEventListener('load', function() {
+        if (typeof L !== 'undefined') {
+          console.log('✅ Leaflet disponible globalmente');
+          window.Leaflet = L;
+        }
+      });
+    </script>
+    
+    <!-- Leaflet verification script -->
+    <script>
+      window.addEventListener('load', function() {
+        console.log('🔍 Verificando Leaflet...');
+        console.log('L disponible:', typeof L !== 'undefined');
+        if (typeof L !== 'undefined') {
+          console.log('✅ Leaflet cargado correctamente');
+          console.log('Versión:', L.version);
+        } else {
+          console.error('❌ Leaflet no se cargó correctamente');
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

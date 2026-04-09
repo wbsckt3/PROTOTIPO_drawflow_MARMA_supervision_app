@@ -1,0 +1,320 @@
+/* RESET */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Inter", system-ui, sans-serif;
+    background: #f5f6f8;
+    color: #222;
+    line-height: 1.6;
+}
+
+/* ================= NAVBAR ================= */
+.navbar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background: #0b0c10;
+    padding: 0.8rem 0;
+    z-index: 1000;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+}
+
+.nav-container {
+    max-width: 1100px;
+    margin: auto;
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: white;
+}
+
+.logo img {
+    height: 32px;
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    gap: 1.6rem;
+    align-items: center;
+}
+
+.nav-link {
+    color: #f5f5f5;
+    text-decoration: none;
+    font-size: 0.95rem;
+}
+
+.nav-link:hover {
+    color: #45e1c1;
+}
+
+/* DROPDOWN */
+.nav-item--dropdown {
+    position: relative;
+}
+
+.dropdown-btn {
+    background: none;
+    border: none;
+    color: #f5f5f5;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+.dropdown-btn:hover {
+    color: #45e1c1;
+}
+
+.dropdown {
+    position: absolute;
+    display: none;
+    top: 120%;
+    right: 0;
+    background: #15161d;
+    min-width: 200px;
+    border-radius: 8px;
+    padding: 0.5rem 0;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+}
+
+.dropdown li a {
+    display: block;
+    color: #eee;
+    padding: 0.7rem 1rem;
+    text-decoration: none;
+}
+
+.dropdown li a:hover {
+    background: #20222c;
+    color: #45e1c1;
+}
+
+.dropdown.open {
+    display: block;
+}
+
+/* HAMBURGUESA */
+.nav-toggle {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.nav-toggle span {
+    width: 25px;
+    height: 3px;
+    background: #fff;
+}
+
+/* HERO */
+.hero {
+    padding-top: 110px;
+    min-height: 80vh;
+    background: linear-gradient(135deg, #0b0c10, #171b22);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.hero-content {
+    max-width: 700px;
+}
+
+.hero h1 {
+    font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.hero p {
+    margin-top: 1rem;
+    opacity: 0.9;
+}
+
+.btn {
+    display: inline-block;
+    margin-top: 1.8rem;
+    background: #45e1c1;
+    padding: 0.75rem 1.7rem;
+    border-radius: 30px;
+    text-decoration: none;
+    color: #0b0c10;
+    font-weight: 600;
+}
+
+.btn:hover {
+    background: #33c9ac;
+}
+
+/* SECTIONS */
+.section {
+    padding: 4rem 1.5rem;
+    text-align: center;
+}
+
+.section-alt {
+    background: #ffffff;
+}
+
+.cards {
+    margin-top: 2rem;
+    display: grid;
+    gap: 1.2rem;
+}
+
+@media (min-width: 768px) {
+    .cards {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.card {
+    background: #fff;
+    padding: 1.8rem;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+}
+
+.card h3 {
+    margin-bottom: 0.5rem;
+}
+
+/* FOOTER */
+.footer {
+    background: #0b0c10;
+    color: #bbb;
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+/* BOTÓN FLOTANTE */
+.contact-fab {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    background: #45e1c1;
+    border: none;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    font-size: 1.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+/* MODAL */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+}
+
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+}
+
+.modal-dialog {
+    background: #fff;
+    width: 95%;
+    max-width: 420px;
+    margin: 8% auto;
+    padding: 2rem;
+    border-radius: 12px;
+    position: relative;
+    z-index: 2001;
+}
+
+.modal-close {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+}
+
+.modal-text {
+    color: #555;
+    margin-bottom: 1rem;
+}
+
+form input,
+form textarea {
+    width: 100%;
+    padding: 0.8rem;
+    margin-bottom: 0.9rem;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+.btn-full {
+    width: 100%;
+}
+
+/* ANIMACIONES */
+.reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: 0.7s ease;
+}
+
+.reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* RESPONSIVE NAV */
+@media (max-width: 768px) {
+
+    .nav-toggle {
+        display: flex;
+    }
+
+    .nav-links {
+        position: fixed;
+        top: 70px;
+        right: -260px;
+        width: 240px;
+        height: calc(100vh - 70px);
+        background: #0b0c10;
+        flex-direction: column;
+        padding: 2rem 1.5rem;
+        gap: 1.5rem;
+        transition: right 0.3s ease;
+    }
+
+    .nav-links.open {
+        right: 0;
+    }
+
+    .dropdown {
+        position: static;
+        background: none;
+        box-shadow: none;
+        padding-left: 1rem;
+    }
+
+}

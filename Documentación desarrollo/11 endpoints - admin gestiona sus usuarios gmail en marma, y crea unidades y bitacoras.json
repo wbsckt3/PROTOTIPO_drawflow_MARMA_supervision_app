@@ -1,0 +1,627 @@
+{
+  "info": {
+    "name": "Tech Guard Pro - Dashboard Admin API",
+    "description": "Endpoints para el dashboard administrativo de Tech Guard Pro - Gestión de usuarios, unidades residenciales y bitácoras de supervisión\n\n2. ARCHIVO JSON ACTUALIZADO:\nEste archivo contiene todos los endpoints del dashboard admin documentados para pruebas en Postman:\n\nEndpoints incluidos:\n1. POST /auth/google-signin - Autenticación Google\n2. GET /companies - Obtener empresa del admin\n3. POST /companies/relate-user - Crear/relacionar supervisor\n4. GET /companies/:companyId/supervisores - Listar supervisores (corregido)\n5. POST /unidades-residenciales - Crear unidad\n6. GET /unidades-residenciales - Listar unidades\n7. POST /bitacoras-supervision - Crear bitácora\n8. GET /bitacoras-supervision - Listar bitácoras (con filtros para admin)\n9. GET /bitacoras-supervision/:bitacoraId - Ver detalle de bitácora\n10. GET /unidades-residenciales/:unidadId/bitacoras - Bitácoras por unidad\n11. GET /bitacoras-supervision/supervisor - Bitácoras por supervisor\n\n3. ENDPOINTS USADOS EN EL DASHBOARD ADMIN (FRONTEND):\nDesde vue3_vite_local/src/stores/admin.js:\n- loadCompany() → GET /companies\n- loadUsuarios() → GET /companies/:companyId/supervisores\n- crearUsuario() → POST /companies/relate-user\n- loadUnidades() → GET /unidades-residenciales\n- crearUnidad() → POST /unidades-residenciales\n- loadBitacoras() → GET /bitacoras-supervision (con filtros)\n- crearBitacora() → POST /bitacoras-supervision\n- getBitacoraById() → GET /bitacoras-supervision/:bitacoraId\n- getBitacorasByUnidad() → GET /unidades-residenciales/:unidadId/bitacoras\n- getBitacorasBySupervisor() → GET /bitacoras-supervision/supervisor",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Autenticación Google Sign-in",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"FullName\": \"Supervisor de prueba\",\n  \"GivenName\": \"Supervisor 1\",\n  \"FamilyName\": \"MARMA\",\n  \"ImageURL\": \"https://lh3.googleusercontent.com/a/AATXAJz0_example_image_url\",\n  \"Email\": \"supervisor1.marma@gmail.com\"\n}"
+        },
+        "url": {
+          "raw": "https://api.techguard.pro/api/tenant/auth/google-signin",
+          "protocol": "https",
+          "host": ["api", "techguard", "pro"],
+          "path": ["api", "tenant", "auth", "google-signin"]
+        },
+        "description": "Crea o autentica un usuario con Google Sign-in. Debe ejecutarse antes de relacionar usuarios con empresas."
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"FullName\": \"Supervisor de prueba\",\n  \"GivenName\": \"Supervisor 1\",\n  \"FamilyName\": \"MARMA\",\n  \"ImageURL\": \"https://lh3.googleusercontent.com/a/AATXAJz0_example_image_url\",\n  \"Email\": \"supervisor1.marma@gmail.com\"\n}"
+            },
+            "url": {
+              "raw": "https://api.techguard.pro/api/tenant/auth/google-signin",
+              "protocol": "https",
+              "host": ["api", "techguard", "pro"],
+              "path": ["api", "tenant", "auth", "google-signin"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n    \"message\": \"Inicio de sesión/registro con Google exitoso\",\n    \"user\": {\n        \"_id\": \"690e448b387551e346570b32\",\n        \"FullName\": \"Supervisor de prueba\",\n        \"Email\": \"supervisor1.marma@gmail.com\"\n    }\n}"
+        }
+      ]
+    },
+    {
+      "name": "1. Obtener Empresa del Admin",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-user-email",
+            "value": "techguardtenant@gmail.com",
+            "description": "Email del administrador"
+          }
+        ],
+        "url": {
+          "raw": "https://api.techguard.pro/api/tenant/companies",
+          "protocol": "https",
+          "host": ["api", "techguard", "pro"],
+          "path": ["api", "tenant", "companies"]
+        },
+        "description": "Obtiene la empresa asociada al administrador. Retorna el companyId necesario para otros endpoints."
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-email",
+                "value": "techguardtenant@gmail.com"
+              }
+            ],
+            "url": {
+              "raw": "https://api.techguard.pro/api/tenant/companies",
+              "protocol": "https",
+              "host": ["api", "techguard", "pro"],
+              "path": ["api", "tenant", "companies"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "[\n  {\n    \"_id\": \"68f2626dbc1801f5700bf858\",\n    \"name\": \"MARMA S.A.S.\",\n    \"subdomain\": \"marma\",\n    \"description\": \"\",\n    \"isActive\": true\n  }\n]"
+        }
+      ]
+    },
+    {
+      "name": "2. Relacionar Usuario con Empresa (Crear Supervisor)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-user-email",
+            "value": "supervisor1.marma@gmail.com",
+            "description": "Email del usuario a relacionar (debe existir en GoogleSigninUser)"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"companyId\": \"68f2626dbc1801f5700bf858\",\n  \"role\": \"editor\"\n}"
+        },
+        "url": {
+          "raw": "https://api.techguard.pro/api/tenant/companies/relate-user",
+          "protocol": "https",
+          "host": ["api", "techguard", "pro"],
+          "path": ["api", "tenant", "companies", "relate-user"]
+        },
+        "description": "Relaciona un usuario de GoogleSigninUser con una empresa y le asigna un rol (admin, editor, viewer). Para crear un supervisor, usar role: 'editor'."
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-user-email",
+                "value": "supervisor1.marma@gmail.com"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyId\": \"68f2626dbc1801f5700bf858\",\n  \"role\": \"editor\"\n}"
+            },
+            "url": {
+              "raw": "https://api.techguard.pro/api/tenant/companies/relate-user",
+              "protocol": "https",
+              "host": ["api", "techguard", "pro"],
+              "path": ["api", "tenant", "companies", "relate-user"]
+            }
+          },
+          "status": "OK",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "body": "{\n    \"message\": \"Usuario relacionado con la compañía\",\n    \"relation\": {\n        \"role\": \"editor\",\n        \"_id\": \"68f2660c25c671f79a477c69\",\n        \"companyId\": \"68f2626dbc1801f5700bf858\",\n        \"googlesigninuserId\": \"68f24ce6c8dab50008070bfb\",\n        \"createdAt\": \"2025-10-17T15:51:40.724Z\",\n        \"updatedAt\": \"2025-10-17T15:51:40.724Z\",\n        \"__v\": 0\n    }\n}"
+        }
+      ]
+    },
+    {
+      "name": "3. Listar Supervisores de la Empresa",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-user-email",
+            "value": "techguardtenant@gmail.com",
+            "description": "Email del administrador"
+          }
+        ],
+        "url": {
+          "raw": "https://api.techguard.pro/api/tenant/companies/:companyId/supervisores",
+          "protocol": "https",
+          "host": ["api", "techguard", "pro"],
+          "path": ["api", "tenant", "companies", ":companyId", "supervisores"],
+          "variable": [
+            {
+              "key": "companyId",
+              "value": "68f2626dbc1801f5700bf858",
+              "description": "ID de la empresa"
+            }
+          ]
+        },
+        "description": "Obtiene todos los supervisores (usuarios con rol 'editor') de una empresa específica. Solo accesible para administradores."
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-email",
+                "value": "techguardtenant@gmail.com"
+              }
+            ],
+            "url": {
+              "raw": "https://api.techguard.pro/api/tenant/companies/68f2626dbc1801f5700bf858/supervisores",
+              "protocol": "https",
+              "host": ["api", "techguard", "pro"],
+              "path": ["api", "tenant", "companies", "68f2626dbc1801f5700bf858", "supervisores"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"_id\": \"691169e843d6de84af4679aa\",\n      \"email\": \"dastejapi@gmail.com\",\n      \"Email\": \"dastejapi@gmail.com\",\n      \"name\": \"dastejapi@gmail.com\",\n      \"FullName\": \"dastejapi@gmail.com\",\n      \"role\": \"editor\",\n      \"companyId\": \"68f2626dbc1801f5700bf858\",\n      \"createdAt\": \"2025-11-10T04:28:24.205Z\",\n      \"updatedAt\": \"2025-11-10T04:28:24.206Z\"\n    }\n  ],\n  \"total\": 1\n}"
+        }
+      ]
+    },
+    {
+      "name": "4. Crear Unidad Residencial",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-user-email",
+            "value": "techguardtenant@gmail.com",
+            "description": "Email del administrador"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Conjunto Residencial Marma\",\n  \"direccion\": \"Carrera 15 #93-47, Bogotá\",\n  \"tipo\": \"condominio\",\n  \"companyId\": \"68f2626dbc1801f5700bf858\",\n  \"areas\": {\n    \"piscinas\": {\n      \"name\": \"PISCINAS\",\n      \"color\": \"#3b82f6\",\n      \"items\": [\"BAÑOS\", \"ROMPE OLAS\", \"ANDENES\", \"LAVA PIES - DUCHA\", \"SAUNA\", \"JACUZZI\", \"TURCO\", \"COLOR VISUAL\", \"PH\", \"CLORO\", \"CUARTO DE MÁQUINAS\", \"HALL\"]\n    },\n    \"zonas_comunes\": {\n      \"name\": \"ZONAS COMUNES\",\n      \"color\": \"#22c55e\",\n      \"items\": [\"GIMNASIO\", \"SALÓN SOCIAL\", \"SALÓN DE JUEGOS\", \"ANDENES\", \"PORTERÍA\", \"PARQUEADERO\"]\n    },\n    \"zonas_externas\": {\n      \"name\": \"ZONAS EXTERNAS\",\n      \"color\": \"#f59e0b\",\n      \"items\": [\"ZONA VERDES\", \"CAÑUELAS\", \"PARQUE INFANTIL\", \"PAREDES\", \"VIDRIOS - VENTANAS\", \"PASAMANOS\", \"TAPAS SHUT\", \"GABINETES - EXTINTORES\", \"BARRIO - TRAPEADO\", \"ASCENSORES\", \"TUBERÍA VOLÁTIL\", \"ESCALAS\", \"PISOS\", \"SHUT BASURAS\"]\n    },\n    \"oficinas\": {\n      \"name\": \"OFICINAS\",\n      \"color\": \"#8b5cf6\",\n      \"items\": [\"ESCRITORIOS\", \"PAPELERAS\", \"SALA DE JUNTAS\", \"AULAS\", \"BAÑOS\", \"RECEPCIÓN\", \"COMPUTADORES\", \"PAREDES\", \"CIELO RASO\", \"COCINETA\", \"ENTRADAS PRINCIPAL\"]\n    },\n    \"operario\": {\n      \"name\": \"OPERARIO\",\n      \"color\": \"#ec4899\",\n      \"items\": [\"PRODUCTIVIDAD\", \"PRESENTACIÓN\", \"CARNET\", \"ELEMENTOS EPP\", \"CONTROL DE HORARIO\", \"ACTITUD\"]\n    }\n  }\n}"
+        },
+        "url": {
+          "raw": "https://api.techguard.pro/api/tenant/unidades-residenciales",
+          "protocol": "https",
+          "host": ["api", "techguard", "pro"],
+          "path": ["api", "tenant", "unidades-residenciales"]
+        },
+        "description": "Crea una nueva unidad residencial con sus áreas de supervisión configuradas."
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-user-email",
+                "value": "techguardtenant@gmail.com"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Conjunto Residencial Marma\",\n  \"direccion\": \"Carrera 15 #93-47, Bogotá\",\n  \"tipo\": \"condominio\",\n  \"companyId\": \"68f2626dbc1801f5700bf858\",\n  \"areas\": {\n    \"piscinas\": {\n      \"name\": \"PISCINAS\",\n      \"color\": \"#3b82f6\",\n      \"items\": [\"BAÑOS\", \"ROMPE OLAS\", \"ANDENES\", \"LAVA PIES - DUCHA\", \"SAUNA\", \"JACUZZI\", \"TURCO\", \"COLOR VISUAL\", \"PH\", \"CLORO\", \"CUARTO DE MÁQUINAS\", \"HALL\"]\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "https://api.techguard.pro/api/tenant/unidades-residenciales",
+              "protocol": "https",
+              "host": ["api", "techguard", "pro"],
+              "path": ["api", "tenant", "unidades-residenciales"]
+            }
+          },
+          "status": "OK",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"success\": true,\n  \"message\": \"Unidad residencial creada exitosamente\",\n  \"data\": {\n    \"_id\": \"eeb76b27-695d-46b4-8001-49b6664307d6\",\n    \"companyId\": \"68f2626dbc1801f5700bf858\",\n    \"nombre\": \"Conjunto Residencial Marma\",\n    \"direccion\": \"Carrera 15 #93-47, Bogotá\",\n    \"tipo\": \"condominio\",\n    \"areas\": {},\n    \"isActive\": true,\n    \"createdAt\": \"2025-10-20T15:23:24.423Z\",\n    \"updatedAt\": \"2025-10-20T15:23:24.423Z\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "5. Listar Unidades Residenciales",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-user-email",
+            "value": "techguardtenant@gmail.com",
+            "description": "Email del administrador"
+          }
+        ],
+        "url": {
+          "raw": "https://api.techguard.pro/api/tenant/unidades-residenciales",
+          "protocol": "https",
+          "host": ["api", "techguard", "pro"],
+          "path": ["api", "tenant", "unidades-residenciales"]
+        },
+        "description": "Obtiene todas las unidades residenciales de la empresa del administrador."
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-email",
+                "value": "techguardtenant@gmail.com"
+              }
+            ],
+            "url": {
+              "raw": "https://api.techguard.pro/api/tenant/unidades-residenciales",
+              "protocol": "https",
+              "host": ["api", "techguard", "pro"],
+              "path": ["api", "tenant", "unidades-residenciales"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"_id\": \"eeb76b27-695d-46b4-8001-49b6664307d6\",\n      \"companyId\": \"68f2626dbc1801f5700bf858\",\n      \"nombre\": \"Conjunto Residencial Marma\",\n      \"direccion\": \"Carrera 15 #93-47, Bogotá\",\n      \"tipo\": \"condominio\",\n      \"areas\": {},\n      \"isActive\": true\n    }\n  ],\n  \"total\": 1\n}"
+        }
+      ]
+    },
+    {
+      "name": "6. Crear Bitácora de Supervisión",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-user-email",
+            "value": "techguardtenant@gmail.com",
+            "description": "Email del administrador"
+          },
+          {
+            "key": "x-editor-email",
+            "value": "supervisor1.marma@gmail.com",
+            "description": "Email del supervisor asignado"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"unidadResidencialId\": \"eeb76b27-695d-46b4-8001-49b6664307d6\",\n  \"fecha\": \"2025-09-24T09:00:00.000Z\",\n  \"observaciones\": \"Supervisión programada para el miercoles 22 de octubre\"\n}"
+        },
+        "url": {
+          "raw": "https://api.techguard.pro/api/tenant/bitacoras-supervision",
+          "protocol": "https",
+          "host": ["api", "techguard", "pro"],
+          "path": ["api", "tenant", "bitacoras-supervision"]
+        },
+        "description": "Crea una nueva bitácora de supervisión asignada a un supervisor específico para una unidad residencial."
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-user-email",
+                "value": "techguardtenant@gmail.com"
+              },
+              {
+                "key": "x-editor-email",
+                "value": "supervisor1.marma@gmail.com"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"unidadResidencialId\": \"eeb76b27-695d-46b4-8001-49b6664307d6\",\n  \"fecha\": \"2025-09-24T09:00:00.000Z\",\n  \"observaciones\": \"Supervisión programada para el miercoles 22 de octubre\"\n}"
+            },
+            "url": {
+              "raw": "https://api.techguard.pro/api/tenant/bitacoras-supervision",
+              "protocol": "https",
+              "host": ["api", "techguard", "pro"],
+              "path": ["api", "tenant", "bitacoras-supervision"]
+            }
+          },
+          "status": "OK",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"success\": true,\n  \"message\": \"Bitácora de supervisión creada exitosamente\",\n  \"data\": {\n    \"_id\": \"7f50376d-9f33-4c5c-9916-ec3aa7011dfa\",\n    \"companyId\": \"68f2626dbc1801f5700bf858\",\n    \"unidadResidencialId\": \"eeb76b27-695d-46b4-8001-49b6664307d6\",\n    \"supervisorEmail\": \"supervisor1.marma@gmail.com\",\n    \"supervisor\": \"supervisor1.marma@gmail.com\",\n    \"cliente\": \"MARMA\",\n    \"fecha\": \"2025-09-24T09:00:00.000Z\",\n    \"fechaProgramada\": \"2025-09-24T09:00:00.000Z\",\n    \"estado\": \"programada\",\n    \"observaciones\": \"Supervisión programada para el miercoles 22 de octubre\",\n    \"createdAt\": \"2025-10-20T15:54:43.648Z\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "7. Listar Todas las Bitácoras (Admin con Filtros)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-user-email",
+            "value": "techguardtenant@gmail.com",
+            "description": "Email del administrador"
+          }
+        ],
+        "url": {
+          "raw": "https://api.techguard.pro/api/tenant/bitacoras-supervision?unidadResidencialId=&fechaDesde=&fechaHasta=&estado=",
+          "protocol": "https",
+          "host": ["api", "techguard", "pro"],
+          "path": ["api", "tenant", "bitacoras-supervision"],
+          "query": [
+            {
+              "key": "unidadResidencialId",
+              "value": "",
+              "description": "Filtrar por unidad residencial (opcional)",
+              "disabled": true
+            },
+            {
+              "key": "supervisorEmail",
+              "value": "",
+              "description": "Filtrar por supervisor (opcional)",
+              "disabled": true
+            },
+            {
+              "key": "fechaDesde",
+              "value": "",
+              "description": "Fecha inicial (YYYY-MM-DD) (opcional)",
+              "disabled": true
+            },
+            {
+              "key": "fechaHasta",
+              "value": "",
+              "description": "Fecha final (YYYY-MM-DD) (opcional)",
+              "disabled": true
+            },
+            {
+              "key": "estado",
+              "value": "",
+              "description": "Filtrar por estado: programada, en_progreso, completada, con_novedad, cancelada (opcional)",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "Obtiene todas las bitácoras de la empresa. Si el usuario es admin, puede ver todas las bitácoras con filtros opcionales. Si es supervisor, solo ve las suyas."
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-email",
+                "value": "techguardtenant@gmail.com"
+              }
+            ],
+            "url": {
+              "raw": "https://api.techguard.pro/api/tenant/bitacoras-supervision",
+              "protocol": "https",
+              "host": ["api", "techguard", "pro"],
+              "path": ["api", "tenant", "bitacoras-supervision"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"_id\": \"7f50376d-9f33-4c5c-9916-ec3aa7011dfa\",\n      \"companyId\": \"68f2626dbc1801f5700bf858\",\n      \"unidadResidencialId\": \"eeb76b27-695d-46b4-8001-49b6664307d6\",\n      \"supervisorEmail\": \"supervisor1.marma@gmail.com\",\n      \"unidadNombre\": \"Conjunto Residencial Marma\",\n      \"estado\": \"programada\",\n      \"fecha\": \"2025-09-24T09:00:00.000Z\"\n    }\n  ],\n  \"total\": 1\n}"
+        }
+      ]
+    },
+    {
+      "name": "8. Ver Detalle de Bitácora por ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-user-email",
+            "value": "techguardtenant@gmail.com",
+            "description": "Email del administrador o supervisor"
+          }
+        ],
+        "url": {
+          "raw": "https://api.techguard.pro/api/tenant/bitacoras-supervision/:bitacoraId",
+          "protocol": "https",
+          "host": ["api", "techguard", "pro"],
+          "path": ["api", "tenant", "bitacoras-supervision", ":bitacoraId"],
+          "variable": [
+            {
+              "key": "bitacoraId",
+              "value": "7f50376d-9f33-4c5c-9916-ec3aa7011dfa",
+              "description": "ID de la bitácora"
+            }
+          ]
+        },
+        "description": "Obtiene el detalle completo de una bitácora específica por su ID."
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-email",
+                "value": "techguardtenant@gmail.com"
+              }
+            ],
+            "url": {
+              "raw": "https://api.techguard.pro/api/tenant/bitacoras-supervision/7f50376d-9f33-4c5c-9916-ec3aa7011dfa",
+              "protocol": "https",
+              "host": ["api", "techguard", "pro"],
+              "path": ["api", "tenant", "bitacoras-supervision", "7f50376d-9f33-4c5c-9916-ec3aa7011dfa"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"success\": true,\n  \"data\": {\n    \"_id\": \"7f50376d-9f33-4c5c-9916-ec3aa7011dfa\",\n    \"companyId\": \"68f2626dbc1801f5700bf858\",\n    \"unidadResidencialId\": \"eeb76b27-695d-46b4-8001-49b6664307d6\",\n    \"supervisorEmail\": \"supervisor1.marma@gmail.com\",\n    \"unidadNombre\": \"Conjunto Residencial Marma\",\n    \"estado\": \"programada\",\n    \"fecha\": \"2025-09-24T09:00:00.000Z\",\n    \"fechaInicio\": null,\n    \"fechaFin\": null,\n    \"observaciones\": \"Supervisión programada para el miercoles 22 de octubre\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "9. Listar Bitácoras por Unidad Residencial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-user-email",
+            "value": "techguardtenant@gmail.com",
+            "description": "Email del administrador"
+          }
+        ],
+        "url": {
+          "raw": "https://api.techguard.pro/api/tenant/unidades-residenciales/:unidadResidencialId/bitacoras",
+          "protocol": "https",
+          "host": ["api", "techguard", "pro"],
+          "path": ["api", "tenant", "unidades-residenciales", ":unidadResidencialId", "bitacoras"],
+          "variable": [
+            {
+              "key": "unidadResidencialId",
+              "value": "eeb76b27-695d-46b4-8001-49b6664307d6",
+              "description": "ID de la unidad residencial"
+            }
+          ]
+        },
+        "description": "Obtiene todas las bitácoras asociadas a una unidad residencial específica."
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-email",
+                "value": "techguardtenant@gmail.com"
+              }
+            ],
+            "url": {
+              "raw": "https://api.techguard.pro/api/tenant/unidades-residenciales/eeb76b27-695d-46b4-8001-49b6664307d6/bitacoras",
+              "protocol": "https",
+              "host": ["api", "techguard", "pro"],
+              "path": ["api", "tenant", "unidades-residenciales", "eeb76b27-695d-46b4-8001-49b6664307d6", "bitacoras"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"_id\": \"7f50376d-9f33-4c5c-9916-ec3aa7011dfa\",\n      \"unidadResidencialId\": \"eeb76b27-695d-46b4-8001-49b6664307d6\",\n      \"supervisorEmail\": \"supervisor1.marma@gmail.com\",\n      \"estado\": \"programada\",\n      \"fecha\": \"2025-09-24T09:00:00.000Z\"\n    }\n  ],\n  \"total\": 1\n}"
+        }
+      ]
+    },
+    {
+      "name": "10. Listar Bitácoras por Supervisor",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-user-email",
+            "value": "techguardtenant@gmail.com",
+            "description": "Email del administrador"
+          },
+          {
+            "key": "x-editor-email",
+            "value": "supervisor1.marma@gmail.com",
+            "description": "Email del supervisor"
+          }
+        ],
+        "url": {
+          "raw": "https://api.techguard.pro/api/tenant/bitacoras-supervision/supervisor?supervisorEmail=supervisor1.marma@gmail.com",
+          "protocol": "https",
+          "host": ["api", "techguard", "pro"],
+          "path": ["api", "tenant", "bitacoras-supervision", "supervisor"],
+          "query": [
+            {
+              "key": "supervisorEmail",
+              "value": "supervisor1.marma@gmail.com",
+              "description": "Email del supervisor"
+            }
+          ]
+        },
+        "description": "Obtiene todas las bitácoras asignadas a un supervisor específico. Solo accesible para administradores."
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-email",
+                "value": "techguardtenant@gmail.com"
+              },
+              {
+                "key": "x-editor-email",
+                "value": "supervisor1.marma@gmail.com"
+              }
+            ],
+            "url": {
+              "raw": "https://api.techguard.pro/api/tenant/bitacoras-supervision/supervisor?supervisorEmail=supervisor1.marma@gmail.com",
+              "protocol": "https",
+              "host": ["api", "techguard", "pro"],
+              "path": ["api", "tenant", "bitacoras-supervision", "supervisor"],
+              "query": [
+                {
+                  "key": "supervisorEmail",
+                  "value": "supervisor1.marma@gmail.com"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"_id\": \"7f50376d-9f33-4c5c-9916-ec3aa7011dfa\",\n      \"supervisorEmail\": \"supervisor1.marma@gmail.com\",\n      \"estado\": \"programada\",\n      \"fecha\": \"2025-09-24T09:00:00.000Z\"\n    }\n  ],\n  \"total\": 1,\n  \"supervisor\": \"supervisor1.marma@gmail.com\"\n}"
+        }
+      ]
+    }
+  ]
+}

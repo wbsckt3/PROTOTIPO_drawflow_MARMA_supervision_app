@@ -1,0 +1,18 @@
+
+
+BUG Dashboard admin: al crear una unidad como conjunto residencial saca error, en las demás cuando se crea como condominio o edificio no hay problema
+BUG Dashboard admin: detalle de la bitácora no está mostrando las evidencias osea las fotos y el lat lon de la foto
+MEJORA Dashboard admin:  cambiar en la tarjeta de unidad Bitácora para hoy por siguiente bitácora programada y Última bitácora por última bitácora diligenciada
+MEJORA model unidad residencial: A unidad agregarle el campo correo
+MEJORA Dashboard admin y model unidad residencial: a unidad agregarle filtro de unidad y un botón de deshabilitar que la deshabilite en el front y eliminado lógico en BD, no delete
+CAMBIO Dashboard admin : a crear supervisor limitarle con un código de activación (un token privado de tech guard) no permite guardar, es decir no se habilita el botón si no colocan el token 
+MEJORA Dashboard admin: Completar el crud de actualizar en unidades y bitacoras para reprogramar bitacoras. Eliminar de BD bitácoras solo para bitacora en estado programada las otras solo editar.
+BUG Dashboard admin: en bitacora el botón crea 3 veces, es decir como queda cargando, el usuario puede presionar n veces el botón y puede crear n veces la unidad, deshabilitar botón mientras crea la bitacora
+BUG Dashboard admin: revisar fecha cierre bitacora esta quedando la misma de apertura, puede ser que en el formulario de bitácora en perfil supervisor esté quedando la fecha de cierre la misma de apertura de bitácora, pero
+la fecha y hora de cierre de bitácora es la del envío de la supervisión es decir la cuando el supervisor envía la bitácora.
+BUG Dashboard admin: filtro de bitacora fechas no cogen el dia hay que coger uno despues es decir si quiero ver las de hoy 18 noviembre debo poner desde 17 noviembre a 19 noviembre.
+BUG Dashboard admin: el icono de loading está mal como desfasado mal diseñado, el circulo por un lado y el relleno por otro
+MEJORA formulario supervisor: en bitacora supervisor poner alternativa tomar foto, que no sea obligatorio como en R
+BUG Dashboard admin: revisar resumen en detalle bitacora, esta trayendo 0 / 0 pero si está mostrando el detalle debajo de esto, yo creería que es mejor quitar este resumen y dejar solo la información general y Áreas y Elementos Calificados
+que está trayendo la info muy bien pero si falta las evidencias foto en caso de calificaciones  R
+MEJORA Dashboard admin: agregar convención calificaciones en detalle bitacoraa

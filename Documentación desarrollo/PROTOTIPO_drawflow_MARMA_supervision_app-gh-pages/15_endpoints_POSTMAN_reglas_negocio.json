@@ -1,0 +1,605 @@
+{
+	"info": {
+		"_postman_id": "36830356-1fc6-4f46-85ae-c27ed1954469",
+		"name": "api/tenant/reglas-negocio",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "484071"
+	},
+	"item": [
+		{
+			"name": "0 - Crear Unidad Residencial",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "x-user-email",
+						"value": "{{admin_email}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"companyId\": \"{{company_id}}\",\r\n  \"nombre\": \"Condominio Las Palmas\",\r\n  \"direccion\": \"Carrera 15 #93-47, Bogotá\",\r\n  \"tipo\": \"condominio\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/tenant/unidades-residenciales",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"unidades-residenciales"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "1 - Obtener Unidades Residenciales",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-user-email",
+						"value": "{{admin_email}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/tenant/unidades-residenciales",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"unidades-residenciales"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2 - Crear Bitácora de Supervisión",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "x-user-email",
+						"value": "{{admin_email}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"companyId\": \"{{company_id}}\",\r\n  \"unidadResidencialId\": \"{{unidad_residencial_id}}\",\r\n  \"supervisorEmail\": \"{{supervisor_email}}\",\r\n  \"cliente\": \"Condominio Las Palmas\",\r\n  \"fecha\": \"2024-01-15T10:00:00.000Z\",\r\n  \"supervisor\": \"Juan Pérez\",\r\n  \"observaciones\": \"Supervisión programada para revisión general\",\r\n  \"fechaProgramada\": \"2024-01-15T10:00:00.000Z\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/tenant/bitacoras-supervision",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"bitacoras-supervision"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3 - Obtener Bitácoras de Supervisión (Supervisor)",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-user-email",
+						"value": "{{supervisor_email}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/tenant/bitacoras-supervision",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"bitacoras-supervision"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "4 - Llenar Bitácora de Supervisión",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "x-user-email",
+						"value": "{{supervisor_email}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"bitacoraId\": \"{{bitacora_id}}\",\r\n  \"areas\": {\r\n    \"piscinas\": {\r\n      \"BAÑOS\": \"E\",\r\n      \"PH\": \"B\",\r\n      \"CLORO\": \"B\"\r\n    },\r\n    \"zonas_comunes\": {\r\n      \"GIMNASIO\": \"E\",\r\n      \"PORTERÍA\": \"B\"\r\n    }\r\n  },\r\n  \"comentarios\": {\r\n    \"piscinas\": {\r\n      \"BAÑOS\": \"Excelente estado de limpieza\"\r\n    }\r\n  },\r\n  \"evidencias\": {\r\n    \"piscinas\": {\r\n      \"BAÑOS\": \"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...\"\r\n    }\r\n  },\r\n  \"deshabilitadas\": {\r\n    \"oficinas\": true\r\n  },\r\n  \"estado\": \"completada\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/tenant/bitacoras-supervision/{{bitacora_id}}/llenar",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"bitacoras-supervision",
+						"{{bitacora_id}}",
+						"llenar"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "5 - Obtener Bitácoras por Unidad Residencial",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-user-email",
+						"value": "{{admin_email}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/tenant/unidades-residenciales/{{unidad_residencial_id}}/bitacoras-supervision",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"unidades-residenciales",
+						"{{unidad_residencial_id}}",
+						"bitacoras-supervision"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "6 - Obtener Bitácoras por Supervisor",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-user-email",
+						"value": "{{admin_email}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/tenant/bitacoras-supervision/supervisor/{{supervisor_email}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"bitacoras-supervision",
+						"supervisor",
+						"{{supervisor_email}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "7 - Crear Daño desde Bitácora",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "x-user-email",
+						"value": "{{supervisor_email}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"bitacoraId\": \"{{bitacora_id}}\",\r\n  \"area\": \"piscinas\",\r\n  \"item\": \"BAÑOS\",\r\n  \"rating\": \"R\",\r\n  \"latitude\": 6.2442,\r\n  \"longitude\": -75.5812,\r\n  \"accuracy\": 5,\r\n  \"description\": \"Fuga detectada en el sistema de filtración\",\r\n  \"comment\": \"Requiere reparación especializada\",\r\n  \"image\": \"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...\",\r\n  \"severity\": \"high\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/tenant/damages",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"damages"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "8 - Obtener Daños Cercanos",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-user-email",
+						"value": "{{technician_email}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/tenant/damages/nearby?latitude=6.2442&longitude=-75.5812&radius=1000",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"damages",
+						"nearby"
+					],
+					"query": [
+						{
+							"key": "latitude",
+							"value": "6.2442"
+						},
+						{
+							"key": "longitude",
+							"value": "-75.5812"
+						},
+						{
+							"key": "radius",
+							"value": "1000"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "9 - Crear Propuesta de Solución",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "x-user-email",
+						"value": "{{technician_email}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"damageId\": \"{{damage_id}}\",\r\n  \"price\": 150000,\r\n  \"duration\": 2,\r\n  \"description\": \"Reparación completa del sistema de filtración con materiales de alta calidad\",\r\n  \"experience\": \"5 años de experiencia en sistemas de piscinas\",\r\n  \"materials\": [\r\n    {\r\n      \"name\": \"Válvula de filtración\",\r\n      \"quantity\": 1,\r\n      \"unit\": \"unidad\",\r\n      \"cost\": 50000\r\n    },\r\n    {\r\n      \"name\": \"Tubería PVC\",\r\n      \"quantity\": 5,\r\n      \"unit\": \"metros\",\r\n      \"cost\": 30000\r\n    }\r\n  ],\r\n  \"estimatedStartDate\": \"2024-01-20T08:00:00.000Z\",\r\n  \"estimatedEndDate\": \"2024-01-22T17:00:00.000Z\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/tenant/proposals",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"proposals"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "10 - Obtener Propuestas por Técnico",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-user-email",
+						"value": "{{technician_email}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/tenant/proposals/technician/{{technician_email}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"proposals",
+						"technician",
+						"{{technician_email}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "11 - Obtener Daños por Ubicación",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-user-email",
+						"value": "{{technician_email}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/tenant/damages/location?latitude=6.2442&longitude=-75.5812&radius=1000&severity=high",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"damages",
+						"location"
+					],
+					"query": [
+						{
+							"key": "latitude",
+							"value": "6.2442"
+						},
+						{
+							"key": "longitude",
+							"value": "-75.5812"
+						},
+						{
+							"key": "radius",
+							"value": "1000"
+						},
+						{
+							"key": "severity",
+							"value": "high"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "12 - Actualizar Ubicación de Daño",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "x-user-email",
+						"value": "{{supervisor_email}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"latitude\": 6.2442,\r\n  \"longitude\": -75.5812,\r\n  \"accuracy\": 5\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/tenant/damages/{{damage_id}}/location",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"damages",
+						"{{damage_id}}",
+						"location"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "13 - Obtener Propuestas por Daño",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-user-email",
+						"value": "{{technician_email}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/tenant/damages/{{damage_id}}/proposals",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"damages",
+						"{{damage_id}}",
+						"proposals"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "14 - Obtener Daño con Propuestas (Admin)",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-user-email",
+						"value": "{{admin_email}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/tenant/damages/{{damage_id}}/with-proposals",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"damages",
+						"{{damage_id}}",
+						"with-proposals"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "15 - Actualizar Estado de Propuesta (Admin)",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "x-user-email",
+						"value": "{{admin_email}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"status\": \"accepted\",\r\n  \"adminComment\": \"Propuesta aceptada. Contactar al técnico para coordinar la reparación.\",\r\n  \"adminRating\": 5\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/tenant/proposals/{{proposal_id}}/status",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"proposals",
+						"{{proposal_id}}",
+						"status"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://www.refactorii.com",
+			"type": "string"
+		},
+		{
+			"key": "admin_email",
+			"value": "admin@example.com",
+			"type": "string"
+		},
+		{
+			"key": "supervisor_email",
+			"value": "supervisor@example.com",
+			"type": "string"
+		},
+		{
+			"key": "company_id",
+			"value": "{{company_id}}",
+			"type": "string"
+		},
+		{
+			"key": "unidad_residencial_id",
+			"value": "{{unidad_residencial_id}}",
+			"type": "string"
+		},
+		{
+			"key": "bitacora_id",
+			"value": "{{bitacora_id}}",
+			"type": "string"
+		},
+		{
+			"key": "technician_email",
+			"value": "tecnico@example.com",
+			"type": "string"
+		},
+		{
+			"key": "damage_id",
+			"value": "{{damage_id}}",
+			"type": "string"
+		},
+		{
+			"key": "proposal_id",
+			"value": "{{proposal_id}}",
+			"type": "string"
+		}
+	]
+}

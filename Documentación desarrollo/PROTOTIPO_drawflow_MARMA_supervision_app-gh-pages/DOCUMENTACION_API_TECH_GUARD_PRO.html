@@ -1,0 +1,604 @@
+
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Documentación API Tech Guard Pro</title>
+            <style>
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 20px;
+                    background: #fff;
+                }
+                
+                h1 {
+                    color: #2563eb;
+                    border-bottom: 3px solid #2563eb;
+                    padding-bottom: 10px;
+                    margin-top: 40px;
+                }
+                
+                h2 {
+                    color: #1e40af;
+                    border-bottom: 2px solid #e5e7eb;
+                    padding-bottom: 8px;
+                    margin-top: 30px;
+                }
+                
+                h3 {
+                    color: #374151;
+                    margin-top: 25px;
+                }
+                
+                h4 {
+                    color: #4b5563;
+                    margin-top: 20px;
+                }
+                
+                code {
+                    background: #f3f4f6;
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                    font-family: 'Courier New', monospace;
+                    font-size: 0.9em;
+                }
+                
+                pre {
+                    background: #1f2937;
+                    color: #f9fafb;
+                    padding: 20px;
+                    border-radius: 8px;
+                    overflow-x: auto;
+                    margin: 15px 0;
+                }
+                
+                pre code {
+                    background: none;
+                    padding: 0;
+                    color: inherit;
+                }
+                
+                blockquote {
+                    border-left: 4px solid #2563eb;
+                    margin: 20px 0;
+                    padding: 10px 20px;
+                    background: #f8fafc;
+                }
+                
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 20px 0;
+                }
+                
+                th, td {
+                    border: 1px solid #d1d5db;
+                    padding: 12px;
+                    text-align: left;
+                }
+                
+                th {
+                    background: #f3f4f6;
+                    font-weight: 600;
+                }
+                
+                .endpoint {
+                    background: #f0f9ff;
+                    border: 1px solid #0ea5e9;
+                    border-radius: 8px;
+                    padding: 15px;
+                    margin: 15px 0;
+                }
+                
+                .method {
+                    display: inline-block;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                    font-size: 0.8em;
+                    margin-right: 10px;
+                }
+                
+                .method.post {
+                    background: #10b981;
+                    color: white;
+                }
+                
+                .method.get {
+                    background: #3b82f6;
+                    color: white;
+                }
+                
+                .method.put {
+                    background: #f59e0b;
+                    color: white;
+                }
+                
+                .method.delete {
+                    background: #ef4444;
+                    color: white;
+                }
+                
+                .url {
+                    font-family: 'Courier New', monospace;
+                    font-size: 1.1em;
+                    color: #1e40af;
+                }
+                
+                .response {
+                    background: #f0fdf4;
+                    border: 1px solid #22c55e;
+                    border-radius: 8px;
+                    padding: 15px;
+                    margin: 15px 0;
+                }
+                
+                .warning {
+                    background: #fef3c7;
+                    border: 1px solid #f59e0b;
+                    border-radius: 8px;
+                    padding: 15px;
+                    margin: 15px 0;
+                }
+                
+                .success {
+                    background: #d1fae5;
+                    border: 1px solid #10b981;
+                    border-radius: 8px;
+                    padding: 15px;
+                    margin: 15px 0;
+                }
+                
+                .checklist {
+                    background: #f8fafc;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin: 20px 0;
+                }
+                
+                .checklist ul {
+                    list-style: none;
+                    padding-left: 0;
+                }
+                
+                .checklist li {
+                    padding: 5px 0;
+                    position: relative;
+                    padding-left: 25px;
+                }
+                
+                .checklist li:before {
+                    content: "☐";
+                    position: absolute;
+                    left: 0;
+                    color: #6b7280;
+                }
+                
+                @media print {
+                    body {
+                        margin: 0;
+                        padding: 15px;
+                    }
+                    
+                    h1, h2, h3, h4 {
+                        page-break-after: avoid;
+                    }
+                    
+                    .endpoint, .response, .warning, .success {
+                        page-break-inside: avoid;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <h1>📋 DOCUMENTACIÓN API TECH GUARD PRO</h1>
+<h2>Plataforma de Supervisión de Unidades Residenciales</h2>
+
+<h2>🎯 <strong>RESUMEN EJECUTIVO</strong></h2>
+<p><strong>Tech Guard Pro</strong> es una plataforma multi-tenant para la supervisión de unidades residenciales. Permite a empresas administrar supervisores que realizan inspecciones en conjuntos residenciales, registrando el estado de diferentes áreas y elementos.</p>
+<h3><strong>Arquitectura:</strong></h3>
+<ul>
+<li><strong>Frontend</strong>: Aplicación web con Google Sign-in</li>
+<li><strong>Backend</strong>: API REST con Node.js y MongoDB</li>
+<li><strong>Multi-tenant</strong>: Cada empresa tiene sus propios datos</li>
+<li><strong>Roles</strong>: Admin (gestión) y Editor (supervisión)</li>
+</ul>
+<hr />
+<h2>🔧 <strong>ENDPOINTS DE GESTIÓN DE TENANT</strong></h2>
+<h3><strong>1. Crear Usuario Google Sign-in</strong></h3>
+<pre class="codehilite"><code class="language-http">POST http://50.17.36.133:8080/api/tenant/auth/google-signin
+Content-Type: application/json
+
+{
+  &quot;FullName&quot;: &quot;Juan Pérez&quot;,
+  &quot;GivenName&quot;: &quot;Juan&quot;, 
+  &quot;FamilyName&quot;: &quot;Pérez&quot;,
+  &quot;ImageURL&quot;: &quot;https://lh3.googleusercontent.com/a/AATXAJz0_example_image_url&quot;,
+  &quot;Email&quot;: &quot;juan.perez@example.com&quot;
+}
+</code></pre>
+
+<p><strong>Respuesta:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;data&quot;: {
+    &quot;_id&quot;: &quot;user_id_generated&quot;,
+    &quot;Email&quot;: &quot;juan.perez@example.com&quot;,
+    &quot;FullName&quot;: &quot;Juan Pérez&quot;
+  }
+}
+</code></pre>
+
+<hr />
+<h3><strong>2. Crear Empresa</strong></h3>
+<pre class="codehilite"><code class="language-http">POST http://50.17.36.133:8080/api/tenant/companies
+x-user-email: usuario@ejemplo.com
+Content-Type: application/json
+
+{
+  &quot;name&quot;: &quot;Mi Empresa S.A.&quot;,
+  &quot;subdomain&quot;: &quot;empresa2&quot;, 
+  &quot;description&quot;: &quot;Descripción de la empresa&quot;
+}
+</code></pre>
+
+<p><strong>Respuesta:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;data&quot;: {
+    &quot;_id&quot;: &quot;c6a01b29f99628a47fac180d168b45f7&quot;,
+    &quot;name&quot;: &quot;Mi Empresa S.A.&quot;,
+    &quot;subdomain&quot;: &quot;empresa2&quot;
+  }
+}
+</code></pre>
+
+<hr />
+<h3><strong>3. Relacionar Usuario con Empresa</strong></h3>
+<pre class="codehilite"><code class="language-http">POST http://50.17.36.133:8080/api/tenant/companies/relate-user
+x-user-email: usuario@ejemplo.com
+Content-Type: application/json
+
+{
+  &quot;companyId&quot;: &quot;c6a01b29f99628a47fac180d168b45f7&quot;,
+  &quot;role&quot;: &quot;admin&quot;
+}
+</code></pre>
+
+<p><strong>Roles disponibles:</strong>
+- <code>admin</code>: Gestión completa de la empresa
+- <code>editor</code>: Solo supervisión (supervisores)
+- <code>viewer</code>: Solo lectura</p>
+<hr />
+<h3><strong>4. Obtener Empresas del Usuario</strong></h3>
+<pre class="codehilite"><code class="language-http">GET http://50.17.36.133:8080/api/tenant/companies
+x-user-email: usuario@ejemplo.com
+</code></pre>
+
+<p><strong>Respuesta:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;data&quot;: [
+    {
+      &quot;_id&quot;: &quot;c6a01b29f99628a47fac180d168b45f7&quot;,
+      &quot;name&quot;: &quot;Mi Empresa S.A.&quot;,
+      &quot;subdomain&quot;: &quot;empresa2&quot;,
+      &quot;role&quot;: &quot;admin&quot;
+    }
+  ]
+}
+</code></pre>
+
+<hr />
+<h2>🏢 <strong>ENDPOINTS DE REGLAS DE NEGOCIO</strong></h2>
+<h3><strong>0. ADMIN - Crear Unidad Residencial</strong></h3>
+<pre class="codehilite"><code class="language-http">POST http://50.17.36.133:8080/api/tenant/unidades-residenciales
+x-user-email: admin@marma.com
+Content-Type: application/json
+
+{
+  &quot;nombre&quot;: &quot;Conjunto Residencial Marma&quot;,
+  &quot;direccion&quot;: &quot;Carrera 15 #93-47, Bogotá&quot;,
+  &quot;tipo&quot;: &quot;condominio&quot;,
+  &quot;companyId&quot;: &quot;c6a01b29f99628a47fac180d168b45f7&quot;,
+  &quot;areas&quot;: {
+    &quot;piscinas&quot;: {
+      &quot;name&quot;: &quot;PISCINAS&quot;,
+      &quot;color&quot;: &quot;#3b82f6&quot;,
+      &quot;items&quot;: [&quot;BAÑOS&quot;,&quot;ROMPE OLAS&quot;,&quot;ANDENES&quot;,&quot;LAVA PIES - DUCHA&quot;,&quot;SAUNA&quot;,&quot;JACUZZI&quot;,&quot;TURCO&quot;,&quot;COLOR VISUAL&quot;,&quot;PH&quot;,&quot;CLORO&quot;,&quot;CUARTO DE MÁQUINAS&quot;,&quot;HOLL&quot;]
+    },
+    &quot;zonas_comunes&quot;: {
+      &quot;name&quot;: &quot;ZONAS COMUNES&quot;,
+      &quot;color&quot;: &quot;#22c55e&quot;, 
+      &quot;items&quot;: [&quot;GIMNASIO&quot;,&quot;SALÓN SOCIAL&quot;,&quot;SALÓN DE JUEGOS&quot;,&quot;ANDENES&quot;,&quot;PORTERÍA&quot;,&quot;PARQUEADERO&quot;]
+    },
+    &quot;zonas_externas&quot;: {
+      &quot;name&quot;: &quot;ZONAS EXTERNAS&quot;,
+      &quot;color&quot;: &quot;#f59e0b&quot;,
+      &quot;items&quot;: [&quot;ZONA VERDES&quot;,&quot;CAÑUELAS&quot;,&quot;PARQUE INFANTIL&quot;,&quot;PAREDES&quot;,&quot;VIDRIOS - VENTANAS&quot;,&quot;PASAMANOS&quot;,&quot;TAPAS SHUT&quot;,&quot;GABINETES - EXTINTORES&quot;,&quot;BARRIO - TRAPEADO&quot;,&quot;ASCENSORES&quot;,&quot;TUBERÍA VOLÁTIL&quot;,&quot;ESCALAS&quot;,&quot;PISOS&quot;,&quot;SHUT BASURAS&quot;]
+    }
+  }
+}
+</code></pre>
+
+<hr />
+<h3><strong>1. ADMIN - Obtener Unidades Residenciales</strong></h3>
+<pre class="codehilite"><code class="language-http">GET http://50.17.36.133:8080/api/tenant/unidades-residenciales
+x-user-email: admin@marma.com
+</code></pre>
+
+<p><strong>Respuesta:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;data&quot;: [
+    {
+      &quot;_id&quot;: &quot;c47aaa98-3c95-4d29-9d71-8f9ad7585b72&quot;,
+      &quot;nombre&quot;: &quot;Conjunto Residencial Marma&quot;,
+      &quot;direccion&quot;: &quot;Carrera 15 #93-47, Bogotá&quot;,
+      &quot;tipo&quot;: &quot;condominio&quot;,
+      &quot;companyId&quot;: &quot;c6a01b29f99628a47fac180d168b45f7&quot;,
+      &quot;areas&quot;: { /* estructura de áreas */ }
+    }
+  ],
+  &quot;total&quot;: 1
+}
+</code></pre>
+
+<hr />
+<h3><strong>2. ADMIN - Crear Bitácora de Supervisión</strong></h3>
+<pre class="codehilite"><code class="language-http">POST http://50.17.36.133:8080/api/tenant/bitacoras-supervision
+x-user-email: admin@marma.com
+x-editor-email: editor@marma.com
+Content-Type: application/json
+
+{
+  &quot;unidadResidencialId&quot;: &quot;c47aaa98-3c95-4d29-9d71-8f9ad7585b72&quot;,
+  &quot;fecha&quot;: &quot;2025-09-24T09:00:00.000Z&quot;,
+  &quot;observaciones&quot;: &quot;Supervisión programada para el miercoles 24 de septiembre&quot;
+}
+</code></pre>
+
+<p><strong>Respuesta:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;data&quot;: {
+    &quot;_id&quot;: &quot;ae74113f-019a-4550-86f1-ab7cc1ac8538&quot;,
+    &quot;unidadResidencialId&quot;: &quot;c47aaa98-3c95-4d29-9d71-8f9ad7585b72&quot;,
+    &quot;supervisorEmail&quot;: &quot;editor@marma.com&quot;,
+    &quot;fecha&quot;: &quot;2025-09-24T09:00:00.000Z&quot;,
+    &quot;estado&quot;: &quot;programada&quot;,
+    &quot;observaciones&quot;: &quot;Supervisión programada para el miercoles 24 de septiembre&quot;
+  }
+}
+</code></pre>
+
+<hr />
+<h3><strong>3. SUPERVISOR - Obtener Mis Bitácoras (FRONTEND)</strong></h3>
+<pre class="codehilite"><code class="language-http">GET http://50.17.36.133:8080/api/tenant/bitacoras-supervision
+x-user-email: wbsckt3@gmail.com
+</code></pre>
+
+<p><strong>Respuesta:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;data&quot;: [
+    {
+      &quot;_id&quot;: &quot;ae74113f-019a-4550-86f1-ab7cc1ac8538&quot;,
+      &quot;cliente&quot;: &quot;Conjunto Residencial Marma&quot;,
+      &quot;fecha&quot;: &quot;2025-09-24T09:00:00.000Z&quot;,
+      &quot;estado&quot;: &quot;programada&quot;,
+      &quot;supervisor&quot;: &quot;wbsckt3@gmail.com&quot;,
+      &quot;unidadResidencial&quot;: {
+        &quot;_id&quot;: &quot;c47aaa98-3c95-4d29-9d71-8f9ad7585b72&quot;,
+        &quot;nombre&quot;: &quot;Conjunto Residencial Marma&quot;,
+        &quot;areas&quot;: { /* estructura de áreas */ }
+      }
+    }
+  ],
+  &quot;total&quot;: 1
+}
+</code></pre>
+
+<hr />
+<h3><strong>4. SUPERVISOR - Llenar Bitácora de Supervisión (FRONTEND)</strong></h3>
+<pre class="codehilite"><code class="language-http">POST http://50.17.36.133:8080/api/tenant/bitacoras-supervision/ID_DE_LA_BITACORA/llenar
+x-user-email: editor@marma.com
+Content-Type: application/json
+
+{
+  &quot;areas&quot;: {
+    &quot;piscinas&quot;: {
+      &quot;BAÑOS&quot;: &quot;E&quot;,
+      &quot;ROMPE OLAS&quot;: &quot;B&quot;, 
+      &quot;ANDENES&quot;: &quot;E&quot;,
+      &quot;LAVA PIES - DUCHA&quot;: &quot;B&quot;
+    },
+    &quot;zonas_comunes&quot;: {
+      &quot;GIMNASIO&quot;: &quot;B&quot;,
+      &quot;SALÓN SOCIAL&quot;: &quot;E&quot;,
+      &quot;SALÓN DE JUEGOS&quot;: &quot;B&quot;
+    }
+  },
+  &quot;comentarios&quot;: {
+    &quot;piscinas&quot;: {
+      &quot;BAÑOS&quot;: &quot;Requiere limpieza profunda&quot;,
+      &quot;ROMPE OLAS&quot;: &quot;En buen estado&quot;
+    }
+  },
+  &quot;evidencias&quot;: [
+    {
+      &quot;area&quot;: &quot;piscinas&quot;,
+      &quot;item&quot;: &quot;BAÑOS&quot;,
+      &quot;tipo&quot;: &quot;foto&quot;,
+      &quot;url&quot;: &quot;https://ejemplo.com/evidencia1.jpg&quot;,
+      &quot;descripcion&quot;: &quot;Estado actual de los baños&quot;
+    }
+  ],
+  &quot;estado&quot;: &quot;completada&quot;
+}
+</code></pre>
+
+<hr />
+<h3><strong>5. ADMIN - Obtener Bitácoras de Una Unidad Residencial</strong></h3>
+<pre class="codehilite"><code class="language-http">GET http://50.17.36.133:8080/api/tenant/unidades-residenciales/ID_DE_LA_UNIDAD_RESIDENCIAL/bitacoras
+x-user-email: admin@marma.com
+</code></pre>
+
+<hr />
+<h3><strong>6. ADMIN - Obtener Bitácoras de Supervisor Específico</strong></h3>
+<pre class="codehilite"><code class="language-http">GET http://50.17.36.133:8080/api/tenant/bitacoras-supervision/supervisor
+x-user-email: admin@marma.com
+x-editor-email: editor@marma.com
+</code></pre>
+
+<hr />
+<h3><strong>7. FRONTEND/ADMIN - Obtener Bitácora Específica por ID</strong></h3>
+<pre class="codehilite"><code class="language-http">GET http://50.17.36.133:8080/api/tenant/bitacoras-supervision/ID_DE_LA_BITACORA
+x-user-email: editor@marma.com
+</code></pre>
+
+<hr />
+<h2>🚀 <strong>GUÍA DE IMPLEMENTACIÓN</strong></h2>
+<h3><strong>Paso 1: Configuración Inicial</strong></h3>
+<ol>
+<li>Crear usuario admin</li>
+<li>Crear empresa</li>
+<li>Relacionar admin con empresa (rol: admin)</li>
+<li>Crear usuario editor/supervisor</li>
+<li>Relacionar editor con empresa (rol: editor)</li>
+</ol>
+<h3><strong>Paso 2: Configuración de Unidades</strong></h3>
+<ol>
+<li>Admin crea unidades residenciales</li>
+<li>Admin asigna bitácoras a supervisores</li>
+<li>Supervisores acceden al frontend</li>
+</ol>
+<h3><strong>Paso 3: Flujo de Supervisión</strong></h3>
+<ol>
+<li>Supervisor inicia sesión en frontend</li>
+<li>Ve sus bitácoras asignadas</li>
+<li>Selecciona una bitácora para llenar</li>
+<li>Completa el formulario de supervisión</li>
+<li>Guarda los datos</li>
+</ol>
+<hr />
+<h2>📱 <strong>FRONTEND - FORMULARIO_V2.HTML</strong></h2>
+<h3><strong>Características:</strong></h3>
+<ul>
+<li>✅ <strong>Google Sign-in</strong>: Autenticación con Google</li>
+<li>✅ <strong>Dashboard</strong>: Lista de bitácoras asignadas</li>
+<li>✅ <strong>Formulario Dinámico</strong>: Basado en áreas de la unidad residencial</li>
+<li>✅ <strong>Transiciones Suaves</strong>: Efectos visuales mejorados</li>
+<li>✅ <strong>Responsive</strong>: Adaptable a diferentes dispositivos</li>
+</ul>
+<h3><strong>URL de Acceso:</strong></h3>
+<pre class="codehilite"><code>https://wbsckt3.github.io/PROTOTIPO_drawflow_MARMA_supervision_app/formulario_v2.html
+</code></pre>
+
+<h3><strong>Flujo de Usuario:</strong></h3>
+<ol>
+<li><strong>Login</strong>: Usuario se autentica con Google</li>
+<li><strong>Dashboard</strong>: Ve sus bitácoras asignadas</li>
+<li><strong>Selección</strong>: Hace clic en una bitácora</li>
+<li><strong>Formulario</strong>: Llena los datos de supervisión</li>
+<li><strong>Guardado</strong>: Envía los datos al servidor</li>
+</ol>
+<hr />
+<h2>🔐 <strong>SEGURIDAD Y ROLES</strong></h2>
+<h3><strong>Roles del Sistema:</strong></h3>
+<ul>
+<li><strong>Admin</strong>: Gestión completa de empresa y supervisores</li>
+<li><strong>Editor</strong>: Solo supervisión de unidades asignadas</li>
+<li><strong>Viewer</strong>: Solo lectura (futuro)</li>
+</ul>
+<h3><strong>Validaciones:</strong></h3>
+<ul>
+<li>Usuarios solo acceden a datos de sus empresas</li>
+<li>Supervisores solo ven sus bitácoras asignadas</li>
+<li>Admins pueden ver todas las bitácoras de su empresa</li>
+</ul>
+<h3><strong>Headers Obligatorios:</strong></h3>
+<ul>
+<li><code>x-user-email</code>: Email del usuario autenticado</li>
+<li><code>x-editor-email</code>: Email del supervisor (endpoints específicos)</li>
+</ul>
+<hr />
+<h2>📊 <strong>ESTADOS Y CALIFICACIONES</strong></h2>
+<h3><strong>Estados de Bitácora:</strong></h3>
+<ul>
+<li><code>programada</code>: Recién creada por admin</li>
+<li><code>en_progreso</code>: Supervisor inició la supervisión</li>
+<li><code>completada</code>: Supervisor terminó de llenar la bitácora</li>
+<li><code>cancelada</code>: Bitácora cancelada</li>
+</ul>
+<h3><strong>Calificaciones de Áreas:</strong></h3>
+<ul>
+<li><code>E</code>: Excelente</li>
+<li><code>B</code>: Bueno</li>
+<li><code>R</code>: Regular</li>
+</ul>
+<hr />
+<h2>🧪 <strong>TESTING CON POSTMAN</strong></h2>
+<h3><strong>Colecciones Disponibles:</strong></h3>
+<ol>
+<li><strong>4_endpoints_POSTMAN_api_tenant_collection.json</strong>: Gestión de tenant</li>
+<li><strong>7_endpoints_POSTMAN_reglas_negocio.json</strong>: Reglas de negocio</li>
+</ol>
+<h3><strong>Datos de Prueba:</strong></h3>
+<ul>
+<li><strong>Company ID</strong>: <code>c6a01b29f99628a47fac180d168b45f7</code></li>
+<li><strong>Unidad ID</strong>: <code>c47aaa98-3c95-4d29-9d71-8f9ad7585b72</code></li>
+<li><strong>Admin Email</strong>: <code>admin@marma.com</code></li>
+<li><strong>Editor Email</strong>: <code>editor@marma.com</code></li>
+</ul>
+<hr />
+<h2>📞 <strong>SOPORTE TÉCNICO</strong></h2>
+<h3><strong>Información de Contacto:</strong></h3>
+<ul>
+<li><strong>Plataforma</strong>: Tech Guard Pro</li>
+<li><strong>Cliente Demo</strong>: Marma S.A.S.</li>
+<li><strong>URL Base</strong>: <code>http://50.17.36.133:8080/api/tenant</code></li>
+<li><strong>Frontend</strong>: <code>https://wbsckt3.github.io/PROTOTIPO_drawflow_MARMA_supervision_app/formulario_v2.html</code></li>
+</ul>
+<h3><strong>Archivos de Configuración:</strong></h3>
+<ul>
+<li><strong>Modelos</strong>: <code>UnidadResidencial.model.js</code>, <code>BitacoraSupervision.model.js</code></li>
+<li><strong>Controladores</strong>: <code>reglas-negocio.controller.js</code></li>
+<li><strong>Frontend</strong>: <code>formulario_v2.html</code>, <code>auth.js</code></li>
+</ul>
+<hr />
+<h2>📋 <strong>CHECKLIST DE IMPLEMENTACIÓN</strong></h2>
+<h3><strong>Backend:</strong></h3>
+<ul>
+<li>[ ] Modelos de base de datos creados</li>
+<li>[ ] Controladores implementados</li>
+<li>[ ] Rutas configuradas</li>
+<li>[ ] Validaciones de seguridad</li>
+<li>[ ] Testing con Postman</li>
+</ul>
+<h3><strong>Frontend:</strong></h3>
+<ul>
+<li>[ ] Google Sign-in integrado</li>
+<li>[ ] Dashboard funcional</li>
+<li>[ ] Formulario dinámico</li>
+<li>[ ] Transiciones suaves</li>
+<li>[ ] Manejo de errores</li>
+</ul>
+<h3><strong>Integración:</strong></h3>
+<ul>
+<li>[ ] API conectada al frontend</li>
+<li>[ ] Autenticación funcionando</li>
+<li>[ ] Datos reales mostrados</li>
+<li>[ ] Flujo completo operativo</li>
+</ul>
+<hr />
+<p><strong>© 2025 Tech Guard Pro - Plataforma de Supervisión Residencial</strong></p>
+        </body>
+        </html>
+        

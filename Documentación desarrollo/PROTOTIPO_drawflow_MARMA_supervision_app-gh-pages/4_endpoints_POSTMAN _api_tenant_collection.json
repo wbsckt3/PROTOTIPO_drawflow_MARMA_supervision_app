@@ -1,0 +1,145 @@
+{
+	"info": {
+		"_postman_id": "36830356-1fc6-4f46-85ae-c27ed1954468",
+		"name": "api/tenant/",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "484070"
+	},
+	"item": [
+		{
+			"name": "{{base_url}}/api/tenant/auth/google-signin",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"FullName\": \"Juan Pérez\",\r\n  \"GivenName\": \"Juan\",\r\n  \"FamilyName\": \"Pérez\",\r\n  \"ImageURL\": \"https://lh3.googleusercontent.com/a/AATXAJz0_example_image_url\",\r\n  \"Email\": \"juan.perez@example.com\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/tenant/auth/google-signin",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"auth",
+						"google-signin"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Admin con x-user-email crea empresas ( < companyId )",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-user-email",
+						"value": "{{user_email}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"name\": \"Empresa de tracking vehiculos\",\r\n  \"subdomain\": \"empresa3\",\r\n  \"description\": \"Proveemos servicio de geolocalizacion en timepo real\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/tenant/companies",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"companies"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Admin con x-user-email obtiene sus empresas",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-user-email",
+						"value": "wbsckt2@gmail.com",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/tenant/companies",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"companies"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Admin con companyId relaciona x-user-email a empresa y rol",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-user-email",
+						"value": "wbsckt2@gmail.com",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"companyId\": \"bcb1a6db71f9973ff91c00103a33e873\",\r\n  \"role\": \"admin\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/tenant/companies/relate-user",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"tenant",
+						"companies",
+						"relate-user"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

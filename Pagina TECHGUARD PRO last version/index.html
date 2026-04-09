@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TECHGUARD PRO | Innovación Tecnológica</title>
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="img/logo.png" alt="Logo TECHGUARD PRO">
+                <span>TECHGUARD PRO</span>
+            </div>
+
+            <!-- Hamburguesa -->
+            <button id="navToggle" class="nav-toggle">
+                <span></span><span></span><span></span>
+            </button>
+
+            <!-- Links -->
+            <ul id="navLinks" class="nav-links">
+                <li><a href="#inicio" class="nav-link">Inicio</a></li>
+                <li><a href="#servicios" class="nav-link">Servicios</a></li>
+
+                <li class="nav-item nav-item--dropdown">
+                    <button id="solutionsBtn" class="nav-link dropdown-btn">
+                        Nuestras soluciones ▾
+                    </button>
+
+                    <ul id="solutionsMenu" class="dropdown">
+                        <li><a href="http://www.techguard.pro/orbix/index.html" target="_blank">ORBIX</a></li>
+                        <li><a href="http://www.techguard.pro/renting/index.html" target="_blank">Arrendamientos</a></li>
+                        <li><a href="http://www.techguard.pro/botiatgp/index.html" target="_blank">Bot IA WhatsApp</a></li>
+                        <li><a href="https://bitech.techguard.pro/" target="_blank">Business Intelligence BITech (Reportes)</a></li>
+                    </ul>
+                </li>
+
+                <li><a href="#" id="openContact" class="nav-link">Contacto</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section id="inicio" class="hero reveal">
+        <div class="hero-content">
+            <h1>Impulsamos tu transformación digital</h1>
+            <p>
+                Soluciones tecnológicas a la medida, automatización, IA y optimización de procesos para potenciar tu operación.
+            </p>
+            <a href="#servicios" class="btn">Conoce más</a>
+        </div>
+    </section>
+
+    <!-- SERVICIOS -->
+    <section id="servicios" class="section reveal">
+        <h2>Servicios</h2>
+
+        <div class="cards">
+            <div class="card">
+                <h3>Desarrollos a medida</h3>
+                <p>Software según tus reglas de negocio y objetivos estratégicos.</p>
+            </div>
+
+            <div class="card">
+                <h3>Acompañamiento tecnológico</h3>
+                <p>Soporte experto, arquitectura y evolución tecnológica continua.</p>
+            </div>
+
+            <div class="card">
+                <h3>Procesos y automatización</h3>
+                <p>Levantamiento, análisis y mejora operativa para mejorar tiempos y calidad.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ORBIX -->
+    <section class="section section-alt reveal">
+        <h2>ORBIX</h2>
+        <p>Supervisión de campo, evidencias, trazabilidad y reportes ejecutivos.</p>
+        <a href="http://www.techguard.pro/orbix/index.html" target="_blank" class="btn">Ver ORBIX</a>
+    </section>
+
+    <!-- ARRENDAMIENTOS -->
+    <section class="section reveal">
+        <h2>Arrendamientos</h2>
+        <p>Control completo de activos, contratos, mantenimiento y estado operativo.</p>
+        <a href="http://www.techguard.pro/renting/index.html" target="_blank" class="btn">Ver Arrendamientos</a>
+    </section>
+
+    <!-- BOT IA -->
+    <section class="section section-alt reveal">
+        <h2>Bot IA WhatsApp</h2>
+        <p>Automatiza la atención de tus clientes con inteligencia artificial 24/7.</p>
+        <a href="http://www.techguard.pro/botiatgp/index.html" target="_blank" class="btn">Ver Bot IA</a>
+    </section>
+
+    <!-- BUSINESS INTELLIGENCE BITech -->
+<section class="section reveal">
+    <h2>Business Intelligence BITech</h2>
+    <p>
+        Analítica avanzada, dashboards ejecutivos, integración de datos y toma de decisiones apoyada en BI para tu operación.
+    </p>
+    <a href="http://www.techguard.pro/bitech/index.html" target="_blank" class="btn">
+        Ver BITech
+    </a>
+</section>
+
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <p>© 2025 TECHGUARD PRO — Todos los derechos reservados.</p>
+    </footer>
+
+    <!-- BOTÓN FLOTANTE -->
+    <button id="contactBtn" class="contact-fab">💬</button>
+
+    <!-- MODAL CONTACTO -->
+    <div id="contactModal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog">
+            <button class="modal-close" id="closeModal">×</button>
+
+            <h2>Contáctanos</h2>
+            <p class="modal-text">
+                Déjanos tus datos y te responderemos pronto.
+            </p>
+
+            <form action="https://formsubmit.co/techguardtenant@gmail.com" method="POST">
+                <input type="text" name="name" placeholder="Tu nombre" required>
+                <input type="email" name="email" placeholder="Tu correo electrónico" required>
+                <input type="text" name="whatsapp" placeholder="Número de WhatsApp" required>
+                <textarea name="message" placeholder="Mensaje..." required></textarea>
+
+                <button type="submit" class="btn btn-full">Enviar</button>
+
+                <input type="hidden" name="_captcha" value="false">
+            </form>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
